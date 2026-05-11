@@ -1,0 +1,48 @@
+flowchart LR
+    Dev([Developpeur Mac M1])
+
+    subgraph Local["Poste developpeur"]
+        direction TB
+        IDE["VS Code Cursor<br/>plus "]
+        TF["Terraform CLI<br/>v1.15"]
+        ANS["Ansible CLI"]
+        KUB["kubectl helm"]
+        Pre["pre-commit hooks<br/>tflint ansible-lint"]
+    end
+
+    subgraph GH["GitHub - Repo monerometrics"]
+        direction TB
+        Code["Code source<br/>infra config k8s docs"]
+        Actions["GitHub Actions<br/>CI CD pipelines"]
+        Sec["Dependabot<br/>Trivy SAST"]
+    end
+
+    subgraph Azure["Azure France Central"]
+        direction TB
+        State["Azure Blob<br/>Terraform state distant<br/>Chiffre et lock"]
+        RG["Resource Group<br/>monerometrics-prod"]
+        VMs["Infrastructure cible<br/>VNet VMs Disques"]
+    end
+
+    Dev --> IDE
+    IDE -->|Edit| Code
+    Pre -->|Pre-push| Code
+    Code -->|Push| GH
+    Actions -->|terraform plan| State
+    Actions -->|ansible playbook| VMs
+    Sec -->|Scan dependances| Code
+    TF -.->|terraform apply| State
+    State -.->|Provision| RG
+    ANS -.->|Configure| VMs
+    KUB -.->|Deploy manifests| VMs
+    RG --> VMs
+
+    classDef local fill:#FAEEDA,stroke:#854F0B,color:#412402
+    classDef github fill:#EEEDFE,stroke:#3C3489,color:#26215C
+    classDef azure fill:#E6F1FB,stroke:#185FA5,color:#042C53
+    classDef ext fill:#F1EFE8,stroke:#444441,color:#2C2C2A
+
+    class IDE,TF,ANS,KUB,Pre local
+    class Code,Actions,Sec github
+    class State,RG,VMs azure
+    class Dev ext

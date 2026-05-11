@@ -1,0 +1,81 @@
+flowchart TB
+    Internet([Internet 0.0.0.0/0])
+    AdminPC([Poste admin])
+
+    subgraph VNet["VNet monerometrics 10.0.0.0/16"]
+        direction TB
+
+        subgraph SubDMZ["Subnet DMZ 10.0.1.0/24"]
+            direction TB
+            OPN["OPNsense 10.0.1.10<br/>2 interfaces WAN LAN"]
+            NGX["nginx 10.0.1.20<br/>WAF ModSecurity"]
+            OPN --> NGX
+        end
+
+        subgraph SubMgmt["Subnet Mgmt 10.0.30.0/24"]
+            direction TB
+            BAS["Bastion SSH 10.0.30.10<br/>Public IP unique"]
+            AUTH["Authentik 10.0.30.20"]
+            OBAO["OpenBao 10.0.30.30"]
+        end
+
+        subgraph SubApp["Subnet App 10.0.10.0/24"]
+            direction TB
+            LBINT["LB interne 10.0.10.100"]
+            K3SM["k3s master 10.0.10.10"]
+            K3SW1["k3s worker1 10.0.10.11"]
+            K3SW2["k3s worker2 10.0.10.12"]
+            LBINT --> K3SM
+            LBINT --> K3SW1
+            LBINT --> K3SW2
+        end
+
+        subgraph SubData["Subnet Data 10.0.20.0/24"]
+            direction TB
+            MON["monerod 10.0.20.10<br/>Mode prune"]
+            PG["Postgres Patroni 10.0.20.20"]
+            ETCD["etcd 10.0.20.30"]
+            PG --- ETCD
+        end
+
+        subgraph SubObs["Subnet Monitoring 10.0.40.0/24"]
+            direction TB
+            WZH["Wazuh 10.0.40.10"]
+            PROM["Prometheus 10.0.40.20"]
+            GRF["Grafana 10.0.40.21"]
+            LOKI["Loki 10.0.40.22"]
+        end
+
+        UDR["Route Tables<br/>Default route 10.0.1.10<br/>Force trafic via OPNsense"]
+    end
+
+    Internet ==>|TCP 443| OPN
+    NGX ==>|HTTPS 443| LBINT
+    SubApp -->|RPC 18081| MON
+    SubApp -->|SQL 5432| PG
+
+    AdminPC ==>|SSH 22| BAS
+    BAS -->|SSH| SubApp
+    BAS -->|SSH| SubData
+    BAS -->|SSH| SubObs
+
+    OBAO -.->|API 8200| SubApp
+    OBAO -.->|API 8200| SubData
+
+    UDR -.->|Applique| VNet
+
+    classDef dmz fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
+    classDef app fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    classDef data fill:#FBEAF0,stroke:#993556,color:#4B1528
+    classDef mgmt fill:#FAEEDA,stroke:#854F0B,color:#412402
+    classDef obs fill:#EEEDFE,stroke:#3C3489,color:#26215C
+    classDef ext fill:#E6F1FB,stroke:#185FA5,color:#042C53
+    classDef route fill:#F1EFE8,stroke:#444441,color:#2C2C2A
+
+    class OPN,NGX dmz
+    class K3SM,K3SW1,K3SW2,LBINT app
+    class MON,PG,ETCD data
+    class BAS,AUTH,OBAO mgmt
+    class WZH,PROM,GRF,LOKI obs
+    class Internet,AdminPC ext
+    class UDR route
