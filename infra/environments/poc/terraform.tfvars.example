@@ -1,0 +1,7 @@
+# terraform.tfvars.example
+# Copie ce fichier en terraform.tfvars (gitignored) et remplis avec tes valeurs.
+# terraform.tfvars est lu automatiquement par Terraform au moment du plan/apply.
+
+# Ton IP publique en format CIDR /32.
+# Pour la recuperer : curl ifconfig.me
+admin_source_ip = "X.X.X.X/32"
