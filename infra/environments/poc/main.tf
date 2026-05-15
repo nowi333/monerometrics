@@ -35,3 +35,16 @@ module "network" {
     owner       = "noe"
   }
 }
+
+# ============================================================
+# Module DNS : Cloudflare records pour monerometrics.net
+# Pour l instant, aucun record A defini (pas encore de VM publique).
+# On ajoutera les records au sous-sprint 3B quand on creera la VM nginx.
+# ============================================================
+module "dns" {
+  source = "../../modules/dns"
+
+  zone_name = "monerometrics.net"
+  a_records = {}
+  proxied   = false
+}

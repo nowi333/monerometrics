@@ -9,11 +9,13 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.20"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.0"
+    }
   }
 
   # Backend distant : stocke le state dans le Storage Account cree par le bootstrap.
-  # Chiffrement au repos (Microsoft-managed keys), lock automatique via blob lease,
-  # versioning et soft delete 7 jours actives au niveau du storage account.
   backend "azurerm" {
     resource_group_name  = "rg-monerometrics-tfstate"
     storage_account_name = "stmonerometricstfdezfto"
@@ -24,7 +26,9 @@ terraform {
 
 provider "azurerm" {
   features {}
-
-  # On gere les Resource Providers manuellement (deja registered lors du bootstrap).
   resource_provider_registrations = "none"
 }
+
+# Provider cloudflare : authentifie via la variable d env CLOUDFLARE_API_TOKEN
+# chargee par scripts/azure-env.sh depuis Keychain macOS.
+provider "cloudflare" {}

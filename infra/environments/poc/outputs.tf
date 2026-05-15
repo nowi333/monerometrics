@@ -26,3 +26,16 @@ output "subnet_cidrs" {
   description = "Map des CIDR des subnets."
   value       = module.network.subnet_cidrs
 }
+
+# ============================================================
+# DNS Cloudflare
+# ============================================================
+output "cloudflare_zone_id" {
+  description = "ID Cloudflare de la zone monerometrics.net."
+  value       = module.dns.zone_id
+}
+
+output "cloudflare_zone_name" {
+  description = "Nom de la zone Cloudflare."
+  value       = module.dns.zone_name
+}
