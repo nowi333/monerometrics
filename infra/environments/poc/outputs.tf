@@ -39,3 +39,21 @@ output "cloudflare_zone_name" {
   description = "Nom de la zone Cloudflare."
   value       = module.dns.zone_name
 }
+
+# ============================================================
+# Bastion
+# ============================================================
+output "bastion_public_ip" {
+  description = "IP publique du bastion (bootstrap initial uniquement)."
+  value       = module.bastion.public_ip_address
+}
+
+output "bastion_private_ip" {
+  description = "IP privee du bastion dans le subnet Mgmt."
+  value       = module.bastion.private_ip_address
+}
+
+output "bastion_ssh_command" {
+  description = "Commande SSH initiale (IP publique)."
+  value       = module.bastion.ssh_command_initial
+}

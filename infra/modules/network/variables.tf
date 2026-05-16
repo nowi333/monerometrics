@@ -23,7 +23,7 @@ variable "environment" {
 variable "location" {
   description = "Region Azure ou deployer le reseau."
   type        = string
-  default     = "francecentral"
+  default     = "swedencentral"
 }
 
 variable "tags" {
