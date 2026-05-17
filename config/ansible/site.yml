@@ -1,0 +1,11 @@
+---
+# Playbook principal monerometrics
+# Applique les roles common (hardening) + tailscale sur le groupe bastion
+
+- name: Configure bastion (hardening + tailscale)
+  hosts: bastion
+  gather_facts: true
+  become: false
+  roles:
+    - common
+    - tailscale   # decommente au Bloc 5

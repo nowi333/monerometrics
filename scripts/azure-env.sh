@@ -42,6 +42,16 @@ if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
 fi
 
 # ============================================================
+# ============================================================
+# Tailscale - Auth key reutilisable pour join tailnet
+# ============================================================
+export TAILSCALE_AUTH_KEY=$(security find-generic-password -a "monerometrics" -s "tailscale-auth-key" -w 2>/dev/null)
+
+if [[ -z "${TAILSCALE_AUTH_KEY:-}" ]]; then
+  echo "ATTENTION : TAILSCALE_AUTH_KEY vide. Ansible role tailscale ne pourra pas auth."
+fi
+
+
 # Recap
 # ============================================================
 echo "OK Credentials charges :"
@@ -50,3 +60,4 @@ echo "  Azure tenant       : ${ARM_TENANT_ID:0:8}..."
 echo "  Azure client ID    : ${ARM_CLIENT_ID:0:8}..."
 echo "  Azure secret       : [masque]"
 echo "  Cloudflare token   : ${CLOUDFLARE_API_TOKEN:0:8}..."
+echo "  Tailscale auth key : ${TAILSCALE_AUTH_KEY:0:11}..."

@@ -1,0 +1,127 @@
+---
+# Tasks principales du role common
+# Hardening CIS L1 partiel sur Ubuntu 24.04
+
+# === MISE A JOUR SYSTEME ===
+- name: Update apt cache (1h max age)
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Upgrade all packages (dist-upgrade, safe)
+  ansible.builtin.apt:
+    upgrade: dist
+    autoremove: true
+    autoclean: true
+  become: true
+
+# === INSTALLATION PAQUETS BASE ===
+- name: Install common security and utility packages
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+  become: true
+
+# === DURCISSEMENT SSH ===
+- name: Deploy hardened sshd_config
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: '0600'
+    validate: '/usr/sbin/sshd -t -f %s'
+  become: true
+  notify: Restart sshd
+
+- name: Deploy SSH login banner
+  ansible.builtin.copy:
+    dest: /etc/issue.net
+    content: |
+      ********************************************************************
+      *  Acces restreint - monerometrics infrastructure                   *
+      *  Toute connexion est tracee et auditee                            *
+      *  Tout acces non autorise sera poursuivi                           *
+      ********************************************************************
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+# === HARDENING KERNEL VIA SYSCTL ===
+- name: Apply kernel hardening via sysctl
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-monerometrics-hardening.conf
+    reload: true
+  loop: "{{ common_sysctl_hardening }}"
+  become: true
+
+# === FAIL2BAN ===
+- name: Deploy fail2ban jail.local
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Restart fail2ban
+
+- name: Enable and start fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    enabled: true
+    state: started
+  become: true
+
+# === UNATTENDED UPGRADES (patches securite auto) ===
+- name: Configure unattended-upgrades for security only
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::AutocleanInterval "7";
+      APT::Periodic::Unattended-Upgrade "1";
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+# === UFW (firewall local) ===
+- name: Set ufw default policies
+  community.general.ufw:
+    state: enabled
+    policy: "{{ item.policy }}"
+    direction: "{{ item.direction }}"
+  loop:
+    - { policy: 'deny', direction: 'incoming' }
+    - { policy: 'allow', direction: 'outgoing' }
+  become: true
+
+- name: Allow SSH through ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ common_ssh_port }}"
+    proto: tcp
+  become: true
+
+# === CHRONY (synchro NTP) ===
+- name: Ensure chrony service is running
+  ansible.builtin.systemd:
+    name: chrony
+    enabled: true
+    state: started
+  become: true
+
+# === AUDIT D ===
+- name: Ensure auditd service is enabled
+  ansible.builtin.systemd:
+    name: auditd
+    enabled: true
+    state: started
+  become: true

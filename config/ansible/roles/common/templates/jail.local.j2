@@ -1,0 +1,19 @@
+# {{ ansible_managed }}
+# Configuration fail2ban locale, surcharge /etc/fail2ban/jail.conf
+
+[DEFAULT]
+# Ignore les IP de confiance (CIDR locales + Tailscale CGNAT)
+ignoreip = 127.0.0.1/8 ::1 10.0.0.0/16 100.64.0.0/10
+# Backend systemd (logs journalctl)
+backend = systemd
+# Action par defaut: ufw (pas iptables direct)
+banaction = ufw
+banaction_allports = ufw
+
+[sshd]
+enabled = true
+port = {{ common_ssh_port }}
+filter = sshd
+maxretry = {{ common_fail2ban_ssh_maxretry }}
+findtime = {{ common_fail2ban_ssh_findtime }}
+bantime = {{ common_fail2ban_ssh_bantime }}

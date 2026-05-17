@@ -1,0 +1,98 @@
+---
+# Tasks du role tailscale
+# Installe le client Tailscale et joint la machine au tailnet
+
+- name: Ensure ca-certificates and curl are installed
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Add Tailscale GPG signing key
+  ansible.builtin.get_url:
+    url: https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg
+    dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
+    mode: '0644'
+    owner: root
+    group: root
+  become: true
+
+- name: Add Tailscale apt repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/tailscale.list
+    content: |
+      deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/ubuntu noble main
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  register: tailscale_repo_added
+
+- name: Update apt cache when Tailscale repo changed
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+  when: tailscale_repo_added.changed
+
+- name: Install Tailscale package
+  ansible.builtin.apt:
+    name: tailscale
+    state: present
+    update_cache: true
+  become: true
+
+- name: Enable and start tailscaled service
+  ansible.builtin.systemd:
+    name: tailscaled
+    enabled: true
+    state: started
+  become: true
+
+- name: Check current Tailscale connection status
+  ansible.builtin.command: tailscale status --json
+  register: tailscale_status
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Parse Tailscale BackendState
+  ansible.builtin.set_fact:
+    tailscale_backend_state: "{{ (tailscale_status.stdout | from_json).BackendState | default('Stopped') }}"
+  when: tailscale_status.rc == 0 and tailscale_status.stdout | length > 0
+
+- name: Show Tailscale state
+  ansible.builtin.debug:
+    msg: "Tailscale BackendState = {{ tailscale_backend_state | default('unknown') }}"
+
+- name: Authenticate to Tailscale (tailscale up)
+  ansible.builtin.command:
+    cmd: >
+      tailscale up
+      --authkey={{ tailscale_auth_key }}
+      --hostname={{ tailscale_hostname }}
+      --ssh
+      --accept-routes
+      --reset
+  become: true
+  when: tailscale_backend_state | default('Stopped') != 'Running'
+  changed_when: tailscale_backend_state | default('Stopped') != 'Running'
+  no_log: true
+  register: tailscale_up_result
+
+- name: Re-check Tailscale status after auth
+  ansible.builtin.command: tailscale status --json
+  register: tailscale_status_final
+  changed_when: false
+  become: true
+
+- name: Display Tailscale IPv4 assigned to bastion
+  ansible.builtin.debug:
+    msg: >-
+      Bastion Tailscale IPv4 :
+      {{ (tailscale_status_final.stdout | from_json).Self.TailscaleIPs[0] }}
+  when: tailscale_status_final.rc == 0

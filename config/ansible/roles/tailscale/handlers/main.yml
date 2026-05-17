@@ -1,0 +1,7 @@
+---
+# Handlers du role tailscale
+
+- name: Update apt cache after Tailscale repo
+  ansible.builtin.apt:
+    update_cache: true
+  become: true

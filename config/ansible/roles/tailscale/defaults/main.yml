@@ -1,0 +1,6 @@
+---
+# Defaults du role tailscale
+# tailscale_auth_key passe via env var, pas hardcode
+
+tailscale_hostname: "monerometrics-bastion"
+tailscale_auth_key: "{{ lookup('env', 'TAILSCALE_AUTH_KEY') }}"

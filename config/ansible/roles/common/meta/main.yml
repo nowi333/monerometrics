@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: common
+  author: noe
+  description: Hardening CIS L1 partiel pour Ubuntu 24.04
+  license: MIT
+  min_ansible_version: "2.18"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+
+collections:
+  - ansible.posix
+  - community.general
+
+dependencies: []

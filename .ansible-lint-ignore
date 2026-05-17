@@ -1,0 +1,7 @@
+# Format : path/to/file rule-name
+# La violation syntax-check[unknown-module] sur ansible.posix.sysctl
+# est un faux positif : la collection est installee dans le venv principal
+# mais pas dans le venv pre-commit. Le module fonctionne correctement
+# au runtime Ansible.
+config/ansible/roles/common/tasks/main.yml syntax-check[unknown-module]
+config/ansible/roles/tailscale/tasks/main.yml no-handler
