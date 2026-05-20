@@ -270,3 +270,20 @@ resource "azurerm_subnet_route_table_association" "internal_subnets" {
   subnet_id      = azurerm_subnet.this[each.key].id
   route_table_id = azurerm_route_table.forced_tunneling[0].id
 }
+
+# DMZ : accepte SSH depuis le subnet mgmt (bastion) pour bootstrap Ansible
+# Pattern ProxyJump : edge n est jamais directement accessible depuis Internet
+# sur 22, uniquement via rebond depuis le bastion.
+resource "azurerm_network_security_rule" "dmz_allow_ssh_from_mgmt" {
+  name                        = "allow-ssh-from-mgmt"
+  priority                    = 110
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "22"
+  source_address_prefix       = var.subnets["mgmt"]
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.network.name
+  network_security_group_name = azurerm_network_security_group.this["dmz"].name
+}

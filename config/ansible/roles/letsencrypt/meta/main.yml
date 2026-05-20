@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  role_name: letsencrypt
+  author: noe
+  description: Generate wildcard TLS cert via Let's Encrypt DNS-01 Cloudflare
+  license: MIT
+  min_ansible_version: "2.18"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+
+dependencies: []

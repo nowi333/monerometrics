@@ -1,0 +1,20 @@
+---
+# Defaults du role letsencrypt
+
+# === Configuration cert ===
+letsencrypt_domain: "monerometrics.net"
+letsencrypt_email: "noe.ungramme@gmail.com"
+letsencrypt_use_staging: false           # true = staging Let's Encrypt (limites + rate elevees pour debug)
+
+# === Wildcard config ===
+letsencrypt_san_domains:
+  - "monerometrics.net"
+  - "*.monerometrics.net"
+
+# === Cloudflare API ===
+# Token recupere depuis l env (charge par scripts/azure-env.sh)
+letsencrypt_cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
+
+# === Chemins ===
+letsencrypt_credentials_file: "/root/.secrets/cloudflare.ini"
+letsencrypt_cert_dir: "/etc/letsencrypt/live/{{ letsencrypt_domain }}"

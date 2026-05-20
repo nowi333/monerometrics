@@ -5,3 +5,4 @@
 # au runtime Ansible.
 config/ansible/roles/common/tasks/main.yml syntax-check[unknown-module]
 config/ansible/roles/tailscale/tasks/main.yml no-handler
+config/ansible/roles/nginx/tasks/main.yml syntax-check[unknown-module]

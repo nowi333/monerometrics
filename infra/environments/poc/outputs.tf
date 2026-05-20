@@ -57,3 +57,21 @@ output "bastion_ssh_command" {
   description = "Commande SSH initiale (IP publique)."
   value       = module.bastion.ssh_command_initial
 }
+
+# ============================================================
+# Edge (nginx reverse proxy)
+# ============================================================
+output "edge_public_ip" {
+  description = "IP publique de l edge nginx (cible DNS Cloudflare)."
+  value       = module.edge.public_ip_address
+}
+
+output "edge_private_ip" {
+  description = "IP privee de l edge dans le subnet DMZ."
+  value       = module.edge.private_ip_address
+}
+
+output "edge_ssh_command" {
+  description = "Commande SSH initiale (IP publique) pour bootstrap Ansible."
+  value       = module.edge.ssh_command_initial
+}

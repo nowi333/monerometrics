@@ -45,8 +45,18 @@ module "dns" {
   source = "../../modules/dns"
 
   zone_name = "monerometrics.net"
-  a_records = {}
-  proxied   = false
+
+  # Records A : tous pointent vers l'IP publique de l'edge nginx.
+  # Activation Cloudflare proxy (nuage orange) -> anti-DDoS L7 + TLS edge.
+  # "@" = apex (monerometrics.net sans prefixe).
+  a_records = {
+    "@"       = module.edge.public_ip_address
+    "www"     = module.edge.public_ip_address
+    "api"     = module.edge.public_ip_address
+    "grafana" = module.edge.public_ip_address
+    "wazuh"   = module.edge.public_ip_address
+  }
+  proxied = true
 }
 
 # ============================================================
@@ -61,6 +71,35 @@ module "bastion" {
   location    = "swedencentral"
 
   subnet_id      = module.network.subnet_ids["mgmt"]
+  ssh_public_key = var.bastion_ssh_public_key
+  admin_username = "noe"
+
+  vm_size              = "Standard_B2s_v2"
+  os_disk_size_gb      = 30
+  os_disk_storage_type = "Premium_LRS"
+
+  tags = {
+    project     = "monerometrics"
+    environment = "poc"
+    managed_by  = "terraform"
+    cost_center = "education"
+    owner       = "noe"
+  }
+}
+
+# ============================================================
+# Module Edge : VM Ubuntu nginx reverse proxy dans subnet DMZ
+# Expose monerometrics.net en HTTPS (origin pull depuis Cloudflare).
+# Ajout sprint 3B.
+# ============================================================
+module "edge" {
+  source = "../../modules/compute/edge"
+
+  project     = "monerometrics"
+  environment = "poc"
+  location    = "swedencentral"
+
+  subnet_id      = module.network.subnet_ids["dmz"]
   ssh_public_key = var.bastion_ssh_public_key
   admin_username = "noe"
 

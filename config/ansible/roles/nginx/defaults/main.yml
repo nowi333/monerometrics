@@ -1,0 +1,35 @@
+---
+# Defaults du role nginx
+
+# === Configuration generale ===
+nginx_server_name: "monerometrics.net"
+nginx_listen_port: 80
+nginx_user: www-data
+nginx_worker_processes: auto
+nginx_worker_connections: 1024
+
+# === Hardening ===
+nginx_server_tokens: "off"               # Cache version dans les headers
+nginx_client_max_body_size: "1m"         # Limite uploads
+nginx_client_body_timeout: 12
+nginx_client_header_timeout: 12
+nginx_keepalive_timeout: 15
+nginx_send_timeout: 10
+
+# === Headers de securite ===
+nginx_security_headers:
+  - 'X-Frame-Options "DENY" always'
+  - 'X-Content-Type-Options "nosniff" always'
+  - 'Referrer-Policy "no-referrer-when-downgrade" always'
+  - 'Permissions-Policy "geolocation=(), microphone=(), camera=()" always'
+
+# === Compression ===
+nginx_gzip_enabled: true
+nginx_gzip_types:
+  - "text/plain"
+  - "text/css"
+  - "application/json"
+  - "application/javascript"
+  - "text/xml"
+  - "application/xml"
+  - "text/html"

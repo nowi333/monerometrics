@@ -1,0 +1,104 @@
+---
+# Tasks du role letsencrypt
+# Generate wildcard cert *.monerometrics.net via DNS-01 Cloudflare
+
+# === VERIFICATION TOKEN PRESENT ===
+- name: Ensure Cloudflare API token is provided
+  ansible.builtin.assert:
+    that:
+      - letsencrypt_cloudflare_api_token | length > 0
+    fail_msg: |
+      Cloudflare API token is empty.
+      Make sure CLOUDFLARE_API_TOKEN env var is set on the controller (run 'mm' first).
+
+# === INSTALLATION CERTBOT + PLUGIN CLOUDFLARE ===
+- name: Install certbot and Cloudflare DNS plugin
+  ansible.builtin.apt:
+    name:
+      - certbot
+      - python3-certbot-dns-cloudflare
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+# === SECRETS DIRECTORY ===
+- name: Create secrets directory
+  ansible.builtin.file:
+    path: "/root/.secrets"
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+  become: true
+
+# === DEPLOY CLOUDFLARE CREDENTIALS ===
+- name: Deploy Cloudflare credentials file
+  ansible.builtin.template:
+    src: cloudflare.ini.j2
+    dest: "{{ letsencrypt_credentials_file }}"
+    owner: root
+    group: root
+    mode: '0400'
+  become: true
+  no_log: true
+
+# === GENERATE WILDCARD CERTIFICATE ===
+- name: Check if certificate already exists
+  ansible.builtin.stat:
+    path: "{{ letsencrypt_cert_dir }}/fullchain.pem"
+  register: cert_exists
+  become: true
+
+- name: Generate wildcard certificate via DNS-01 Cloudflare
+  ansible.builtin.command:
+    cmd: >
+      certbot certonly
+      --non-interactive
+      --agree-tos
+      --email {{ letsencrypt_email }}
+      --dns-cloudflare
+      --dns-cloudflare-credentials {{ letsencrypt_credentials_file }}
+      --dns-cloudflare-propagation-seconds 60
+      {% if letsencrypt_use_staging %}--staging{% endif %}
+      -d {{ letsencrypt_domain }}
+      -d *.{{ letsencrypt_domain }}
+  become: true
+  when: not cert_exists.stat.exists
+  register: certbot_result
+  changed_when: certbot_result.rc == 0
+
+- name: Show certbot result
+  ansible.builtin.debug:
+    var: certbot_result.stdout_lines
+  when: certbot_result.changed | default(false)
+
+# === REPLACE NGINX CONFIG WITH HTTPS VERSION ===
+- name: Deploy nginx TLS configuration
+  ansible.builtin.template:
+    src: monerometrics-tls.conf.j2
+    dest: /etc/nginx/sites-available/monerometrics.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Reload nginx for cert update
+
+# === VERIFY AUTO-RENEWAL TIMER ===
+- name: Ensure certbot renewal timer is active
+  ansible.builtin.systemd:
+    name: certbot.timer
+    enabled: true
+    state: started
+  become: true
+
+- name: Display cert info
+  ansible.builtin.command:
+    cmd: "openssl x509 -in {{ letsencrypt_cert_dir }}/cert.pem -noout -subject -dates -issuer"
+  become: true
+  register: cert_info
+  changed_when: false
+
+- name: Show certificate details
+  ansible.builtin.debug:
+    var: cert_info.stdout_lines

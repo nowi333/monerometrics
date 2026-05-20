@@ -1,11 +1,20 @@
 ---
 # Playbook principal monerometrics
-# Applique les roles common (hardening) + tailscale sur le groupe bastion
+# Applique les roles communs sur tous les hotes, puis specialise par groupe
 
-- name: Configure bastion (hardening + tailscale)
+- name: Configure bastion (hardening CIS L1 + Tailscale)
   hosts: bastion
   gather_facts: true
   become: false
   roles:
     - common
-    - tailscale   # decommente au Bloc 5
+    - tailscale
+
+- name: Configure edge (hardening CIS L1 + nginx + Let's Encrypt TLS)
+  hosts: edge
+  gather_facts: true
+  become: false
+  roles:
+    - common
+    - nginx
+    - letsencrypt
