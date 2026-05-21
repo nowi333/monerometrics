@@ -1,0 +1,46 @@
+---
+# Variables communes a tous les hotes (bastion + edge + futures VMs)
+# Appliquees par le role 'common' present dans tous les playbooks
+
+# === SSH hardening ===
+common_ssh_port: 22
+common_ssh_permit_root_login: "no"
+common_ssh_password_authentication: "no"
+common_ssh_max_auth_tries: 3
+common_ssh_client_alive_interval: 300
+common_ssh_client_alive_count_max: 2
+common_ssh_login_grace_time: 30
+
+# === Paquets installes sur toutes les VMs ===
+common_packages:
+  - fail2ban
+  - ufw
+  - unattended-upgrades
+  - auditd
+  - audispd-plugins
+  - chrony
+  - htop
+  - jq
+  - net-tools
+  - vim
+
+# === Fail2ban config ===
+common_fail2ban_ssh_maxretry: 3
+common_fail2ban_ssh_findtime: 300
+common_fail2ban_ssh_bantime: 3600
+
+# === Sysctl hardening kernel ===
+common_sysctl_hardening:
+  - { key: 'net.ipv4.ip_forward', value: '0' }
+  - { key: 'net.ipv6.conf.all.forwarding', value: '0' }
+  - { key: 'net.ipv4.conf.all.rp_filter', value: '1' }
+  - { key: 'net.ipv4.conf.default.rp_filter', value: '1' }
+  - { key: 'net.ipv4.conf.all.accept_redirects', value: '0' }
+  - { key: 'net.ipv4.conf.all.send_redirects', value: '0' }
+  - { key: 'net.ipv6.conf.all.accept_redirects', value: '0' }
+  - { key: 'net.ipv4.conf.all.accept_source_route', value: '0' }
+  - { key: 'net.ipv6.conf.all.accept_source_route', value: '0' }
+  - { key: 'net.ipv4.conf.all.log_martians', value: '1' }
+  - { key: 'net.ipv4.tcp_syncookies', value: '1' }
+  - { key: 'kernel.randomize_va_space', value: '2' }
+  - { key: 'kernel.yama.ptrace_scope', value: '1' }
