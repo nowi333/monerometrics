@@ -7,8 +7,8 @@ Mode initial : DetectionOnly (logs only)
 Mode final : On (blocage actif)
 
 ## Fichiers
-- modsec_audit_detection_only.log : journal d'audit avec 5 attaques en mode DetectionOnly (HTTP 200, regles declenchees mais pas de blocage).
-- modsec_audit_blocking.log : journal d'audit avec les memes 5 attaques en mode On (HTTP 403 retourne).
+- modsec_audit_detection_only.txt : journal d'audit avec 5 attaques en mode DetectionOnly (HTTP 200, regles declenchees mais pas de blocage).
+- modsec_audit_blocking.txt : journal d'audit avec les memes 5 attaques en mode On (HTTP 403 retourne).
 
 ## 5 attaques testees
 1. SQL Injection : ?id=1' OR '1'='1 -> regle 942100 (libinjection SQLi)

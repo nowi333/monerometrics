@@ -1,0 +1,183 @@
+---hEpYdMBO---A--
+[21/May/2026:11:30:47 +0000] 177936304796.068370 ::1 45348 ::1 443
+---hEpYdMBO---B--
+GET /?id=1%27+OR+%271%27%3D%271 HTTP/2.0
+host: localhost
+user-agent: curl/8.5.0
+accept: */*
+
+---hEpYdMBO---F--
+HTTP/2.0 200
+Referrer-Policy: no-referrer-when-downgrade
+X-Frame-Options: DENY
+ETag: "6a0ee74f-75e"
+Strict-Transport-Security: max-age=15768000; includeSubDomains
+Last-Modified: Thu, 21 May 2026 11:06:55 GMT
+Connection: close
+X-Content-Type-Options: nosniff
+Content-Type: text/html
+Content-Length: 1886
+Date: Thu, 21 May 2026 11:30:47 GMT
+Server: nginx
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+---hEpYdMBO---H--
+ModSecurity: Warning. Matched "Operator `Eq' with parameter `0' against variable `TX:crs_setup_version' (Value: `0' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-901-INITIALIZATION.conf"] [line "54"] [id "901001"] [rev ""] [msg "CRS is deployed without configuration! Please copy the crs-setup.conf.example template to crs-setup.conf, and include the crs-setup.conf file in your webserver configuration before including the CRS rules. See the INSTALL file in the CRS directory for detailed instructions"] [data ""] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "OWASP_CRS"] [hostname "::1"] [uri "/"] [unique_id "177936304796.068370"] [ref ""]
+ModSecurity: Warning. detected SQLi using libinjection. [file "/etc/nginx/modsec/crs/rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf"] [line "46"] [id "942100"] [rev ""] [msg "SQL Injection Attack Detected via libinjection"] [data "Matched Data: s&sos found within ARGS:id: 1' OR '1'='1"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-sqli"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-SQLI"] [tag "capec/1000/152/248/66"] [hostname "::1"] [uri "/"] [unique_id "177936304796.068370"] [ref "v9,12"]
+ModSecurity: Warning. Matched "Operator `Ge' with parameter `5' against variable `TX:BLOCKING_INBOUND_ANOMALY_SCORE' (Value: `5' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "222"] [id "949110"] [rev ""] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [data ""] [severity "0"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "anomaly-evaluation"] [tag "OWASP_CRS"] [hostname "::1"] [uri "/"] [unique_id "177936304796.068370"] [ref ""]
+
+---hEpYdMBO---Z--
+
+---BfIIMxp9---A--
+[21/May/2026:11:34:43 +0000] 177936328391.225705 ::1 34756 ::1 443
+---BfIIMxp9---B--
+GET /?id=1%27+OR+%271%27%3D%271 HTTP/2.0
+host: localhost
+user-agent: curl/8.5.0
+accept: */*
+
+---BfIIMxp9---F--
+HTTP/2.0 200
+Referrer-Policy: no-referrer-when-downgrade
+X-Frame-Options: DENY
+ETag: "6a0ee74f-75e"
+Strict-Transport-Security: max-age=15768000; includeSubDomains
+Last-Modified: Thu, 21 May 2026 11:06:55 GMT
+Connection: close
+X-Content-Type-Options: nosniff
+Content-Type: text/html
+Content-Length: 1886
+Date: Thu, 21 May 2026 11:34:43 GMT
+Server: nginx
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+---BfIIMxp9---H--
+ModSecurity: Warning. detected SQLi using libinjection. [file "/etc/nginx/modsec/crs/rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf"] [line "46"] [id "942100"] [rev ""] [msg "SQL Injection Attack Detected via libinjection"] [data "Matched Data: s&sos found within ARGS:id: 1' OR '1'='1"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-sqli"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-SQLI"] [tag "capec/1000/152/248/66"] [hostname "::1"] [uri "/"] [unique_id "177936328391.225705"] [ref "v9,12"]
+ModSecurity: Warning. Matched "Operator `Ge' with parameter `5' against variable `TX:BLOCKING_INBOUND_ANOMALY_SCORE' (Value: `5' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "222"] [id "949110"] [rev ""] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [data ""] [severity "0"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "anomaly-evaluation"] [tag "OWASP_CRS"] [hostname "::1"] [uri "/"] [unique_id "177936328391.225705"] [ref ""]
+
+---BfIIMxp9---Z--
+
+---OJGjvFtR---A--
+[21/May/2026:11:34:45 +0000] 177936328575.640920 ::1 34762 ::1 443
+---OJGjvFtR---B--
+GET /?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E HTTP/2.0
+host: localhost
+user-agent: curl/8.5.0
+accept: */*
+
+---OJGjvFtR---F--
+HTTP/2.0 200
+Referrer-Policy: no-referrer-when-downgrade
+X-Frame-Options: DENY
+ETag: "6a0ee74f-75e"
+Strict-Transport-Security: max-age=15768000; includeSubDomains
+Last-Modified: Thu, 21 May 2026 11:06:55 GMT
+Connection: close
+X-Content-Type-Options: nosniff
+Content-Type: text/html
+Content-Length: 1886
+Date: Thu, 21 May 2026 11:34:45 GMT
+Server: nginx
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+---OJGjvFtR---H--
+ModSecurity: Warning. detected XSS using libinjection. [file "/etc/nginx/modsec/crs/rules/REQUEST-941-APPLICATION-ATTACK-XSS.conf"] [line "83"] [id "941100"] [rev ""] [msg "XSS Attack Detected via libinjection"] [data "Matched Data: XSS data found within ARGS:q: <script>alert(1)</script>"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-xss"] [tag "xss-perf-disable"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-XSS"] [tag "capec/1000/152/242"] [hostname "::1"] [uri "/"] [unique_id "177936328575.640920"] [ref "v8,25t:utf8toUnicode,t:urlDecodeUni,t:htmlEntityDecode,t:jsDecode,t:cssDecode,t:removeNulls"]
+ModSecurity: Warning. Matched "Operator `Rx' with parameter `(?i)<script[^>]*>[\s\S]*?' against variable `ARGS:q' (Value: `<script>alert(1)</script>' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-941-APPLICATION-ATTACK-XSS.conf"] [line "110"] [id "941110"] [rev ""] [msg "XSS Filter - Category 1: Script Tag Vector"] [data "Matched Data: <script> found within ARGS:q: <script>alert(1)</script>"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-xss"] [tag "xss-perf-disable"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-XSS"] [tag "capec/1000/152/242"] [hostname "::1"] [uri "/"] [unique_id "177936328575.640920"] [ref "o0,8v8,25t:utf8toUnicode,t:urlDecodeUni,t:htmlEntityDecode,t:jsDecode,t:cssDecode,t:removeNulls"]
+ModSecurity: Warning. Matched "Operator `Rx' with parameter `(?i)<[^0-9<>A-Z_a-z]*(?:[^\s\x0b\"'<>]*:)?[^0-9<>A-Z_a-z]*[^0-9A-Z_a-z]*?(?:s[^0-9A-Z_a-z]*?(?:c[^0-9A-Z_a-z]*?r[^0-9A-Z_a-z]*?i[^0-9A-Z_a-z]*?p[^0-9A-Z_a-z]*?t|t[^0-9A-Z_a-z]*?y[^0-9A-Z_a-z]*?l[^0-9A (4396 characters omitted)' against variable `ARGS:q' (Value: `<script>alert(1)</script>' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-941-APPLICATION-ATTACK-XSS.conf"] [line "248"] [id "941160"] [rev ""] [msg "NoScript XSS InjectionChecker: HTML Injection"] [data "Matched Data: <script found within ARGS:q: <script>alert(1)</script>"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-xss"] [tag "xss-perf-disable"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-XSS"] [tag "capec/1000/152/242"] [hostname "::1"] [uri "/"] [unique_id "177936328575.640920"] [ref "o0,7v8,25t:utf8toUnicode,t:urlDecodeUni,t:htmlEntityDecode,t:jsDecode,t:cssDecode,t:removeNulls"]
+ModSecurity: Warning. Matched "Operator `Rx' with parameter `(?i)\b(?:eval|set(?:timeout|interval)|new[\s\x0b]+Function|a(?:lert|tob)|btoa|(?:promp|impor)t|con(?:firm|sole\.(?:log|dir))|fetch)[\s\x0b]*[\(\{]' against variable `ARGS:q' (Value: `<script>alert(1)</script>' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-941-APPLICATION-ATTACK-XSS.conf"] [line "816"] [id "941390"] [rev ""] [msg "Javascript method detected"] [data "Matched Data: alert( found within ARGS:q: <script>alert(1)</script>"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-nodejs"] [tag "attack-xss"] [tag "xss-perf-disable"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-XSS"] [tag "capec/1000/152/242"] [hostname "::1"] [uri "/"] [unique_id "177936328575.640920"] [ref "o8,6v8,25t:htmlEntityDecode,t:jsDecode"]
+ModSecurity: Warning. Matched "Operator `Ge' with parameter `5' against variable `TX:BLOCKING_INBOUND_ANOMALY_SCORE' (Value: `20' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "222"] [id "949110"] [rev ""] [msg "Inbound Anomaly Score Exceeded (Total Score: 20)"] [data ""] [severity "0"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "anomaly-evaluation"] [tag "OWASP_CRS"] [hostname "::1"] [uri "/"] [unique_id "177936328575.640920"] [ref ""]
+
+---OJGjvFtR---Z--
+
+---lzBTmumW---A--
+[21/May/2026:11:34:48 +0000] 177936328815.088076 ::1 34772 ::1 443
+---lzBTmumW---B--
+GET /?file=../../../etc/passwd HTTP/2.0
+host: localhost
+user-agent: curl/8.5.0
+accept: */*
+
+---lzBTmumW---F--
+HTTP/2.0 200
+Referrer-Policy: no-referrer-when-downgrade
+X-Frame-Options: DENY
+ETag: "6a0ee74f-75e"
+Strict-Transport-Security: max-age=15768000; includeSubDomains
+Last-Modified: Thu, 21 May 2026 11:06:55 GMT
+Connection: close
+X-Content-Type-Options: nosniff
+Content-Type: text/html
+Content-Length: 1886
+Date: Thu, 21 May 2026 11:34:48 GMT
+Server: nginx
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+---lzBTmumW---H--
+ModSecurity: Warning. Matched "Operator `Rx' with parameter `(?i)(?:[/\x5c]|%(?:2(?:f|5(?:2f|5c|c(?:1%259c|0%25af))|%46)|5c|c(?:0%(?:[2aq]f|5c|9v)|1%(?:[19p]c|8s|af))|(?:bg%q|(?:e|f(?:8%8)?0%8)0%80%a)f|u(?:221[56]|EFC8|F025|002f)|%3(?:2(?:%(?:%6|4)6|F)|5%%63)|1 (394 characters omitted)' against variable `ARGS:file' (Value: `../../../etc/passwd' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-930-APPLICATION-ATTACK-LFI.conf"] [line "35"] [id "930100"] [rev ""] [msg "Path Traversal Attack (/../) or (/.../)"] [data "Matched Data: /../ found within ARGS:file: ../../../etc/passwd"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-lfi"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-LFI"] [tag "capec/1000/255/153/126"] [hostname "::1"] [uri "/"] [unique_id "177936328815.088076"] [ref "o9,4v4,26o2,4v11,19"]
+ModSecurity: Warning. Matched "Operator `Rx' with parameter `(?:^|[/;\x5c])\.{2,3}[/;\x5c]' against variable `REQUEST_URI_RAW' (Value: `/?file=../../../etc/passwd' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-930-APPLICATION-ATTACK-LFI.conf"] [line "73"] [id "930110"] [rev ""] [msg "Path Traversal Attack (/../) or (/.../)"] [data "Matched Data: /../ found within REQUEST_URI_RAW: /?file=../../../etc/passwd"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-lfi"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-LFI"] [tag "capec/1000/255/153/126"] [hostname "::1"] [uri "/"] [unique_id "177936328815.088076"] [ref "o9,4v4,26"]
+ModSecurity: Warning. Matched "Operator `Rx' with parameter `(?:^|[/;\x5c])\.{2,3}[/;\x5c]' against variable `ARGS:file' (Value: `../../../etc/passwd' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-930-APPLICATION-ATTACK-LFI.conf"] [line "73"] [id "930110"] [rev ""] [msg "Path Traversal Attack (/../) or (/.../)"] [data "Matched Data: ../ found within ARGS:file: ../../../etc/passwd"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-lfi"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-LFI"] [tag "capec/1000/255/153/126"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-lfi"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-LFI"] [tag "capec/1000/255/153/126"] [hostname "::1"] [uri "/"] [unique_id "177936328815.088076"] [ref "o9,4v4,26o0,3v11,19"]
+ModSecurity: Warning. Matched "Operator `PmFromFile' with parameter `lfi-os-files.data' against variable `ARGS:file' (Value: `../../../etc/passwd' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-930-APPLICATION-ATTACK-LFI.conf"] [line "104"] [id "930120"] [rev ""] [msg "OS File Access Attempt"] [data "Matched Data: etc/passwd found within ARGS:file: ../../../etc/passwd"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-lfi"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-LFI"] [tag "capec/1000/255/153/126"] [hostname "::1"] [uri "/"] [unique_id "177936328815.088076"] [ref "o9,10v11,19t:utf8toUnicode,t:urlDecodeUni,t:normalizePathWin"]
+ModSecurity: Warning. Matched "Operator `PmFromFile' with parameter `unix-shell.data' against variable `ARGS:file' (Value: `../../../etc/passwd' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-932-APPLICATION-ATTACK-RCE.conf"] [line "706"] [id "932160"] [rev ""] [msg "Remote Command Execution: Unix Shell Code Found"] [data "Matched Data: etc/passwd found within ARGS:file: ../../../etc/passwd"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-shell"] [tag "platform-unix"] [tag "attack-rce"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-RCE"] [tag "capec/1000/152/248/88"] [hostname "::1"] [uri "/"] [unique_id "177936328815.088076"] [ref "o9,10v11,19t:cmdLine,t:normalizePath"]
+ModSecurity: Warning. Matched "Operator `Ge' with parameter `5' against variable `TX:BLOCKING_INBOUND_ANOMALY_SCORE' (Value: `30' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "222"] [id "949110"] [rev ""] [msg "Inbound Anomaly Score Exceeded (Total Score: 30)"] [data ""] [severity "0"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "anomaly-evaluation"] [tag "OWASP_CRS"] [hostname "::1"] [uri "/"] [unique_id "177936328815.088076"] [ref ""]
+
+---lzBTmumW---Z--
+
+---TvCdLQJB---A--
+[21/May/2026:11:34:50 +0000] 177936329097.210984 ::1 34774 ::1 443
+---TvCdLQJB---B--
+GET /?cmd=%3Bcat+%2Fetc%2Fpasswd HTTP/2.0
+host: localhost
+user-agent: curl/8.5.0
+accept: */*
+
+---TvCdLQJB---F--
+HTTP/2.0 200
+Referrer-Policy: no-referrer-when-downgrade
+X-Frame-Options: DENY
+ETag: "6a0ee74f-75e"
+Strict-Transport-Security: max-age=15768000; includeSubDomains
+Last-Modified: Thu, 21 May 2026 11:06:55 GMT
+Connection: close
+X-Content-Type-Options: nosniff
+Content-Type: text/html
+Content-Length: 1886
+Date: Thu, 21 May 2026 11:34:50 GMT
+Server: nginx
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+---TvCdLQJB---H--
+ModSecurity: Warning. Matched "Operator `PmFromFile' with parameter `lfi-os-files.data' against variable `ARGS:cmd' (Value: `;cat /etc/passwd' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-930-APPLICATION-ATTACK-LFI.conf"] [line "104"] [id "930120"] [rev ""] [msg "OS File Access Attempt"] [data "Matched Data: etc/passwd found within ARGS:cmd: ;cat /etc/passwd"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-lfi"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-LFI"] [tag "capec/1000/255/153/126"] [hostname "::1"] [uri "/"] [unique_id "177936329097.210984"] [ref "o6,10v10,16t:utf8toUnicode,t:urlDecodeUni,t:normalizePathWin"]
+ModSecurity: Warning. Matched "Operator `PmFromFile' with parameter `unix-shell.data' against variable `ARGS:cmd' (Value: `;cat /etc/passwd' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-932-APPLICATION-ATTACK-RCE.conf"] [line "706"] [id "932160"] [rev ""] [msg "Remote Command Execution: Unix Shell Code Found"] [data "Matched Data: etc/passwd found within ARGS:cmd:  cat/etc/passwd"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-shell"] [tag "platform-unix"] [tag "attack-rce"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-RCE"] [tag "capec/1000/152/248/88"] [hostname "::1"] [uri "/"] [unique_id "177936329097.210984"] [ref "o5,10v10,16t:cmdLine,t:normalizePath"]
+ModSecurity: Warning. Matched "Operator `Ge' with parameter `5' against variable `TX:BLOCKING_INBOUND_ANOMALY_SCORE' (Value: `10' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "222"] [id "949110"] [rev ""] [msg "Inbound Anomaly Score Exceeded (Total Score: 10)"] [data ""] [severity "0"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "anomaly-evaluation"] [tag "OWASP_CRS"] [hostname "::1"] [uri "/"] [unique_id "177936329097.210984"] [ref ""]
+
+---TvCdLQJB---Z--
+
+---nfiT74BJ---A--
+[21/May/2026:11:34:53 +0000] 177936329352.941571 ::1 35628 ::1 443
+---nfiT74BJ---B--
+GET /?path=%252e%252e%252fetc%252fpasswd HTTP/2.0
+host: localhost
+user-agent: curl/8.5.0
+accept: */*
+
+---nfiT74BJ---F--
+HTTP/2.0 200
+Referrer-Policy: no-referrer-when-downgrade
+X-Frame-Options: DENY
+ETag: "6a0ee74f-75e"
+Strict-Transport-Security: max-age=15768000; includeSubDomains
+Last-Modified: Thu, 21 May 2026 11:06:55 GMT
+Connection: close
+X-Content-Type-Options: nosniff
+Content-Type: text/html
+Content-Length: 1886
+Date: Thu, 21 May 2026 11:34:53 GMT
+Server: nginx
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+---nfiT74BJ---H--
+ModSecurity: Warning. Matched "Operator `Rx' with parameter `(?:^|[/;\x5c])\.{2,3}[/;\x5c]' against variable `ARGS:path' (Value: `%2e%2e%2fetc%2fpasswd' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-930-APPLICATION-ATTACK-LFI.conf"] [line "73"] [id "930110"] [rev ""] [msg "Path Traversal Attack (/../) or (/.../)"] [data "Matched Data: ../ found within ARGS:path: ../etc/passwd"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-lfi"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-LFI"] [tag "capec/1000/255/153/126"] [hostname "::1"] [uri "/"] [unique_id "177936329352.941571"] [ref "o0,3v11,21t:urlDecodeUni"]
+ModSecurity: Warning. Matched "Operator `PmFromFile' with parameter `lfi-os-files.data' against variable `ARGS:path' (Value: `%2e%2e%2fetc%2fpasswd' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-930-APPLICATION-ATTACK-LFI.conf"] [line "104"] [id "930120"] [rev ""] [msg "OS File Access Attempt"] [data "Matched Data: etc/passwd found within ARGS:path: ../etc/passwd"] [severity "2"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-lfi"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/ATTACK-LFI"] [tag "capec/1000/255/153/126"] [hostname "::1"] [uri "/"] [unique_id "177936329352.941571"] [ref "o3,10v11,21t:utf8toUnicode,t:urlDecodeUni,t:normalizePathWin"]
+ModSecurity: Warning. Matched "Operator `Ge' with parameter `5' against variable `TX:BLOCKING_INBOUND_ANOMALY_SCORE' (Value: `10' ) [file "/etc/nginx/modsec/crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "222"] [id "949110"] [rev ""] [msg "Inbound Anomaly Score Exceeded (Total Score: 10)"] [data ""] [severity "0"] [ver "OWASP_CRS/4.25.0"] [maturity "0"] [accuracy "0"] [tag "anomaly-evaluation"] [tag "OWASP_CRS"] [hostname "::1"] [uri "/"] [unique_id "177936329352.941571"] [ref ""]
+
+---nfiT74BJ---Z--
