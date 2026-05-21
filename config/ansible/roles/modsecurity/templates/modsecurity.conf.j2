@@ -1,0 +1,43 @@
+# {{ ansible_managed }}
+# Configuration principale ModSecurity v3
+# Doc : https://github.com/owasp-modsecurity/ModSecurity/wiki/Reference-Manual-(v3.x)
+
+# === MOTEUR ===
+# Voir defaults pour {DetectionOnly, On, Off}
+SecRuleEngine {{ modsecurity_engine }}
+
+# === ANALYSE DU CORPS DES REQUETES ===
+SecRequestBodyAccess On
+SecRequestBodyLimit 13107200
+SecRequestBodyNoFilesLimit 131072
+SecRequestBodyLimitAction Reject
+
+# === ANALYSE DES REPONSES ===
+SecResponseBodyAccess On
+SecResponseBodyMimeType text/plain text/html text/xml application/json
+SecResponseBodyLimit 524288
+SecResponseBodyLimitAction ProcessPartial
+
+# === GESTION DES FICHIERS UPLOAD ===
+SecTmpDir /tmp/
+SecDataDir /tmp/
+SecTmpSaveUploadedFiles Off
+
+# === AUDIT LOG ===
+SecAuditEngine RelevantOnly
+SecAuditLogRelevantStatus "^(?:5|4(?!04))"
+SecAuditLogParts {{ modsecurity_audit_log_parts }}
+SecAuditLogType {{ modsecurity_audit_log_type }}
+SecAuditLog {{ modsecurity_audit_log_file }}
+
+# === DEBUG LOG (off en prod, on uniquement pour debug) ===
+SecDebugLog /var/log/modsec_debug.log
+SecDebugLogLevel 0
+
+# === REGLES UNICODE (CRS depend de ca) ===
+SecUnicodeMapFile unicode.mapping 20127
+
+# === STATUS CODE DE BLOCAGE ===
+# 403 standard, lisible en log et clair pour le visiteur.
+SecDefaultAction "phase:1,log,auditlog,pass"
+SecDefaultAction "phase:2,log,auditlog,pass"

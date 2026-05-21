@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: modsecurity
+  author: noe
+  description: Install ModSecurity 3 + OWASP CRS 4.25 LTS as nginx WAF
+  license: MIT
+  min_ansible_version: "2.18"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+
+dependencies:
+  - role: nginx

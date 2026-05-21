@@ -50,6 +50,17 @@
   become: true
 
 # === HARDENING KERNEL VIA SYSCTL ===
+- name: Deploy log_martians sysctl config (workaround for sysctl module idempotence bug)
+  ansible.builtin.template:
+    src: 99-log-martians.conf.j2
+    dest: /etc/sysctl.d/99-monerometrics-log-martians.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  register: log_martians_conf
+  notify: Apply sysctl --system
+
 - name: Apply kernel hardening via sysctl
   ansible.posix.sysctl:
     name: "{{ item.key }}"

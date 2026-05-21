@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+# Active ModSecurity globalement pour nginx
+# Le module est charge automatiquement par Ubuntu via /etc/nginx/modules-enabled/50-mod-http-modsecurity.conf
+
+# Activation au niveau http (s applique a tous les server blocks)
+modsecurity on;
+modsecurity_rules_file /etc/nginx/modsec/main.conf;

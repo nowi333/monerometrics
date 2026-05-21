@@ -27,6 +27,10 @@ server {
     listen 443 ssl http2 default_server;
     listen [::]:443 ssl http2 default_server;
 
+    # Module WAF charge dynamiquement si le role modsecurity est applique.
+    # Le glob '*' tolere l'absence du fichier.
+    include /etc/nginx/modsec-enable.conf*;
+
     server_name {{ letsencrypt_domain }} www.{{ letsencrypt_domain }};
 
     # === TLS configuration ===

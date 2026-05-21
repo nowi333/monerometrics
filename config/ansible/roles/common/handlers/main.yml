@@ -25,3 +25,7 @@
     cmd: sysctl --system
   become: true
   changed_when: true
+
+- name: Apply sysctl --system
+  ansible.builtin.command: sysctl --system
+  become: true

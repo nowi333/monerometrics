@@ -1,0 +1,10 @@
+# {{ ansible_managed }}
+# Fichier d entree ModSecurity, charge par la directive modsecurity_rules_file de nginx.
+# Ordre de chargement :
+# 1. modsecurity.conf       : config moteur (engine, audit log, etc.)
+# 2. crs-setup.conf         : config CRS (paranoia, exclusions custom)
+# 3. CRS rules (3 phases)   : les regles OWASP elles-memes
+
+Include /etc/nginx/modsec/modsecurity.conf
+Include /etc/nginx/modsec/crs-setup.conf
+Include /etc/nginx/modsec/crs/rules/*.conf

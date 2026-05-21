@@ -55,25 +55,6 @@
   become: true
   notify: Reload nginx
 
-# === DEPLOYMENT CONFIG MONEROMETRICS ===
-- name: Deploy monerometrics nginx config
-  ansible.builtin.template:
-    src: monerometrics.conf.j2
-    dest: /etc/nginx/sites-available/monerometrics.conf
-    owner: root
-    group: root
-    mode: '0644'
-  become: true
-  notify: Reload nginx
-
-- name: Enable monerometrics site (symlink)
-  ansible.builtin.file:
-    src: /etc/nginx/sites-available/monerometrics.conf
-    dest: /etc/nginx/sites-enabled/monerometrics.conf
-    state: link
-  become: true
-  notify: Reload nginx
-
 # === HARDENING NGINX.CONF GLOBAL ===
 - name: Set server_tokens off in nginx.conf
   ansible.builtin.lineinfile:

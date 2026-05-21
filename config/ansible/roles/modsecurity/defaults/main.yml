@@ -1,0 +1,39 @@
+---
+# Defaults du role modsecurity
+
+# === Mode de fonctionnement ===
+# DetectionOnly : logs uniquement, aucun blocage. A utiliser au demarrage pour
+#                 identifier les faux positifs avant de bloquer du vrai trafic.
+# On            : blocage actif. Reponses 403 sur les requetes malicieuses.
+# Off           : desactive (jamais en production).
+modsecurity_engine: "On"
+
+# === Paranoia level OWASP CRS (1-4) ===
+# PL1 : attaques evidentes uniquement, tres peu de FP. Production-ready immediatement.
+# PL2 : + attaques subtiles, quelques FP a tuner.
+# PL3 : + comportements anormaux, beaucoup de FP.
+# PL4 : paranoia max, quasi-jamais en production.
+modsecurity_paranoia_level: 1
+
+# === Score d anomalie pour bloquer ===
+# Chaque regle declenchee ajoute un score. Si le total atteint ce seuil -> blocage.
+# Defaut OWASP : 5 (inbound) / 4 (outbound). On garde les valeurs OWASP.
+modsecurity_inbound_anomaly_threshold: 5
+modsecurity_outbound_anomaly_threshold: 4
+
+# === Source OWASP CRS ===
+# Tag git LTS le plus recent (LTS = Long Term Support, patchs securite garantis).
+modsecurity_crs_version: "v4.25.0"
+modsecurity_crs_repo: "https://github.com/coreruleset/coreruleset.git"
+modsecurity_crs_install_dir: "/etc/nginx/modsec/crs"
+
+# === Audit logging ===
+# Niveau de detail des logs d audit ModSecurity.
+# RelevantOnly = seulement les requetes qui declenchent au moins une regle.
+modsecurity_audit_log_parts: "ABCFHZ"
+modsecurity_audit_log_type: "Serial"
+modsecurity_audit_log_file: "/var/log/modsec_audit.log"
+
+# === Exclusions (faux positifs connus) ===
+# Liste vide au demarrage. On ajoutera des exclusions au fur et a mesure.
+modsecurity_exclusions: []

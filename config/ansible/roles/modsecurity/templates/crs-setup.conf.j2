@@ -1,0 +1,75 @@
+# {{ ansible_managed }}
+# Configuration OWASP CRS - sur-couche customisable
+# Doc : https://coreruleset.org/docs/configuring/
+
+# === CRS VERSION MARKER (requis par regle 901001) ===
+# Indique a CRS que crs-setup.conf est bien charge.
+SecAction \
+    "id:900990,\
+    phase:1,\
+    nolog,\
+    pass,\
+    t:none,\
+    setvar:tx.crs_setup_version=4250"
+
+# === PARANOIA LEVEL ===
+# Defini dans defaults/main.yml. PL1 = production-ready, peu de FP.
+SecAction \
+    "id:900000,\
+    phase:1,\
+    nolog,\
+    pass,\
+    t:none,\
+    setvar:tx.paranoia_level={{ modsecurity_paranoia_level }}"
+
+# === EXECUTING PARANOIA LEVEL ===
+# Niveau jusqu auquel les regles sont effectivement evaluees.
+# Par defaut = paranoia_level. On peut le baisser pour tester sans bloquer.
+SecAction \
+    "id:900001,\
+    phase:1,\
+    nolog,\
+    pass,\
+    t:none,\
+    setvar:tx.executing_paranoia_level={{ modsecurity_paranoia_level }}"
+
+# === SCORES D ANOMALIE ===
+SecAction \
+    "id:900110,\
+    phase:1,\
+    nolog,\
+    pass,\
+    t:none,\
+    setvar:tx.inbound_anomaly_score_threshold={{ modsecurity_inbound_anomaly_threshold }},\
+    setvar:tx.outbound_anomaly_score_threshold={{ modsecurity_outbound_anomaly_threshold }}"
+
+# === DETECTION DES METHODES HTTP AUTORISEES ===
+# Sur monerometrics : surface API REST GET/POST/HEAD. Pas de PUT/DELETE/PATCH cote public.
+SecAction \
+    "id:900200,\
+    phase:1,\
+    nolog,\
+    pass,\
+    t:none,\
+    setvar:'tx.allowed_methods=GET HEAD POST OPTIONS'"
+
+# === FICHIERS AUTORISES ===
+# Extensions de requete (URL .ext) tolerees. Tout le reste -> regle 920440 (block).
+SecAction \
+    "id:900220,\
+    phase:1,\
+    nolog,\
+    pass,\
+    t:none,\
+    setvar:'tx.allowed_request_content_type=|application/x-www-form-urlencoded| |multipart/form-data| |multipart/related| |text/xml| |application/xml| |application/soap+xml| |application/x-amf| |application/json| |application/cloudevents+json| |application/cloudevents-batch+json| |application/octet-stream| |application/csp-report| |application/xss-auditor-report| |text/plain|'"
+
+# === BLOC EXCLUSIONS ===
+# Regles a desactiver pour eviter des FP connus.
+# Format : SecRuleRemoveById <regle_id>
+{% if modsecurity_exclusions %}
+{% for excl in modsecurity_exclusions %}
+SecRuleRemoveById {{ excl.rule_id }}  # {{ excl.reason }}
+{% endfor %}
+{% else %}
+# Aucune exclusion definie pour le moment.
+{% endif %}

@@ -40,7 +40,6 @@ common_sysctl_hardening:
   - { key: 'net.ipv6.conf.all.accept_redirects', value: '0' }
   - { key: 'net.ipv4.conf.all.accept_source_route', value: '0' }
   - { key: 'net.ipv6.conf.all.accept_source_route', value: '0' }
-  - { key: 'net.ipv4.conf.all.log_martians', value: '1' }
   - { key: 'net.ipv4.tcp_syncookies', value: '1' }
   - { key: 'kernel.randomize_va_space', value: '2' }
   - { key: 'kernel.yama.ptrace_scope', value: '1' }

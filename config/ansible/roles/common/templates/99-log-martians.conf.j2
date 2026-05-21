@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+# log_martians gere via copy plutot que sysctl module (bug d'idempotence Ubuntu noble)
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1

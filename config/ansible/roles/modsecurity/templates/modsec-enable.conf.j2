@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+# Active ModSecurity dans le server block nginx qui inclut ce fichier.
+# Inclu via 'include /etc/nginx/modsec-enable.conf*;' dans le server TLS.
+
+modsecurity on;
+modsecurity_rules_file /etc/nginx/modsec/main.conf;

@@ -1,0 +1,135 @@
+---
+# Tasks du role modsecurity
+# Install ModSec v3 + OWASP CRS 4.25 LTS + integration nginx
+
+# === INSTALLATION DES PAQUETS UBUNTU ===
+- name: Install ModSecurity v3 library and nginx connector
+  ansible.builtin.apt:
+    name:
+      - libmodsecurity3t64        # Lib core ModSec v3
+      - libnginx-mod-http-modsecurity   # Module nginx (charge auto via /etc/nginx/modules-enabled)
+      - git                       # Necessaire pour cloner CRS
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+# === REPERTOIRE DE CONFIG MODSECURITY ===
+- name: Create ModSecurity config directory
+  ansible.builtin.file:
+    path: /etc/nginx/modsec
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+# === FICHIER UNICODE.MAPPING (requis par modsecurity.conf) ===
+- name: Check if unicode.mapping already exists
+  ansible.builtin.stat:
+    path: /etc/nginx/modsec/unicode.mapping
+  register: unicode_mapping_stat
+  become: true
+
+- name: Download unicode.mapping from ModSecurity upstream
+  ansible.builtin.get_url:
+    url: "https://raw.githubusercontent.com/owasp-modsecurity/ModSecurity/v3/master/unicode.mapping"
+    dest: /etc/nginx/modsec/unicode.mapping
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when: not unicode_mapping_stat.stat.exists
+
+# === CLONE DU REPO OWASP CRS ===
+- name: Clone OWASP CRS repository at specific LTS version
+  ansible.builtin.git:
+    repo: "{{ modsecurity_crs_repo }}"
+    dest: "{{ modsecurity_crs_install_dir }}"
+    version: "{{ modsecurity_crs_version }}"
+    depth: 1
+    force: true
+  become: true
+  register: crs_clone
+
+- name: Display CRS clone result
+  ansible.builtin.debug:
+    msg: "CRS {{ modsecurity_crs_version }} cloned at {{ modsecurity_crs_install_dir }} (changed={{ crs_clone.changed }})"
+
+# === DEPLOIEMENT DES CONFIGS MODSECURITY ===
+- name: Deploy modsecurity.conf
+  ansible.builtin.template:
+    src: modsecurity.conf.j2
+    dest: /etc/nginx/modsec/modsecurity.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Reload nginx after modsec change
+
+- name: Deploy crs-setup.conf
+  ansible.builtin.template:
+    src: crs-setup.conf.j2
+    dest: /etc/nginx/modsec/crs-setup.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Reload nginx after modsec change
+
+- name: Deploy main.conf (entry point)
+  ansible.builtin.template:
+    src: main.conf.j2
+    dest: /etc/nginx/modsec/main.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Reload nginx after modsec change
+
+# === ACTIVATION MODSECURITY DANS NGINX ===
+# Approche par include : on depose /etc/nginx/modsec-enable.conf qui est
+# inclus par le template TLS letsencrypt via 'include modsec-enable.conf*;'.
+# Idempotent : plus de race entre roles sur monerometrics.conf.
+
+- name: Cleanup legacy blockinfile ModSecurity directives
+  ansible.builtin.blockinfile:
+    path: /etc/nginx/sites-available/monerometrics.conf
+    marker: "    # {mark} ANSIBLE MANAGED BLOCK modsecurity"
+    state: absent
+  become: true
+  notify: Reload nginx after modsec change
+
+- name: Deploy ModSecurity nginx enable file
+  ansible.builtin.template:
+    src: modsec-enable.conf.j2
+    dest: /etc/nginx/modsec-enable.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Reload nginx after modsec change
+
+# === LOG FILE PERMISSIONS ===
+- name: Ensure ModSecurity audit log file exists with correct ownership
+  ansible.builtin.file:
+    path: "{{ modsecurity_audit_log_file }}"
+    state: touch
+    owner: www-data
+    group: adm
+    mode: '0640'
+    modification_time: preserve
+    access_time: preserve
+  become: true
+
+# === VERIFICATION FINALE ===
+- name: Validate nginx config syntax (with ModSecurity loaded)
+  ansible.builtin.command: nginx -t
+  become: true
+  register: nginx_test
+  changed_when: false
+  failed_when: nginx_test.rc != 0
+
+- name: Display nginx validation result
+  ansible.builtin.debug:
+    msg: "{{ nginx_test.stderr_lines }}"

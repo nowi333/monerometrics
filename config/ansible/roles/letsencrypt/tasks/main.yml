@@ -84,6 +84,14 @@
   become: true
   notify: Reload nginx for cert update
 
+- name: Ensure monerometrics site is enabled (symlink)
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/monerometrics.conf
+    dest: /etc/nginx/sites-enabled/monerometrics.conf
+    state: link
+  become: true
+  notify: Reload nginx for cert update
+
 # === VERIFY AUTO-RENEWAL TIMER ===
 - name: Ensure certbot renewal timer is active
   ansible.builtin.systemd:
