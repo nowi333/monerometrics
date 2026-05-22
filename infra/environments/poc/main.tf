@@ -115,3 +115,31 @@ module "edge" {
     owner       = "noe"
   }
 }
+
+# ============================================================
+# Module K3S : single-node Kubernetes lightweight
+# VM dans le subnet app (10.0.10.0/24), pas d IP publique.
+# Acces SSH via ProxyJump bastion uniquement.
+# POC : 1 node server+agent. Documentation HA prevu pour prod.
+# ============================================================
+module "k3s" {
+  source = "../../modules/compute/k3s"
+
+  project     = "monerometrics"
+  environment = "poc"
+  location    = "swedencentral"
+
+  subnet_id      = module.network.subnet_ids["app"]
+  ssh_public_key = var.bastion_ssh_public_key
+  admin_username = "noe"
+
+  vm_size = "Standard_B2s_v2"
+
+  tags = {
+    project     = "monerometrics"
+    environment = "poc"
+    managed_by  = "terraform"
+    cost_center = "education"
+    owner       = "noe"
+  }
+}

@@ -1,0 +1,30 @@
+---
+# Defaults du role k3s
+
+# === Version k3s ===
+# v1.34 = release stable mai 2026 (1.35 candidat, on attend stabilisation).
+# Format obligatoire k3s : vX.Y.Z+k3sN
+k3s_version: "v1.34.8+k3s1"
+
+# === Mode d installation ===
+# server : control plane (etcd embarque ou sqlite) + worker integre
+# Pour single-node POC : server avec sqlite (defaut), plus simple que etcd HA
+k3s_role: "server"
+
+# === Options du serveur ===
+# --disable=traefik retire si on veut Traefik (defaut k3s). On le garde.
+# --tls-san : ajoute IP privee au cert kube-apiserver (pour kubeconfig depuis bastion)
+# --write-kubeconfig-mode 644 : permet a noe de lire le kubeconfig sans sudo
+k3s_server_args:
+  - "--write-kubeconfig-mode=644"
+  - "--tls-san={{ ansible_default_ipv4.address }}"
+  - "--node-name={{ inventory_hostname }}"
+
+# === Reseau ===
+# Cluster CIDR et service CIDR par defaut k3s, on ne touche pas en POC
+# (a documenter si conflit avec subnet Azure futurs)
+
+# === Token cluster ===
+# Necessaire pour ajouter des workers plus tard (Sprint 5 si scale-out)
+# Genere a la 1ere install, recupere via /var/lib/rancher/k3s/server/node-token
+k3s_token_file: "/var/lib/rancher/k3s/server/node-token"

@@ -1,0 +1,8 @@
+---
+# Handlers du role k3s
+
+- name: Restart k3s
+  ansible.builtin.systemd:
+    name: k3s
+    state: restarted
+  become: true

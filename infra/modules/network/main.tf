@@ -156,6 +156,22 @@ resource "azurerm_network_security_rule" "app_allow_ssh_from_mgmt" {
   network_security_group_name = azurerm_network_security_group.this["app"].name
 }
 
+# kube-apiserver k3s : accessible depuis bastion (subnet mgmt) uniquement.
+# Ouvre le port 6443 pour permettre kubectl via tunnel SSH local -> bastion -> k3s.
+resource "azurerm_network_security_rule" "app_allow_k3s_api_from_mgmt" {
+  name                        = "allow-k3s-api-from-mgmt"
+  priority                    = 120
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "6443"
+  source_address_prefix       = "10.0.30.0/24"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.network.name
+  network_security_group_name = azurerm_network_security_group.this["app"].name
+}
+
 # Data : accepte le trafic applicatif depuis le subnet App uniquement
 resource "azurerm_network_security_rule" "data_allow_from_app" {
   name                        = "allow-app-from-app-subnet"

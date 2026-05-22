@@ -1,0 +1,124 @@
+---
+# Tasks du role k3s
+# Install single-node k3s via script officiel get.k3s.io
+
+# === PREREQUIS RESEAU ===
+# k3s utilise iptables/nftables. On verifie que les modules kernel sont charges.
+- name: Ensure required kernel modules are loaded
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - br_netfilter
+    - overlay
+  become: true
+
+- name: Persist kernel modules across reboots
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k3s.conf
+    content: |
+      br_netfilter
+      overlay
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+# === SYSCTL SPECIFIQUE K3S (defense en profondeur) ===
+# Permet le traffic iptables sur les bridges (CNI flannel par defaut)
+- name: Configure sysctl for k3s networking
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-k3s.conf
+    content: |
+      net.bridge.bridge-nf-call-iptables = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.ipv4.ip_forward = 1
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Apply sysctl --system
+
+# === UFW : ouvrir les ports k3s ===
+# 6443 : kube-apiserver (depuis bastion uniquement, NSG filtre deja)
+# 80/443 : Traefik ingress (depuis edge DMZ via NSG)
+# 8472/udp : flannel VXLAN (uniquement intra-cluster, single-node = inutile mais correct)
+# 10250 : kubelet metrics (intra-cluster)
+- name: Allow k3s ports through ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+  loop:
+    - { port: "6443", proto: "tcp" }
+    - { port: "80", proto: "tcp" }
+    - { port: "443", proto: "tcp" }
+    - { port: "10250", proto: "tcp" }
+  become: true
+
+# === DOWNLOAD ET INSTALL K3S ===
+- name: Check if k3s is already installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s
+  register: k3s_binary
+
+- name: Download k3s install script
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: /tmp/k3s-install.sh
+    mode: '0755'
+  become: true
+  when: not k3s_binary.stat.exists
+
+- name: Install k3s server
+  ansible.builtin.command:
+    cmd: /tmp/k3s-install.sh
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_EXEC: "server {{ k3s_server_args | join(' ') }}"
+  become: true
+  when: not k3s_binary.stat.exists
+  register: k3s_install
+
+- name: Display k3s install output
+  ansible.builtin.debug:
+    var: k3s_install.stdout_lines
+  when: k3s_install.changed | default(false)
+
+# === ATTENDRE QUE K3S SOIT READY ===
+- name: Wait for k3s to be ready (max 90s)
+  ansible.builtin.command: k3s kubectl get nodes
+  become: true
+  register: k3s_nodes
+  retries: 18
+  delay: 5
+  until: k3s_nodes.rc == 0 and "Ready" in k3s_nodes.stdout
+  changed_when: false
+
+- name: Display k3s cluster status
+  ansible.builtin.debug:
+    var: k3s_nodes.stdout_lines
+
+# === RECUPERER KUBECONFIG ET TOKEN ===
+- name: Fetch kubeconfig from k3s node
+  ansible.builtin.fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: "/tmp/k3s-{{ inventory_hostname }}-kubeconfig.yaml"
+    flat: true
+  become: true
+
+- name: Fetch cluster token
+  ansible.builtin.slurp:
+    src: "{{ k3s_token_file }}"
+  become: true
+  register: k3s_token_raw
+
+- name: Display k3s version installed
+  ansible.builtin.command: k3s --version
+  become: true
+  register: k3s_version_check
+  changed_when: false
+
+- name: Show k3s version
+  ansible.builtin.debug:
+    msg: "{{ k3s_version_check.stdout_lines }}"

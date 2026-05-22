@@ -75,3 +75,21 @@ output "edge_ssh_command" {
   description = "Commande SSH initiale (IP publique) pour bootstrap Ansible."
   value       = module.edge.ssh_command_initial
 }
+
+# ============================================================
+# K3S (single-node, IP privee uniquement)
+# ============================================================
+output "k3s_private_ip" {
+  description = "IP privee de la VM k3s dans le subnet app (target proxy_pass nginx)."
+  value       = module.k3s.private_ip_address
+}
+
+output "k3s_resource_group_name" {
+  description = "Nom du resource group k3s."
+  value       = module.k3s.resource_group_name
+}
+
+output "k3s_ssh_command" {
+  description = "Commande SSH avec ProxyJump via bastion."
+  value       = "ssh -J noe@${module.bastion.public_ip_address} noe@${module.k3s.private_ip_address}"
+}

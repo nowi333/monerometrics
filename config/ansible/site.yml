@@ -18,3 +18,11 @@
     - nginx
     - letsencrypt
     - modsecurity
+
+- name: Configure k3s (hardening CIS L1 + Kubernetes single-node)
+  hosts: k3s
+  gather_facts: true
+  become: false
+  roles:
+    - common
+    - k3s
