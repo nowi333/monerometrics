@@ -66,3 +66,28 @@ resource "azurerm_linux_virtual_machine" "k3s" {
     component = "k3s"
   })
 }
+
+# === DATA DISK : storage applicatif separe ===
+# Standard SSD 128 Go pour monerod (~80 Go pruned) + Postgres (~15 Go) + buffer.
+# Choix Standard SSD (vs Premium) optimise pour budget Azure for Students.
+# En production : Premium SSD pour IOPS dedie sur la base PostgreSQL.
+resource "azurerm_managed_disk" "k3s_data" {
+  name                 = "${var.project}-${var.environment}-k3s-data-disk"
+  location             = azurerm_resource_group.k3s.location
+  resource_group_name  = azurerm_resource_group.k3s.name
+  storage_account_type = "StandardSSD_LRS"
+  create_option        = "Empty"
+  disk_size_gb         = 128
+
+  tags = merge(var.tags, {
+    component = "k3s"
+    purpose   = "applicative-data"
+  })
+}
+
+resource "azurerm_virtual_machine_data_disk_attachment" "k3s_data" {
+  managed_disk_id    = azurerm_managed_disk.k3s_data.id
+  virtual_machine_id = azurerm_linux_virtual_machine.k3s.id
+  lun                = 0
+  caching            = "ReadWrite"
+}

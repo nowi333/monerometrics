@@ -1,0 +1,82 @@
+---
+# Tasks du role data_disk
+# Formate (si necessaire) et monte le data disk Azure
+
+- name: Check if data disk device exists
+  ansible.builtin.stat:
+    path: "{{ data_disk_device }}"
+  register: data_disk_stat
+
+- name: Fail if data disk not attached
+  ansible.builtin.fail:
+    msg: "Data disk not found at {{ data_disk_device }}. Verify Azure attachment."
+  when: not data_disk_stat.stat.exists
+
+- name: Get filesystem info on data disk
+  ansible.builtin.command: "blkid -o value -s TYPE {{ data_disk_device }}"
+  register: blkid_result
+  changed_when: false
+  failed_when: false
+
+- name: Format data disk to ext4 (only if no filesystem)
+  community.general.filesystem:
+    fstype: "{{ data_disk_fstype }}"
+    dev: "{{ data_disk_device }}"
+  become: true
+  when: blkid_result.stdout != data_disk_fstype
+  register: format_result
+
+- name: Force udev to re-scan after format (else blkid returns empty)
+  ansible.builtin.command: udevadm trigger --subsystem-match=block
+  become: true
+  changed_when: false
+  when: format_result.changed | default(false)
+
+- name: Wait for blkid to return UUID (after format, kernel needs a moment)
+  ansible.builtin.command: "blkid -o value -s UUID {{ data_disk_device }}"
+  become: true
+  register: data_disk_uuid
+  changed_when: false
+  retries: 10
+  delay: 2
+  until: data_disk_uuid.stdout | length > 0
+
+- name: Create mount point
+  ansible.builtin.file:
+    path: "{{ data_disk_mountpoint }}"
+    state: directory
+    owner: "{{ data_disk_owner }}"
+    group: "{{ data_disk_group }}"
+    mode: "{{ data_disk_mode }}"
+  become: true
+
+- name: Mount data disk and add to fstab (UUID-based, robust to reboot)
+  ansible.posix.mount:
+    path: "{{ data_disk_mountpoint }}"
+    src: "UUID={{ data_disk_uuid.stdout }}"
+    fstype: "{{ data_disk_fstype }}"
+    opts: "defaults,nofail,x-systemd.device-timeout=5"
+    state: mounted
+  become: true
+
+- name: Create subdirectories for applicative data
+  ansible.builtin.file:
+    path: "{{ data_disk_mountpoint }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+  loop:
+    - monerod
+    - postgres
+    - worker
+
+- name: Display data disk usage
+  ansible.builtin.command: "df -h {{ data_disk_mountpoint }}"
+  register: data_disk_df
+  changed_when: false
+
+- name: Show data disk status
+  ansible.builtin.debug:
+    var: data_disk_df.stdout_lines

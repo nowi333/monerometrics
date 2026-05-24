@@ -1,0 +1,60 @@
+---
+# Worker monerometrics : indexe les blocs monerod dans Postgres et detecte les reorgs.
+# Image privee sur GHCR -> imagePullSecret ghcr-pull-secret.
+# Image alpine 3.13 + psycopg + httpx.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: monerometrics
+  labels:
+    app: worker
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: worker
+          image: ghcr.io/nowi333/monerometrics-worker:0.1.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MONEROD_URL
+              value: "http://monerod:18081"
+            - name: POLL_INTERVAL
+              value: "30"
+            - name: MAX_BLOCKS_PER_BATCH
+              value: "100"
+            - name: PG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_USER
+            - name: PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+            - name: PG_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_DB
+            - name: DATABASE_URL
+              value: "postgresql://$(PG_USER):$(PG_PASSWORD)@postgres:5432/$(PG_DB)"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi

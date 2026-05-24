@@ -1,0 +1,24 @@
+---
+# Configuration monerod : prune mode + JSON-RPC accessible depuis le namespace.
+# restricted-rpc=1 = pas de commandes admin (lecture seule). Securise.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monerod-config
+  namespace: monerometrics
+data:
+  monerod.conf: |
+    data-dir=/data
+    prune-blockchain=1
+    rpc-bind-ip=0.0.0.0
+    rpc-bind-port=18081
+    confirm-external-bind=1
+    restricted-rpc=1
+    p2p-bind-ip=0.0.0.0
+    p2p-bind-port=18080
+    no-igd=1
+    no-zmq=1
+    log-level=0
+    log-file=/data/monerod.log
+    max-log-file-size=104857600
+    max-log-files=3

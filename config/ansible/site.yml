@@ -19,10 +19,11 @@
     - letsencrypt
     - modsecurity
 
-- name: Configure k3s (hardening CIS L1 + Kubernetes single-node)
+- name: Configure k3s (hardening CIS L1 + data disk + Kubernetes single-node)
   hosts: k3s
   gather_facts: true
   become: false
   roles:
     - common
+    - data_disk
     - k3s

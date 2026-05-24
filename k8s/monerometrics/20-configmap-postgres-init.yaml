@@ -1,0 +1,51 @@
+---
+# Script d initialisation Postgres : execute UNIQUEMENT au premier demarrage.
+# Cree les tables blocks, transactions, reorgs_detected avec indices appropries.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-sql
+  namespace: monerometrics
+data:
+  01-schema.sql: |
+    CREATE TABLE IF NOT EXISTS blocks (
+        height BIGINT PRIMARY KEY,
+        hash CHAR(64) NOT NULL UNIQUE,
+        prev_hash CHAR(64) NOT NULL,
+        timestamp_unix BIGINT NOT NULL,
+        timestamp_human TIMESTAMP WITH TIME ZONE NOT NULL,
+        difficulty NUMERIC(40, 0) NOT NULL,
+        tx_count INTEGER NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        miner_address TEXT,
+        miner_pool TEXT,
+        reward_xmr NUMERIC(20, 12),
+        is_canonical BOOLEAN DEFAULT TRUE,
+        indexed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_blocks_hash ON blocks(hash);
+    CREATE INDEX IF NOT EXISTS idx_blocks_timestamp ON blocks(timestamp_unix);
+    CREATE INDEX IF NOT EXISTS idx_blocks_canonical ON blocks(is_canonical) WHERE is_canonical = FALSE;
+
+    CREATE TABLE IF NOT EXISTS transactions (
+        hash CHAR(64) PRIMARY KEY,
+        block_height BIGINT NOT NULL REFERENCES blocks(height) ON DELETE CASCADE,
+        fee_xmr NUMERIC(20, 12),
+        size_bytes INTEGER,
+        ring_size INTEGER,
+        timestamp_unix BIGINT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_tx_block ON transactions(block_height);
+
+    CREATE TABLE IF NOT EXISTS reorgs_detected (
+        id SERIAL PRIMARY KEY,
+        detected_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        fork_point_height BIGINT NOT NULL,
+        depth INTEGER NOT NULL,
+        old_chain_tip_hash CHAR(64) NOT NULL,
+        new_chain_tip_hash CHAR(64) NOT NULL,
+        affected_tx_count INTEGER,
+        notes TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_reorg_height ON reorgs_detected(fork_point_height);
+    CREATE INDEX IF NOT EXISTS idx_reorg_time ON reorgs_detected(detected_at);

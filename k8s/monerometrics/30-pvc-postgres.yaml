@@ -1,0 +1,13 @@
+---
+# PVC 15 Gi pour Postgres. Atterrit sur le data disk via local-path-provisioner.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: monerometrics
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 15Gi
+  storageClassName: local-path

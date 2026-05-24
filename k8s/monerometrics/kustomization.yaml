@@ -1,0 +1,26 @@
+---
+# Kustomize : applique tous les manifests dans l ordre des prefixes numeriques.
+# kubectl apply -k k8s/monerometrics/ deploie l ensemble.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monerometrics
+
+resources:
+  - 00-namespace.yaml
+  - 10-secret-postgres.yaml
+  - 20-configmap-postgres-init.yaml
+  - 20-configmap-monerod.yaml
+  - 30-pvc-postgres.yaml
+  - 30-pvc-monerod.yaml
+  - 40-service-postgres.yaml
+  - 40-service-monerod.yaml
+  - 50-deployment-postgres.yaml
+  - 50-deployment-monerod.yaml
+  - 50-deployment-worker.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: monerometrics
+      environment: poc
+    includeSelectors: false

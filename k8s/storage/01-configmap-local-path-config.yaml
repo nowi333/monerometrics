@@ -1,0 +1,20 @@
+---
+# Patch du configmap local-path-provisioner pour pointer vers le data disk Azure
+# au lieu du disque OS (29 Go). Sans ce patch, les PVC k3s atterrissent sur le
+# disque systeme qui sature vite. Avec ce patch, ils vont sur /var/lib/monerometrics-data
+# qui est notre disque managed Standard SSD 128 Go.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: local-path-config
+  namespace: kube-system
+data:
+  config.json: |-
+    {
+      "nodePathMap": [
+        {
+          "node": "DEFAULT_PATH_FOR_NON_LISTED_NODES",
+          "paths": ["/var/lib/monerometrics-data/k3s-volumes"]
+        }
+      ]
+    }

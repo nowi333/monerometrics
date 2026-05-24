@@ -1,0 +1,66 @@
+---
+# Monero node en sync from genesis (8-12h). Pruned blockchain pour rester ~80 Go.
+# Image sethsimmons/simple-monerod : reference communaute, build alpine.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monerod
+  namespace: monerometrics
+  labels:
+    app: monerod
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: monerod
+  template:
+    metadata:
+      labels:
+        app: monerod
+    spec:
+      containers:
+        - name: monerod
+          image: sethsimmons/simple-monerod:v0.18.3.4
+          args:
+            - --config-file=/etc/monero/monerod.conf
+          ports:
+            - containerPort: 18081
+              name: rpc
+            - containerPort: 18080
+              name: p2p
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /etc/monero
+              readOnly: true
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: 1500m
+              memory: 5Gi
+          readinessProbe:
+            httpGet:
+              path: /get_info
+              port: 18081
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /get_info
+              port: 18081
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            failureThreshold: 60
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: monerod-data
+        - name: config
+          configMap:
+            name: monerod-config

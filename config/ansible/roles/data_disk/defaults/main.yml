@@ -1,0 +1,12 @@
+---
+# Defaults du role data_disk
+# Monte le data disk Azure attache au LUN 0 sur /var/lib/monerometrics-data
+
+# Le LUN 0 est mappe vers /dev/disk/azure/scsi1/lun0
+# Cette nomenclature est stable, contrairement a /dev/sdc qui peut changer
+data_disk_device: "/dev/disk/azure/scsi1/lun0"
+data_disk_mountpoint: "/var/lib/monerometrics-data"
+data_disk_fstype: "ext4"
+data_disk_owner: "root"
+data_disk_group: "root"
+data_disk_mode: "0755"

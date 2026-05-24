@@ -1,0 +1,13 @@
+---
+# PVC 90 Gi pour monerod pruned (~80 Go + croissance 10 mois).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: monerod-data
+  namespace: monerometrics
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 90Gi
+  storageClassName: local-path

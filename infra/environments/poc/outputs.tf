@@ -93,3 +93,13 @@ output "k3s_ssh_command" {
   description = "Commande SSH avec ProxyJump via bastion."
   value       = "ssh -J noe@${module.bastion.public_ip_address} noe@${module.k3s.private_ip_address}"
 }
+
+output "k3s_data_disk_id" {
+  description = "ID du data disk k3s (128 Go Standard SSD)."
+  value       = module.k3s.data_disk_id
+}
+
+output "k3s_data_disk_lun" {
+  description = "LUN du data disk k3s pour montage Linux."
+  value       = module.k3s.data_disk_lun
+}
