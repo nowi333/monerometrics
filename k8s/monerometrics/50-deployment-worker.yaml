@@ -18,6 +18,17 @@ spec:
       app: worker
   template:
     metadata:
+      annotations:
+        # OpenBao injector : sidecar vault-agent qui ecrit /vault/secrets/*
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "monerometrics-worker"
+        vault.hashicorp.com/agent-inject-secret-postgres-credentials: "secret/data/postgres/credentials"
+        vault.hashicorp.com/agent-inject-template-postgres-credentials: |
+          {{- with secret "secret/data/postgres/credentials" -}}
+          export POSTGRES_USER="{{ .Data.data.POSTGRES_USER }}"
+          export POSTGRES_PASSWORD="{{ .Data.data.POSTGRES_PASSWORD }}"
+          export POSTGRES_DB="{{ .Data.data.POSTGRES_DB }}"
+          {{- end }}
       labels:
         app: worker
     spec:
@@ -25,8 +36,10 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: worker
-          image: ghcr.io/nowi333/monerometrics-worker:0.1.0
+          image: ghcr.io/nowi333/monerometrics-worker:0.2.0
           imagePullPolicy: IfNotPresent
+          # Credentials Postgres injectes par OpenBao via vault-agent sidecar
+          # dans /vault/secrets/postgres-credentials, lus par le worker au demarrage
           env:
             - name: MONEROD_URL
               value: "http://monerod:18081"
@@ -34,23 +47,6 @@ spec:
               value: "30"
             - name: MAX_BLOCKS_PER_BATCH
               value: "100"
-            - name: PG_USER
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-credentials
-                  key: POSTGRES_USER
-            - name: PG_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-credentials
-                  key: POSTGRES_PASSWORD
-            - name: PG_DB
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-credentials
-                  key: POSTGRES_DB
-            - name: DATABASE_URL
-              value: "postgresql://$(PG_USER):$(PG_PASSWORD)@postgres:5432/$(PG_DB)"
           resources:
             requests:
               cpu: 50m

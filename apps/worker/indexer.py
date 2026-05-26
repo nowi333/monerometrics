@@ -24,11 +24,52 @@ import httpx
 import psycopg
 from psycopg.rows import dict_row
 
-# === Configuration via env ===
+# === Configuration via env + secrets OpenBao ===
 MONEROD_URL = os.getenv("MONEROD_URL", "http://monerod:18081")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://monerometrics:ChangeMe_PocPostgres_2026@postgres:5432/monerometrics")
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "30"))
 MAX_BLOCKS_PER_BATCH = int(os.getenv("MAX_BLOCKS_PER_BATCH", "100"))
+
+
+def load_secrets_from_openbao():
+    """
+    Lit /vault/secrets/postgres-credentials injecte par OpenBao agent (sidecar).
+    Format attendu : export KEY="value" par ligne.
+    Retourne dict {KEY: value} ou None si fichier absent.
+    """
+    secret_file = "/vault/secrets/postgres-credentials"
+    if not os.path.exists(secret_file):
+        return None
+    secrets = {}
+    with open(secret_file) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("export "):
+                # Parse format: export KEY="value"
+                key_value = line[len("export "):]
+                if "=" in key_value:
+                    key, value = key_value.split("=", 1)
+                    secrets[key.strip()] = value.strip().strip('"')
+    return secrets
+
+
+# Charger credentials Postgres : OpenBao en priorite, env vars k8s en fallback
+_openbao_secrets = load_secrets_from_openbao()
+if _openbao_secrets:
+    PG_USER = _openbao_secrets.get("POSTGRES_USER")
+    PG_PASSWORD = _openbao_secrets.get("POSTGRES_PASSWORD")
+    PG_DB = _openbao_secrets.get("POSTGRES_DB")
+    _source = "OpenBao /vault/secrets/postgres-credentials"
+else:
+    # Fallback : env vars (dev local ou bootstrap sans OpenBao)
+    PG_USER = os.getenv("POSTGRES_USER") or os.getenv("PG_USER", "monerometrics")
+    PG_PASSWORD = os.getenv("POSTGRES_PASSWORD") or os.getenv("PG_PASSWORD", "")
+    PG_DB = os.getenv("POSTGRES_DB") or os.getenv("PG_DB", "monerometrics")
+    _source = "env vars (fallback)"
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"postgresql://{PG_USER}:{PG_PASSWORD}@postgres:5432/{PG_DB}"
+)
 
 # === Logging stdout pour kubectl logs ===
 logging.basicConfig(
@@ -37,6 +78,7 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 log = logging.getLogger("monerometrics-worker")
+log.info(f"Postgres credentials source: {_source}")
 
 
 def get_info(client: httpx.Client) -> dict:

@@ -1,0 +1,87 @@
+# Values custom OpenBao pour POC monerometrics
+# Mode standalone (1 replica, Raft storage)
+# Resources minimales pour cohabiter avec monerod + Prometheus
+
+global:
+  enabled: true
+  tlsDisable: true  # POC : TLS desactive en interne (auth k8s SA suffit)
+
+server:
+  # Image officielle openbao alpine
+  image:
+    repository: "openbao/openbao"
+    tag: "2.5.0"
+
+  # Single-replica avec Raft (storage local sur PVC)
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        tls_disable = 1
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+      }
+
+      storage "raft" {
+        path = "/openbao/data"
+      }
+
+      # Service registration k8s pour decouvrir les pods
+      service_registration "kubernetes" {}
+
+  # Reseau
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 8200
+
+  # Resources reduites pour POC
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # PVC pour Raft storage
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    storageClass: local-path
+    accessMode: ReadWriteOnce
+
+  # ServiceAccount pour auth k8s
+  serviceAccount:
+    create: true
+    name: openbao
+
+  # Readiness probe : OpenBao repond meme scelle (status 501)
+  # On accepte donc 501 comme "ready" pour ne pas restart en boucle
+  readinessProbe:
+    enabled: true
+    path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
+
+# UI desactivee : pas de besoin d expose en HTTPS pour POC
+# Si besoin acces : port-forward 8200:8200
+ui:
+  enabled: true
+  serviceType: ClusterIP
+
+# Injector OpenBao : webhook MutatingAdmission qui injecte des sidecars
+# pour recuperer les secrets automatiquement
+injector:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 30m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  agentImage:
+    repository: "openbao/openbao"
+    tag: "2.5.0"
