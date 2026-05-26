@@ -54,15 +54,6 @@ fi
 
 # Recap
 # ============================================================
-echo "OK Credentials charges :"
-echo "  Azure subscription : ${ARM_SUBSCRIPTION_ID:0:8}..."
-echo "  Azure tenant       : ${ARM_TENANT_ID:0:8}..."
-echo "  Azure client ID    : ${ARM_CLIENT_ID:0:8}..."
-echo "  Azure secret       : [masque]"
-echo "  Cloudflare token   : ${CLOUDFLARE_API_TOKEN:0:8}..."
-echo "  Tailscale auth key : ${TAILSCALE_AUTH_KEY:0:11}..."
-echo "  GHCR token         : ${GHCR_TOKEN:0:8}..."
-
 
 # ============================================================
 # GitHub Container Registry - PAT pour push/pull images
@@ -73,5 +64,15 @@ export GHCR_USER="nowi333"
 if [[ -f "$HOME/.config/monerometrics/ghcr-token" ]]; then
   export GHCR_TOKEN=$(cat "$HOME/.config/monerometrics/ghcr-token")
 else
+  export GHCR_TOKEN=""
   echo "WARNING : ~/.config/monerometrics/ghcr-token absent, push GHCR indisponible"
 fi
+
+echo "OK Credentials charges :"
+echo "  Azure subscription : ${ARM_SUBSCRIPTION_ID:0:8}..."
+echo "  Azure tenant       : ${ARM_TENANT_ID:0:8}..."
+echo "  Azure client ID    : ${ARM_CLIENT_ID:0:8}..."
+echo "  Azure secret       : [masque]"
+echo "  Cloudflare token   : ${CLOUDFLARE_API_TOKEN:0:8}..."
+echo "  Tailscale auth key : ${TAILSCALE_AUTH_KEY:0:11}..."
+echo "  GHCR token         : ${GHCR_TOKEN:0:8}..."

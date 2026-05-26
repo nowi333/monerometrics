@@ -128,13 +128,13 @@ resource "azurerm_network_security_rule" "mgmt_allow_ssh_admin" {
 
 # App : accepte le trafic depuis la DMZ (nginx -> k3s)
 resource "azurerm_network_security_rule" "app_allow_from_dmz" {
-  name                        = "allow-https-from-dmz"
+  name                        = "allow-http-https-from-dmz"
   priority                    = 100
   direction                   = "Inbound"
   access                      = "Allow"
   protocol                    = "Tcp"
   source_port_range           = "*"
-  destination_port_range      = "443"
+  destination_port_ranges     = ["80", "443"]
   source_address_prefix       = var.subnets["dmz"]
   destination_address_prefix  = "*"
   resource_group_name         = azurerm_resource_group.network.name

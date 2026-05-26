@@ -1,0 +1,85 @@
+# Values custom kube-prometheus-stack pour POC monerometrics
+# Resources reduites pour cohabiter avec monerod sync sur 2 vCPU / 8 Gi
+
+# === Alertmanager : desactive pour POC ===
+alertmanager:
+  enabled: false
+
+# === Prometheus ===
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+# === Grafana ===
+grafana:
+  enabled: true
+  adminPassword: ChangeMe_PocGrafana_2026
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    accessModes: ["ReadWriteOnce"]
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  # Pas d'ingress geree par Helm : on creera nous-meme un IngressRoute Traefik
+  service:
+    type: ClusterIP
+
+# === Composants secondaires : resources minimales ===
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+    limits:
+      cpu: 200m
+      memory: 200Mi
+
+kubeStateMetrics:
+  enabled: true
+
+prometheus-node-exporter:
+  enabled: true
+  resources:
+    requests:
+      cpu: 20m
+      memory: 50Mi
+    limits:
+      cpu: 100m
+      memory: 100Mi
+
+# === Composants control-plane : desactive si pas exposes (cas k3s) ===
+kubeApiServer:
+  enabled: true
+kubelet:
+  enabled: true
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+kubeEtcd:
+  enabled: false
+coreDns:
+  enabled: true

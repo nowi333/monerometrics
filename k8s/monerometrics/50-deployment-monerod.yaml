@@ -43,20 +43,24 @@ spec:
             limits:
               cpu: 1500m
               memory: 5Gi
+          # Probes adaptees au profil de charge sync from genesis (I/O wait eleve)
+          # En production VM dediee monerod : timeouts plus serres (1-5s)
           readinessProbe:
-            httpGet:
-              path: /get_info
-              port: 18081
-            initialDelaySeconds: 30
-            periodSeconds: 30
-            failureThreshold: 3
-          livenessProbe:
             httpGet:
               path: /get_info
               port: 18081
             initialDelaySeconds: 60
             periodSeconds: 60
-            failureThreshold: 60
+            timeoutSeconds: 30
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /get_info
+              port: 18081
+            initialDelaySeconds: 120
+            periodSeconds: 120
+            timeoutSeconds: 30
+            failureThreshold: 10
       volumes:
         - name: data
           persistentVolumeClaim:
