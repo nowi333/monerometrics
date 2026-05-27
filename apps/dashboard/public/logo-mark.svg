@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" fill="none">
+  <!-- Chaine canonique horizontale (3 blocs lies) -->
+  <rect x="10" y="40" width="20" height="20" stroke="#ff6600" stroke-width="6" rx="2"/>
+  <line x1="30" y1="50" x2="40" y2="50" stroke="#ff6600" stroke-width="6"/>
+  <rect x="40" y="40" width="20" height="20" stroke="#ff6600" stroke-width="6" rx="2"/>
+  <line x1="60" y1="50" x2="70" y2="50" stroke="#ff6600" stroke-width="6"/>
+  <rect x="70" y="40" width="20" height="20" stroke="#ff6600" stroke-width="6" rx="2"/>
+
+  <!-- Point de fork : lignes vers haut et bas -->
+  <line x1="90" y1="50" x2="105" y2="25" stroke="#ff6600" stroke-width="6"/>
+  <line x1="90" y1="50" x2="105" y2="75" stroke="#ff6600" stroke-width="6"/>
+
+  <!-- Branche haute (2 blocs) -->
+  <rect x="105" y="15" width="20" height="20" stroke="#ff6600" stroke-width="6" rx="2"/>
+  <line x1="125" y1="25" x2="135" y2="25" stroke="#ff6600" stroke-width="6"/>
+  <rect x="135" y="15" width="20" height="20" stroke="#ff6600" stroke-width="6" rx="2"/>
+
+  <!-- Branche basse (2 blocs) -->
+  <rect x="105" y="65" width="20" height="20" stroke="#ff6600" stroke-width="6" rx="2"/>
+  <line x1="125" y1="75" x2="135" y2="75" stroke="#ff6600" stroke-width="6"/>
+  <rect x="135" y="65" width="20" height="20" stroke="#ff6600" stroke-width="6" rx="2"/>
+</svg>
