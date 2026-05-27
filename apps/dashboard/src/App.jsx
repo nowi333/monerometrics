@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import Logo from './Logo'
+import StatusPill from './StatusPill'
 import ThemeToggle from './ThemeToggle'
 import LanguageSwitcher from './LanguageSwitcher'
 import KPICards from './KPICards'
@@ -13,10 +14,11 @@ export default function App() {
   return (
     <div className="min-h-screen p-6 max-w-6xl mx-auto">
       <header
-        className="mb-8 flex items-center justify-between pb-4 border-b"
+        className="mb-8 flex items-center justify-between pb-4 border-b gap-4"
         style={{ borderColor: 'var(--color-border)' }}
       >
         <Logo />
+        <StatusPill />
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           <ThemeToggle />

@@ -18,6 +18,24 @@ i18n
     resources: {
       en: {
         translation: {
+          // Status pill
+          'status.connecting': 'Connecting...',
+          'status.syncing': 'syncing',
+          'status.synced': 'synced',
+          'status.block': 'block',
+
+          // KPI Cards refactor
+          'kpi.blockHeight': 'Block height',
+          'kpi.networkHashrate': 'Network hashrate',
+          'kpi.mempool': 'Mempool',
+          'kpi.reorgWatcher': 'Reorg watcher',
+          'kpi.txs': 'txs',
+          'kpi.events': 'events',
+          'kpi.pending': 'pending',
+          'kpi.maxDepth': 'max depth',
+          'kpi.noReorg': 'no reorg detected',
+          'kpi.targetBlocktime': 'target 120s/block',
+
           // Header
           'app.title': 'monerometrics',
           'app.subtitle': 'Public dashboard analyzing the Monero network · reorgs, mining pools, orphans',
@@ -70,6 +88,24 @@ i18n
       },
       fr: {
         translation: {
+          // Status pill
+          'status.connecting': 'Connexion...',
+          'status.syncing': 'sync en cours',
+          'status.synced': 'synchronise',
+          'status.block': 'bloc',
+
+          // KPI Cards refactor
+          'kpi.blockHeight': 'Hauteur bloc',
+          'kpi.networkHashrate': 'Hashrate reseau',
+          'kpi.mempool': 'Mempool',
+          'kpi.reorgWatcher': 'Detection reorgs',
+          'kpi.txs': 'txs',
+          'kpi.events': 'events',
+          'kpi.pending': 'en attente',
+          'kpi.maxDepth': 'profondeur max',
+          'kpi.noReorg': 'aucun reorg detecte',
+          'kpi.targetBlocktime': 'cible 120s/bloc',
+
           // Header
           'app.title': 'monerometrics',
           'app.subtitle': 'Dashboard public d\'analyse du reseau Monero · reorgs, mining pools, orphans',

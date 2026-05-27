@@ -22,3 +22,8 @@ data:
     log-file=/data/monerod.log
     max-log-file-size=104857600
     max-log-files=3
+    # === Acceleration sync (Sprint 8.2 - 27 mai 2026) ===
+    # fast-block-sync : skip revalidation signatures tx historiques (safe pour POC)
+    # max-concurrency : utiliser 4 threads sur 2 vCPU avec hyperthreading
+    fast-block-sync=1
+    max-concurrency=4

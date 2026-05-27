@@ -279,7 +279,7 @@ MONEROD_RPC_URL = os.getenv("MONEROD_RPC_URL", "http://monerod:18081")
 
 async def monerod_rpc(method: str, params: dict = None):
     """Appel JSON-RPC vers monerod."""
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
             f"{MONEROD_RPC_URL}/json_rpc",
             json={"jsonrpc": "2.0", "id": "0", "method": method, "params": params or {}},
@@ -293,7 +293,7 @@ async def monerod_rpc(method: str, params: dict = None):
 
 async def monerod_get_info():
     """GET /get_info endpoint (pas JSON-RPC)."""
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(f"{MONEROD_RPC_URL}/get_info")
         response.raise_for_status()
         return response.json()
@@ -301,16 +301,31 @@ async def monerod_get_info():
 
 # === Endpoints Network ===
 
+# Cache memoire pour /network/info (TTL 30s)
+_network_info_cache = {"data": None, "timestamp": 0}
+
+
 @app.get("/network/info", response_model=NetworkInfoResponse)
 async def network_info():
     """
     Etat actuel du reseau Monero : sync state, mempool, hashrate.
     Combine RPC monerod direct + DB indexee.
+    Cache 30s pour resister aux pics de charge monerod (sync intensive).
     """
+    import time
+    now = time.time()
+
+    # Si cache valide (<30s) et monerod en train de sync, on sert le cache
+    if _network_info_cache["data"] and (now - _network_info_cache["timestamp"]) < 30:
+        return _network_info_cache["data"]
+
     try:
         info = await monerod_get_info()
     except Exception as e:
-        log.error(f"monerod /get_info failed: {e}")
+        log.warning(f"monerod /get_info failed: {e}, returning cached if any")
+        # En cas d'echec : si on a un cache (meme expire), on le retourne
+        if _network_info_cache["data"]:
+            return _network_info_cache["data"]
         raise HTTPException(503, "monerod unreachable")
 
     # Mempool count via RPC dedie
@@ -339,7 +354,7 @@ async def network_info():
             import time
             last_block_age = int(time.time()) - ts
 
-    return NetworkInfoResponse(
+    response = NetworkInfoResponse(
         block_height=height,
         block_hash=info.get("top_block_hash", ""),
         target_height=target,
@@ -350,6 +365,9 @@ async def network_info():
         network_hashrate_h_s=hashrate,
         last_block_age_seconds=last_block_age,
     )
+    _network_info_cache["data"] = response
+    _network_info_cache["timestamp"] = now
+    return response
 
 
 @app.get("/network/hashrate", response_model=HashrateResponse)
