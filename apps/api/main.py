@@ -15,12 +15,17 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import init_pool, close_pool, get_pool, get_database_url
+import httpx
+import os
 from models import (
     HealthResponse, InfoResponse, Block,
     ChainWindowResponse, Reorg, ReorgsResponse,
     ReorgStatsWindow, ReorgStatsResponse,
     PoolShare, PoolDistributionResponse,
     OrphanBlock, OrphansResponse,
+    NetworkInfoResponse, HashratePoint, HashrateResponse,
+    BlocktimePoint, BlocktimeResponse,
+    ForkBlock, ForkWindowResponse,
 )
 
 # === Logging ===
@@ -48,14 +53,19 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="monerometrics API",
     description="API publique lecture seule sur l'indexation Monero",
-    version="0.1.0",
+    version="0.3.1",
     lifespan=lifespan,
 )
 
 # CORS pour le dashboard React (monerometrics.net)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://monerometrics.net", "https://www.monerometrics.net"],
+    allow_origins=[
+        "https://monerometrics.net",
+        "https://www.monerometrics.net",
+        "http://localhost:5173",  # Vite dev server (build local)
+        "http://localhost:4173",  # Vite preview (test build prod local)
+    ],
     allow_credentials=False,
     allow_methods=["GET"],
     allow_headers=["*"],
@@ -259,3 +269,215 @@ async def orphans_recent(limit: int = Query(50, ge=1, le=500)):
 
     orphans = [OrphanBlock(**dict(r)) for r in rows]
     return OrphansResponse(count=len(orphans), orphans=orphans)
+
+
+
+# === Helper RPC monerod ===
+
+MONEROD_RPC_URL = os.getenv("MONEROD_RPC_URL", "http://monerod:18081")
+
+
+async def monerod_rpc(method: str, params: dict = None):
+    """Appel JSON-RPC vers monerod."""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.post(
+            f"{MONEROD_RPC_URL}/json_rpc",
+            json={"jsonrpc": "2.0", "id": "0", "method": method, "params": params or {}},
+        )
+        response.raise_for_status()
+        result = response.json()
+        if "error" in result:
+            raise HTTPException(502, f"monerod RPC error: {result['error']}")
+        return result.get("result", {})
+
+
+async def monerod_get_info():
+    """GET /get_info endpoint (pas JSON-RPC)."""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(f"{MONEROD_RPC_URL}/get_info")
+        response.raise_for_status()
+        return response.json()
+
+
+# === Endpoints Network ===
+
+@app.get("/network/info", response_model=NetworkInfoResponse)
+async def network_info():
+    """
+    Etat actuel du reseau Monero : sync state, mempool, hashrate.
+    Combine RPC monerod direct + DB indexee.
+    """
+    try:
+        info = await monerod_get_info()
+    except Exception as e:
+        log.error(f"monerod /get_info failed: {e}")
+        raise HTTPException(503, "monerod unreachable")
+
+    # Mempool count via RPC dedie
+    try:
+        pool = await monerod_rpc("get_transaction_pool_stats")
+        mempool_count = pool.get("pool_stats", {}).get("txs_total", 0)
+    except Exception:
+        mempool_count = 0
+
+    # Calcul hashrate : difficulty / target_block_time (120s pour Monero)
+    difficulty = int(info.get("difficulty", 0))
+    hashrate = difficulty // 120 if difficulty else None
+
+    height = info.get("height", 0)
+    target = info.get("target_height", 0) or height
+    sync_pct = (height / target * 100) if target else 0.0
+
+    # Age du dernier bloc
+    pool_obj = get_pool()
+    last_block_age = None
+    async with pool_obj.acquire() as conn:
+        ts = await conn.fetchval(
+            "SELECT timestamp_unix FROM blocks WHERE is_canonical = true ORDER BY height DESC LIMIT 1"
+        )
+        if ts:
+            import time
+            last_block_age = int(time.time()) - ts
+
+    return NetworkInfoResponse(
+        block_height=height,
+        block_hash=info.get("top_block_hash", ""),
+        target_height=target,
+        sync_pct=round(sync_pct, 2),
+        synced=info.get("synchronized", False),
+        difficulty=str(difficulty),
+        mempool_tx_count=mempool_count,
+        network_hashrate_h_s=hashrate,
+        last_block_age_seconds=last_block_age,
+    )
+
+
+@app.get("/network/hashrate", response_model=HashrateResponse)
+async def network_hashrate(
+    window: str = Query("30d", regex="^(24h|7d|30d)$"),
+):
+    """
+    Hashrate historique calcule depuis (difficulty / 120s).
+    Bucketise par heure (24h) ou par jour (7d/30d).
+    """
+    interval_map = {"24h": "24 hours", "7d": "7 days", "30d": "30 days"}
+    bucket_size = "1 hour" if window == "24h" else "1 day"
+    interval = interval_map[window]
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"""
+            SELECT date_trunc('{bucket_size.split()[1]}', timestamp_human) AS bucket,
+                   (AVG(difficulty) / 120)::bigint AS hashrate_h_s
+            FROM blocks
+            WHERE is_canonical = true
+              AND timestamp_human >= NOW() - INTERVAL '{interval}'
+            GROUP BY bucket
+            ORDER BY bucket
+            """
+        )
+
+    points = [HashratePoint(bucket=r["bucket"], hashrate_h_s=r["hashrate_h_s"] or 0) for r in rows]
+    return HashrateResponse(window=window, bucket_size=bucket_size, points=points)
+
+
+@app.get("/network/blocktime", response_model=BlocktimeResponse)
+async def network_blocktime(
+    window: str = Query("24h", regex="^(24h|7d|30d)$"),
+):
+    """
+    Variance temps entre blocs canoniques consecutifs.
+    Statistique : Monero cible 120s, mais varie selon hashrate.
+    """
+    interval_map = {"24h": "24 hours", "7d": "7 days", "30d": "30 days"}
+    interval = interval_map[window]
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"""
+            WITH ordered AS (
+                SELECT height, timestamp_unix,
+                       LAG(timestamp_unix) OVER (ORDER BY height) AS prev_ts
+                FROM blocks
+                WHERE is_canonical = true
+                  AND timestamp_human >= NOW() - INTERVAL '{interval}'
+            )
+            SELECT height, timestamp_unix, (timestamp_unix - prev_ts) AS delta_seconds
+            FROM ordered
+            WHERE prev_ts IS NOT NULL
+              AND (timestamp_unix - prev_ts) BETWEEN 0 AND 3600
+            ORDER BY height
+            """
+        )
+
+    points = [BlocktimePoint(**dict(r)) for r in rows]
+    if points:
+        deltas = sorted(p.delta_seconds for p in points)
+        avg = sum(deltas) / len(deltas)
+        median = deltas[len(deltas) // 2]
+    else:
+        avg = 0.0
+        median = 0
+
+    return BlocktimeResponse(
+        window=window,
+        avg_delta=round(avg, 2),
+        median_delta=median,
+        points=points,
+    )
+
+
+# === Endpoint Fork Window (pour Cytoscape) ===
+
+@app.get("/chain/fork-window", response_model=ForkWindowResponse)
+async def chain_fork_window(limit: int = Query(80, ge=10, le=500)):
+    """
+    Derniers N blocs (canoniques + orphans) avec flags fork point.
+    Source de donnees pour le Cytoscape Chain Fork Visualizer.
+    """
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        # Tip canonical
+        tip = await conn.fetchval(
+            "SELECT MAX(height) FROM blocks WHERE is_canonical = true"
+        )
+        if not tip:
+            return ForkWindowResponse(tip_height=0, blocks_count=0, reorgs_count=0, blocks=[])
+
+        # Fork points (heights ou reorg detecte)
+        fork_heights = set()
+        reorg_rows = await conn.fetch(
+            """
+            SELECT fork_point_height FROM reorgs_detected
+            WHERE fork_point_height >= $1
+            """,
+            tip - limit,
+        )
+        fork_heights = {r["fork_point_height"] for r in reorg_rows}
+
+        # Tous les blocs (canonical + orphan) dans la fenetre
+        rows = await conn.fetch(
+            """
+            SELECT height, hash, prev_hash, is_canonical,
+                   miner_pool, timestamp_unix, tx_count
+            FROM blocks
+            WHERE height BETWEEN $1 AND $2
+            ORDER BY height DESC, is_canonical DESC
+            """,
+            tip - limit, tip,
+        )
+
+    blocks = []
+    for r in rows:
+        d = dict(r)
+        d["is_fork_point"] = d["height"] in fork_heights
+        blocks.append(ForkBlock(**d))
+
+    return ForkWindowResponse(
+        tip_height=tip,
+        blocks_count=len(blocks),
+        reorgs_count=len(fork_heights),
+        blocks=blocks,
+    )

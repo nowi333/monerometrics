@@ -110,3 +110,68 @@ class OrphansResponse(BaseModel):
     """Reponse /orphans/recent : derniers blocs orphelins."""
     count: int
     orphans: list[OrphanBlock]
+
+
+# === Endpoints Network ===
+
+class NetworkInfoResponse(BaseModel):
+    """Reponse /network/info : etat actuel reseau Monero."""
+    block_height: int
+    block_hash: str
+    target_height: int
+    sync_pct: float
+    synced: bool
+    difficulty: str  # numeric -> str pour eviter overflow
+    mempool_tx_count: int
+    network_hashrate_h_s: Optional[int] = None  # H/s (Hashrate)
+    last_block_age_seconds: Optional[int] = None
+
+
+class HashratePoint(BaseModel):
+    """Point de donnees hashrate sur un bucket temporel."""
+    bucket: datetime
+    hashrate_h_s: int  # Hashes per second
+
+
+class HashrateResponse(BaseModel):
+    """Reponse /network/hashrate."""
+    window: str
+    bucket_size: str
+    points: list[HashratePoint]
+
+
+class BlocktimePoint(BaseModel):
+    """Point de donnees block time entre 2 blocs consecutifs."""
+    height: int
+    timestamp_unix: int
+    delta_seconds: int  # Temps entre ce bloc et le precedent canonique
+
+
+class BlocktimeResponse(BaseModel):
+    """Reponse /network/blocktime."""
+    window: str
+    avg_delta: float
+    median_delta: int
+    points: list[BlocktimePoint]
+
+
+# === Endpoint Fork Window (pour Cytoscape) ===
+
+class ForkBlock(BaseModel):
+    """Bloc dans la fenetre de fork visualizer."""
+    height: int
+    hash: str
+    prev_hash: str
+    is_canonical: bool
+    miner_pool: Optional[str] = None
+    timestamp_unix: int
+    tx_count: int
+    is_fork_point: bool = False  # True si ce bloc est un fork point
+
+
+class ForkWindowResponse(BaseModel):
+    """Reponse /chain/fork-window : derniers N blocs + flags fork."""
+    tip_height: int
+    blocks_count: int
+    reorgs_count: int
+    blocks: list[ForkBlock]
