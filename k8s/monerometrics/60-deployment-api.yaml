@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: monerometrics
+  labels:
+    app: api
+    app.kubernetes.io/part-of: monerometrics
+spec:
+  replicas: 1
+  strategy:
+    # Recreate au lieu de RollingUpdate : tue l'ancien pod avant de creer le nouveau
+    # Necessaire avec contrainte vCPU B2s_v2 (sidecar vault-agent 250m par pod)
+    type: Recreate
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      annotations:
+        # OpenBao injector : sidecar vault-agent qui ecrit /vault/secrets/*
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "monerometrics-worker"
+        vault.hashicorp.com/agent-inject-secret-postgres-credentials: "secret/data/postgres/credentials"
+        vault.hashicorp.com/agent-inject-template-postgres-credentials: |
+          {{- with secret "secret/data/postgres/credentials" -}}
+          export POSTGRES_USER="{{ .Data.data.POSTGRES_USER }}"
+          export POSTGRES_PASSWORD="{{ .Data.data.POSTGRES_PASSWORD }}"
+          export POSTGRES_DB="{{ .Data.data.POSTGRES_DB }}"
+          {{- end }}
+      labels:
+        app: api
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: api
+          image: ghcr.io/nowi333/monerometrics-api:0.2.0
+          imagePullPolicy: IfNotPresent
+          # Credentials Postgres lus depuis /vault/secrets/postgres-credentials (OpenBao)
+          env:
+            - name: POSTGRES_HOST
+              value: "postgres"
+            - name: POSTGRES_PORT
+              value: "5432"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
