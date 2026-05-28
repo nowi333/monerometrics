@@ -3,46 +3,43 @@ flowchart TB
 
     subgraph L1["Couche 1 - Perimetre reseau"]
         direction LR
-        FW["OPNsense<br/>Pare-feu stateful"]
-        IDS["Suricata IDS IPS<br/>Detection signatures"]
-        GEO["Geo-blocking<br/>Filtrage IP"]
+        CF["Cloudflare<br/>Proxy DNS TLS edge"]
+        NSG["Azure NSG<br/>Filtrage stateful par subnet"]
     end
 
     subgraph L2["Couche 2 - Application web"]
         direction LR
-        WAF["ModSecurity WAF<br/>OWASP CRS 4.25 LTS"]
-        TLS["TLS 1.3 obligatoire<br/>HSTS preload"]
-        CRS["CrowdSec<br/>Threat intel partagee"]
+        WAF["ModSecurity 3 WAF<br/>OWASP CRS 4.25 - 1682 regles"]
+        TLS["TLS 1.3 obligatoire<br/>HSTS"]
     end
 
-    subgraph L3["Couche 3 - Identite et acces"]
+    subgraph L3["Couche 3 - Acces administration"]
         direction LR
-        AUTH["Authentik IdP<br/>OIDC SAML"]
-        MFA["MFA TOTP<br/>Obligatoire admin"]
-        RBAC["RBAC k8s<br/>Moindre privilege"]
+        BAS["Bastion SSH unique<br/>SSH par cle - pas de password"]
+        TS["Tailscale WireGuard<br/>Acces prive zero-trust"]
     end
 
     subgraph L4["Couche 4 - Systeme"]
         direction LR
         HARD["Hardening CIS L1<br/>Ansible idempotent"]
-        SSH["SSH par cle<br/>Pas de password"]
-        UPD["Unattended upgrades<br/>Patch management"]
+        F2B["fail2ban plus ufw<br/>Anti brute-force"]
+        UPD["unattended-upgrades<br/>Patch auto securite"]
     end
 
     subgraph L5["Couche 5 - Application et donnees"]
         direction LR
-        SEC["Secrets dans OpenBao<br/>Rotation automatique"]
+        SEC["Secrets OpenBao<br/>Injection runtime"]
         ENC["Chiffrement au repos<br/>Disques Azure"]
-        ISO["NetworkPolicies k3s<br/>Pas de root container"]
+        RBAC["RBAC k3s<br/>Moindre privilege"]
     end
 
-    Crown([Cible - Donnees Monero])
+    Crown([Cible - Donnees Monero indexees])
 
     subgraph L6["Couche 6 - Detection et reponse"]
         direction LR
-        SIEM["Wazuh SIEM<br/>Correlation alertes"]
-        SCAN["OpenVAS hebdo<br/>Lynis quotidien"]
-        IR["Procedure incident<br/>Plan documente"]
+        SIEM["Wazuh SIEM sur OCI<br/>HIDS FIM correlation"]
+        MON["Prometheus Grafana<br/>Metriques et alertes"]
+        IR["Procedure incident<br/>Runbooks - a documenter"]
     end
 
     Attacker ==> L1
@@ -63,11 +60,11 @@ flowchart TB
     classDef target fill:#FCEBEB,stroke:#A32D2D,color:#501313
     classDef ext fill:#F1EFE8,stroke:#444441,color:#2C2C2A
 
-    class FW,IDS,GEO layer1
-    class WAF,TLS,CRS layer2
-    class AUTH,MFA,RBAC layer3
-    class HARD,SSH,UPD layer4
-    class SEC,ENC,ISO layer5
-    class SIEM,SCAN,IR layer6
+    class CF,NSG layer1
+    class WAF,TLS layer2
+    class BAS,TS layer3
+    class HARD,F2B,UPD layer4
+    class SEC,ENC,RBAC layer5
+    class SIEM,MON,IR layer6
     class Crown target
     class Attacker ext
