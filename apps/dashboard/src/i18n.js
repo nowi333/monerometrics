@@ -18,6 +18,24 @@ i18n
     resources: {
       en: {
         translation: {
+          // Fork visualizer
+          'fork.title': 'Chain fork visualizer',
+          'fork.canonical': 'Canonical chain',
+          'fork.orphans': 'Orphan blocks',
+          'fork.canonicalBlock': 'Canonical block',
+          'fork.orphanBlock': 'Orphan block',
+          'fork.stats': '{{blocks}} blocks · {{reorgs}} reorgs detected',
+          'fork.mockNotice': 'Demo data (worker indexing once monerod sync completes)',
+          'fork.zoomIn': 'Zoom in',
+          'fork.zoomOut': 'Zoom out',
+          'fork.reset': 'Reset view',
+          'fork.fullscreen': 'Fullscreen',
+          'fork.tipHeight': 'Height',
+          'fork.tipHash': 'Hash',
+          'fork.tipPool': 'Pool',
+          'fork.tipTx': 'Tx count',
+          'fork.tipTime': 'Mined',
+
           // Status pill
           'status.connecting': 'Connecting...',
           'status.syncing': 'syncing',
@@ -88,6 +106,24 @@ i18n
       },
       fr: {
         translation: {
+          // Fork visualizer
+          'fork.title': 'Visualiseur de forks',
+          'fork.canonical': 'Chaine canonique',
+          'fork.orphans': 'Blocs orphelins',
+          'fork.canonicalBlock': 'Bloc canonique',
+          'fork.orphanBlock': 'Bloc orphelin',
+          'fork.stats': '{{blocks}} blocs · {{reorgs}} reorgs detectes',
+          'fork.mockNotice': 'Donnees demo (indexation des que monerod est synchronise)',
+          'fork.zoomIn': 'Zoom avant',
+          'fork.zoomOut': 'Zoom arriere',
+          'fork.reset': 'Reinitialiser la vue',
+          'fork.fullscreen': 'Plein ecran',
+          'fork.tipHeight': 'Hauteur',
+          'fork.tipHash': 'Hash',
+          'fork.tipPool': 'Pool',
+          'fork.tipTx': 'Nb tx',
+          'fork.tipTime': 'Mine',
+
           // Status pill
           'status.connecting': 'Connexion...',
           'status.syncing': 'sync en cours',

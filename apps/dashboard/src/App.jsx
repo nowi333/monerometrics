@@ -4,6 +4,7 @@ import StatusPill from './StatusPill'
 import ThemeToggle from './ThemeToggle'
 import LanguageSwitcher from './LanguageSwitcher'
 import KPICards from './KPICards'
+import ChainForkVisualizer from './ChainForkVisualizer'
 import PoolsChart from './PoolsChart'
 import ReorgsStats from './ReorgsStats'
 import OrphansTable from './OrphansTable'
@@ -35,6 +36,8 @@ export default function App() {
       </div>
 
       <KPICards />
+
+      <ChainForkVisualizer />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <PoolsChart />
