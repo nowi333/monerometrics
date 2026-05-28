@@ -18,6 +18,21 @@ i18n
     resources: {
       en: {
         translation: {
+          // Charts
+          'charts.hashrateTitle': 'Network hashrate',
+          'charts.hashrate': 'Hashrate',
+          'charts.blocktimeTitle': 'Block time variance',
+          'charts.blocktime': 'Block time',
+          'charts.target': 'Target (120s)',
+          'charts.blocktimeStats': 'avg {{avg}}s · median {{median}}s',
+          // Top pools table
+          'toppools.title': 'Top mining pools',
+          'toppools.pool': 'Pool',
+          'toppools.blocks': 'Blocks',
+          'toppools.share': 'Share',
+          'toppools.distribution': 'Distribution',
+          'toppools.total': 'Total: {{count}} canonical blocks',
+
           // Fork visualizer
           'fork.title': 'Chain fork visualizer',
           'fork.canonical': 'Canonical chain',
@@ -106,6 +121,21 @@ i18n
       },
       fr: {
         translation: {
+          // Charts
+          'charts.hashrateTitle': 'Hashrate reseau',
+          'charts.hashrate': 'Hashrate',
+          'charts.blocktimeTitle': 'Variance temps de bloc',
+          'charts.blocktime': 'Temps de bloc',
+          'charts.target': 'Cible (120s)',
+          'charts.blocktimeStats': 'moy {{avg}}s · mediane {{median}}s',
+          // Top pools table
+          'toppools.title': 'Top mining pools',
+          'toppools.pool': 'Pool',
+          'toppools.blocks': 'Blocs',
+          'toppools.share': 'Part',
+          'toppools.distribution': 'Distribution',
+          'toppools.total': 'Total : {{count}} blocs canoniques',
+
           // Fork visualizer
           'fork.title': 'Visualiseur de forks',
           'fork.canonical': 'Chaine canonique',
