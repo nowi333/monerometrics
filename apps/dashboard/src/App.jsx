@@ -5,10 +5,9 @@ import ThemeToggle from './ThemeToggle'
 import LanguageSwitcher from './LanguageSwitcher'
 import KPICards from './KPICards'
 import ChainForkVisualizer from './ChainForkVisualizer'
-import TopPoolsTable from './TopPoolsTable'
 import BlocktimeChart from './BlocktimeChart'
 import HashrateChart from './HashrateChart'
-import PoolsChart from './PoolsChart'
+import PoolsDistribution from './PoolsDistribution'
 import ReorgsStats from './ReorgsStats'
 import OrphansTable from './OrphansTable'
 
@@ -47,13 +46,12 @@ export default function App() {
         <BlocktimeChart />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <PoolsChart />
-        <ReorgsStats />
+      <div className="mb-4">
+        <PoolsDistribution />
       </div>
 
       <div className="mb-4">
-        <TopPoolsTable />
+        <ReorgsStats />
       </div>
 
       <OrphansTable />

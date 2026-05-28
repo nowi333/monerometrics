@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import * as d3 from 'd3'
 import { api, timeAgo } from './api'
 
-// Couleurs par pool (coherentes avec PoolsChart)
+// Couleurs par pool (coherentes avec PoolsDistribution)
 const POOL_COLORS = {
   'supportxmr.com': '#ff6600',
   'p2pool': '#3b82f6',

@@ -27,6 +27,8 @@ i18n
           'charts.blocktimeStats': 'avg {{avg}}s · median {{median}}s',
           // Top pools table
           'toppools.title': 'Top mining pools',
+          'toppools.poolsUnit': 'pools',
+          'toppools.poolsUnit': 'pools',
           'toppools.pool': 'Pool',
           'toppools.blocks': 'Blocks',
           'toppools.share': 'Share',
