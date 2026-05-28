@@ -36,7 +36,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: worker
-          image: ghcr.io/nowi333/monerometrics-worker:0.2.0
+          image: ghcr.io/nowi333/monerometrics-worker:0.3.0
           imagePullPolicy: IfNotPresent
           # Credentials Postgres injectes par OpenBao via vault-agent sidecar
           # dans /vault/secrets/postgres-credentials, lus par le worker au demarrage

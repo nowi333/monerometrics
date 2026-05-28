@@ -29,6 +29,138 @@ MONEROD_URL = os.getenv("MONEROD_URL", "http://monerod:18081")
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "30"))
 MAX_BLOCKS_PER_BATCH = int(os.getenv("MAX_BLOCKS_PER_BATCH", "100"))
 
+# === Pool detection via API declaratives (methode miningpoolstats) ===
+# Chaque pool expose ses blocs trouves. On agrege pour construire un index
+# {block_hash: pool_name} qu'on consulte lors de l'indexation.
+# Couverture ~95% (le reste = solo miners ou pools non suivis -> 'unknown').
+
+POOL_INDEX_REFRESH_INTERVAL = int(os.getenv("POOL_INDEX_REFRESH_INTERVAL", "300"))  # 5 min
+POOL_FETCH_LIMIT = int(os.getenv("POOL_FETCH_LIMIT", "100"))
+
+# Config des pools : {name: (url_template, parser_type)}
+# parser_type : 'standard' | 'nanopool' | 'kryptex'
+POOL_APIS = {
+    "supportxmr.com": ("https://www.supportxmr.com/api/pool/blocks?limit={limit}", "standard"),
+    "p2pool": ("https://p2pool.observer/api/pool/blocks?limit={limit}", "standard"),
+    "hashvault.pro": ("https://api.hashvault.pro/v3/monero/pool/blocks?limit={limit}&page=0", "standard"),
+    "moneroocean.stream": ("https://api.moneroocean.stream/pool/blocks?limit={limit}", "standard"),
+    "c3pool.com": ("https://api.c3pool.org/pool/blocks?limit={limit}", "standard"),
+    "nanopool.org": ("https://xmr.nanopool.org/api/v1/pool/blocks/0/{limit}", "nanopool"),
+    "kryptex.com": ("https://pool.kryptex.com/xmr/api/v1/pool/blocks?limit={limit}", "kryptex"),
+}
+
+# Index global {block_hash: pool_name}, rafraichi periodiquement
+_pool_index = {}
+_pool_index_last_refresh = 0
+
+
+def _parse_pool_response(parser_type: str, data) -> list:
+    """
+    Normalise la reponse d'un pool en liste de (height, hash).
+    Gere les 3 formats : standard, nanopool (wrapper data), kryptex (wrapper results).
+    """
+    blocks = []
+    if parser_type == "standard":
+        # [{height, hash, ts}, ...]
+        for b in data:
+            h = b.get("height")
+            hh = b.get("hash")
+            if h and hh:
+                blocks.append((int(h), hh.lower()))
+    elif parser_type == "nanopool":
+        # {status, data: [{block_number, hash, date}]}
+        for b in data.get("data", []):
+            h = b.get("block_number")
+            hh = b.get("hash")
+            if h and hh:
+                blocks.append((int(h), hh.lower()))
+    elif parser_type == "kryptex":
+        # {count, results: [{height, hash, date}]}
+        for b in data.get("results", []):
+            h = b.get("height")
+            hh = b.get("hash")
+            if h and hh:
+                blocks.append((int(h), hh.lower()))
+    return blocks
+
+
+def fetch_pool_blocks(client: httpx.Client, name: str, url_template: str, parser_type: str) -> list:
+    """Recupere les derniers blocs trouves par un pool. Retourne [(height, hash)]."""
+    url = url_template.format(limit=POOL_FETCH_LIMIT)
+    try:
+        r = client.get(url, timeout=12, follow_redirects=True,
+                       headers={"User-Agent": "monerometrics/1.0"})
+        r.raise_for_status()
+        return _parse_pool_response(parser_type, r.json())
+    except Exception as e:
+        log.warning(f"Pool API {name} failed: {e}")
+        return []
+
+
+def refresh_pool_index(client: httpx.Client) -> None:
+    """Reconstruit l'index {block_hash: pool_name} en agregeant tous les pools."""
+    global _pool_index, _pool_index_last_refresh
+    new_index = {}
+    total = 0
+    for name, (url_template, parser_type) in POOL_APIS.items():
+        blocks = fetch_pool_blocks(client, name, url_template, parser_type)
+        for height, block_hash in blocks:
+            new_index[block_hash] = name
+            total += 1
+    _pool_index = new_index
+    _pool_index_last_refresh = time.time()
+    log.info(f"Pool index refreshed: {len(_pool_index)} unique block hashes from {total} entries across {len(POOL_APIS)} pools")
+
+
+def maybe_refresh_pool_index(client: httpx.Client) -> None:
+    """Rafraichit l'index si l'intervalle est ecoule."""
+    if time.time() - _pool_index_last_refresh >= POOL_INDEX_REFRESH_INTERVAL:
+        refresh_pool_index(client)
+
+
+def detect_pool(block: dict) -> str:
+    """
+    Identifie le pool ayant mine un bloc, methode hybride :
+
+    1. Croisement API (methode miningpoolstats) : consulte l'index
+       {block_hash: pool_name} construit a partir des API declaratives
+       des principaux pools. Si le hash du bloc y figure -> pool identifie.
+
+    2. Fallback on-chain P2Pool : si le hash n'est pas dans l'index mais que
+       la coinbase a plusieurs outputs (signature structurelle P2Pool), on
+       classe en 'p2pool'.
+
+    3. Sinon : 'unknown' (solo miner ou pool non suivi).
+
+    Limitation assumee (privacy-by-design Monero) :
+    - Les pools centralises ne signent PAS leur coinbase on-chain
+    - Identification = uniquement via donnees declaratives off-chain (API pools)
+    - ~95% de couverture, comme les agregateurs publics (miningpoolstats)
+
+    Retourne : nom du pool ('supportxmr.com', 'p2pool', ...) | 'unknown'
+    """
+    header = block.get("block_header", {})
+    block_hash = (header.get("hash") or "").lower()
+
+    # 1. Croisement avec index API
+    if block_hash and block_hash in _pool_index:
+        return _pool_index[block_hash]
+
+    # 2. Fallback on-chain : detection P2Pool par multi-output coinbase
+    try:
+        block_json = block.get("json")
+        if isinstance(block_json, str):
+            import json as _json
+            block_json = _json.loads(block_json)
+        vout = block_json["miner_tx"].get("vout", [])
+        if len(vout) > 1:
+            return "p2pool"
+    except (KeyError, TypeError, ValueError):
+        pass
+
+    # 3. Non identifie
+    return "unknown"
+
 
 def load_secrets_from_openbao():
     """
@@ -163,8 +295,8 @@ def insert_block(conn: psycopg.Connection, block: dict) -> None:
                 header["difficulty"],
                 header.get("num_txes", 0),
                 header.get("block_size", 0),
-                None,  # miner_address : pas dispo via get_block, on enrichira plus tard
-                None,  # miner_pool : a calculer via heuristique sur miner_tx
+                None,  # miner_address : masque par privacy Monero (stealth address)
+                detect_pool(block),  # miner_pool : nom pool via API croisees | p2pool | unknown
                 header.get("reward", 0) / 1e12,  # atomic units -> XMR
                 # is_canonical hardcoded TRUE via le query
             ),
@@ -176,8 +308,14 @@ def index_loop():
     log.info(f"Starting worker · monerod={MONEROD_URL} · poll_interval={POLL_INTERVAL}s")
 
     with httpx.Client() as http_client:
+        # Premier remplissage de l'index pools au demarrage
+        refresh_pool_index(http_client)
+
         while True:
             try:
+                # 0. Rafraichir l'index pools si necessaire (toutes les 5 min)
+                maybe_refresh_pool_index(http_client)
+
                 # 1. Status monerod
                 info = get_info(http_client)
                 synced = info.get("synchronized", False)
