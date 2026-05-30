@@ -1,0 +1,31 @@
+#cloud-config
+# Cloud-init VM Wazuh OCI - version robuste.
+# PAS de section users: (qui ecrase la cle ubuntu native d OCI).
+# L utilisateur noe est cree via runcmd, en copiant la cle de ubuntu.
+
+hostname: ${hostname}
+preserve_hostname: false
+
+package_update: true
+
+packages:
+  - curl
+  - ca-certificates
+
+runcmd:
+  # Cree l utilisateur noe avec sudo
+  - useradd -m -s /bin/bash -G sudo noe
+  - echo "noe ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-noe
+  - chmod 440 /etc/sudoers.d/90-noe
+  # Copie la cle SSH de ubuntu (injectee par OCI metadata) vers noe
+  - mkdir -p /home/noe/.ssh
+  - cp /home/ubuntu/.ssh/authorized_keys /home/noe/.ssh/authorized_keys
+  - chown -R noe:noe /home/noe/.ssh
+  - chmod 700 /home/noe/.ssh
+  - chmod 600 /home/noe/.ssh/authorized_keys
+  # Installation Tailscale
+  - curl -fsSL https://tailscale.com/install.sh | sh
+  - tailscale up --authkey=${tailscale_auth_key} --hostname=${hostname} --ssh
+  - echo "Cloud-init OK $$(date)" >> /var/log/cloud-init-monerometrics.log
+
+final_message: "monerometrics wazuh-oci : cloud-init OK"

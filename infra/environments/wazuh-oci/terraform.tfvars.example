@@ -1,0 +1,16 @@
+# terraform.tfvars.example
+# Template a copier en terraform.tfvars et remplir.
+# tfvars (non-example) est gitignore.
+
+tenancy_ocid     = "ocid1.tenancy.oc1..xxxxxxxx"
+user_ocid        = "ocid1.user.oc1..xxxxxxxx"
+fingerprint      = "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
+private_key_path = "~/.oci/oci_api_key.pem"
+region           = "eu-frankfurt-1"
+compartment_ocid = "ocid1.tenancy.oc1..xxxxxxxx"
+
+availability_domain = "xxxx:EU-FRANKFURT-1-AD-1"
+
+# Charges via TF_VAR_* depuis Keychain au moment de l apply :
+# ssh_public_key
+# tailscale_auth_key
