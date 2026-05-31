@@ -1,6 +1,6 @@
 flowchart TB
     Internet([Internet 0.0.0.0/0])
-    AdminPC([Poste admin - Mac M1])
+    AdminPC([PC de l administrateur])
     Pools([Mining Pools APIs externes])
 
     subgraph VNet["VNet monerometrics 10.0.0.0/16 - Sweden Central"]
@@ -34,8 +34,10 @@ flowchart TB
         TSnet["Reseau prive zero-trust<br/>agents Wazuh des 3 VMs"]
     end
 
-    subgraph OCI["Oracle Cloud Always Free"]
+    subgraph OCI["Oracle Cloud eu-frankfurt-1"]
+        direction TB
         WZH["Wazuh Manager OCI<br/>Tailscale 100.x.y.z<br/>Port 1514"]
+        OBJ["OCI Object Storage<br/>Bucket monerometrics-backups<br/>Endpoint S3 compatible"]
     end
 
     Internet ==>|TCP 443| NSGe
@@ -47,6 +49,7 @@ flowchart TB
 
     VNet -.->|agents Wazuh| TSnet
     TSnet ==>|1514 chiffre| WZH
+    K3S ==>|Restic chiffre S3<br/>via Tailscale| OBJ
 
     classDef edge fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
     classDef app fill:#E1F5EE,stroke:#0F6E56,color:#04342C
@@ -61,5 +64,5 @@ flowchart TB
     class DISK data
     class BAS,NSGm mgmt
     class Internet,AdminPC,Pools ext
-    class WZH oci
+    class WZH,OBJ oci
     class TSnet vpn

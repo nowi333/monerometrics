@@ -20,7 +20,7 @@ flowchart LR
 
     subgraph BackendsOCI["Stockage securite - Oracle Cloud"]
         direction TB
-        WzhM["Wazuh Manager 4.x<br/>plus Indexer OpenSearch<br/>via Tailscale"]
+        WzhM["Wazuh Manager 4.14<br/>plus Indexer OpenSearch<br/>via Tailscale"]
     end
 
     subgraph Visu["Visualisation et alerting"]
@@ -52,4 +52,11 @@ flowchart LR
     classDef backend fill:#EEEDFE,stroke:#3C3489,color:#26215C
     classDef oci fill:#FCEBEB,stroke:#A32D2D,color:#501313
     classDef visu fill:#FBEAF0,stroke:#993556,color:#4B1528
-    classDef ext fill:#E6F1FB,stroke:#185FA5,
+    classDef ext fill:#E6F1FB,stroke:#185FA5,color:#042C53
+
+    class VM,K8S,APP src
+    class WzhA,NodeE,KSM agent
+    class Prom backend
+    class WzhM,WzhD oci
+    class Grafana visu
+    class Ops ext

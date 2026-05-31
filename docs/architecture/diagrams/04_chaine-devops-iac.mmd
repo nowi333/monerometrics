@@ -1,9 +1,9 @@
 flowchart TB
-    Dev([Developpeur Mac M1 - Tailscale active])
+    Dev([Administrateur - Tailscale active])
 
-    subgraph Local["Poste developpeur"]
+    subgraph Local["PC de l administrateur"]
         direction TB
-        IDE["VS Code Cursor"]
+        IDE["IDE"]
         KC["macOS Keychain<br/>SP Azure - CF token<br/>Tailscale key - GHCR"]
         Pre["pre-commit hooks<br/>tflint ansible-lint detect-secrets"]
         TF["Terraform 1.15<br/>azurerm 4.73 cloudflare 5.19"]
@@ -15,7 +15,6 @@ flowchart TB
         direction TB
         Code["Code source<br/>infra config k8s apps docs"]
         GHCR["GHCR registry<br/>images worker api"]
-        Actions["GitHub Actions OIDC<br/>CI CD - Sprint 10 a venir"]
     end
 
     subgraph ExtSvc["Services externes"]
@@ -50,8 +49,6 @@ flowchart TB
     KUB -->|manifests| VMs
     GHCR -->|pull| VMs
 
-    Actions -.->|plan apply futur| State
-
     classDef local fill:#FAEEDA,stroke:#854F0B,color:#412402
     classDef github fill:#EEEDFE,stroke:#3C3489,color:#26215C
     classDef azure fill:#E6F1FB,stroke:#185FA5,color:#042C53
@@ -59,7 +56,7 @@ flowchart TB
     classDef extdev fill:#F1EFE8,stroke:#444441,color:#2C2C2A
 
     class IDE,TF,ANS,KUB,Pre,KC local
-    class Code,Actions,GHCR github
+    class Code,GHCR github
     class State,RG,VMs azure
     class CF,TS ext
     class Dev extdev

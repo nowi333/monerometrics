@@ -1,6 +1,6 @@
 flowchart TB
     Internet([Internet - Utilisateurs publics])
-    Admin([Administrateur - Mac M1])
+    Admin([Administrateur])
     Pools([7 Mining Pools APIs<br/>supportxmr p2pool hashvault<br/>moneroocean c3pool nanopool kryptex])
     CF["Cloudflare DNS<br/>Zone monerometrics.net<br/>Proxy et TLS edge"]
 
@@ -10,7 +10,7 @@ flowchart TB
         subgraph Edge["Subnet Edge 10.0.1.0/24"]
             direction TB
             NSG1["NSG Edge<br/>Allow 80 443 depuis Internet"]
-            NGX["nginx 10.0.1.4<br/>Reverse proxy TLS 1.3<br/>ModSecurity 3 plus OWASP CRS 4.25<br/>1682 regles actives"]
+            NGX["nginx 10.0.1.4<br/>Reverse proxy TLS 1.3<br/>ModSecurity 3 plus OWASP CRS 4.25<br/>2523 regles actives"]
             DASH["dashboard<br/>SPA React buildee<br/>fichiers statiques /var/www"]
             NSG1 --> NGX
             NGX --> DASH
@@ -31,6 +31,7 @@ flowchart TB
                 WRK["worker<br/>Indexer reorg<br/>plus pool detection"]
                 MON["monerod v0.18.3.4<br/>Mode prune<br/>Detection reorg"]
                 PG["PostgreSQL 17<br/>Blocs reorgs orphans"]
+                BKP["CronJob backup<br/>pg_dump plus manifests<br/>Restic chiffre quotidien"]
             end
 
             subgraph NSobs["Namespace monitoring"]
@@ -48,14 +49,16 @@ flowchart TB
             API --> MON
             WRK --> MON
             WRK --> PG
+            BKP --> PG
         end
 
         DISK["Azure Managed Disk 128Go<br/>Donnees k3s et blockchain<br/>Snapshots incrementaux"]
     end
 
-    subgraph OCI["Oracle Cloud - Always Free Tier"]
+    subgraph OCI["Oracle Cloud - eu-frankfurt-1"]
         direction TB
-        WZH["VM ARM Ampere A1<br/>Ubuntu 24.04 - 2 vCPU 8Go<br/>Wazuh Manager 4.x<br/>plus Indexer plus Dashboard"]
+        WZH["VM AMD E5.Flex<br/>Ubuntu 24.04 - 4 vCPU 16Go<br/>Wazuh 4.14 Manager<br/>plus Indexer plus Dashboard"]
+        OBJ["OCI Object Storage<br/>Bucket monerometrics-backups<br/>Sauvegardes Restic chiffrees"]
     end
 
     subgraph TS["Maillage prive Tailscale - WireGuard overlay 100.x.y.z"]
@@ -65,7 +68,7 @@ flowchart TB
 
     Internet ==>|HTTPS 443| CF
     CF ==>|HTTPS 443| NSG1
-    NGX ==>|Proxy interne| TRF
+    NGX ==>|Proxy internet| TRF
     Admin ==>|SSH 22 chiffre| BAS
     BAS -->|SSH interne| App
     BAS -->|SSH interne| Edge
@@ -84,7 +87,7 @@ flowchart TB
     App -.->|Agent Wazuh| TSnet
     TSnet ==>|Logs securite chiffres<br/>port 1514 sur IP privee| WZH
 
-    DISK -.->|Sauvegarde Restic<br/>vers Azure Blob - a venir| Backup["Azure Blob Storage<br/>PRA Restic chiffre"]
+    BKP ==>|Restic chiffre AES-256<br/>S3 via Tailscale| OBJ
 
     classDef edge fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
     classDef app fill:#E1F5EE,stroke:#0F6E56,color:#04342C
@@ -97,12 +100,12 @@ flowchart TB
     classDef vpn fill:#E1F5EE,stroke:#1D9E75,color:#04342C
 
 
-    class API,WRK,TRF app
+    class API,WRK,TRF,BKP app
     class NSG1,NGX,DASH edge
     class MON,PG data
     class BAS mgmt
     class PROM,GRF,OBAO obs
     class Internet,Admin,Pools,CF ext
-    class DISK,Backup bkp
-    class WZH oci
+    class DISK bkp
+    class WZH,OBJ oci
     class TSnet vpn
