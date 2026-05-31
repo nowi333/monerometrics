@@ -8,43 +8,46 @@ import { api } from './api'
 
 Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend)
 
-// Donnees mockees : block times autour de 120s (cible Monero)
-function buildMock() {
-  const points = []
-  const n = 60
-  let height = 3683700
-  let ts = Math.floor(Date.now() / 1000) - n * 120
-  for (let i = 0; i < n; i++) {
-    const delta = Math.max(10, Math.round(120 + (Math.random() - 0.5) * 140))
-    ts += delta
-    points.push({ height: height + i, timestamp_unix: ts, delta_seconds: delta })
-  }
-  const deltas = points.map(p => p.delta_seconds).sort((a, b) => a - b)
-  return {
-    window: '24h',
-    avg_delta: deltas.reduce((a, b) => a + b, 0) / deltas.length,
-    median_delta: deltas[Math.floor(deltas.length / 2)],
-    points,
-    _mock: true,
-  }
-}
-
 export default function BlocktimeChart() {
   const { t } = useTranslation()
   const [data, setData] = useState(null)
-  const [isMock, setIsMock] = useState(false)
+  const [status, setStatus] = useState('loading') // loading | ok | empty | error
 
   useEffect(() => {
+    setStatus('loading')
     api.networkBlocktime('24h')
       .then(d => {
-        if (d && d.points && d.points.length > 0) { setData(d); setIsMock(false) }
-        else { setData(buildMock()); setIsMock(true) }
+        if (d && d.points && d.points.length > 0) { setData(d); setStatus('ok') }
+        else { setData(null); setStatus('empty') }
       })
-      .catch(() => { setData(buildMock()); setIsMock(true) })
+      .catch(() => { setData(null); setStatus('error') })
   }, [])
 
-  if (!data) {
-    return <div className="text-sm p-4" style={{ color: 'var(--color-dim)' }}>{t('state.loading')}</div>
+  const subtitle =
+    status === 'ok'
+      ? t('charts.blocktimeStats', { avg: data.avg_delta.toFixed(0), median: data.median_delta })
+      : status === 'error'
+        ? t('state.apiError')
+        : status === 'empty'
+          ? t('state.waitingSync')
+          : t('state.loading')
+
+  const wrap = (inner) => (
+    <div className="rounded-lg border p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h3 className="text-base font-medium" style={{ color: 'var(--color-text)' }}>{t('charts.blocktimeTitle')}</h3>
+          <p className="text-xs mt-1" style={{ color: status === 'error' ? 'var(--color-warn)' : 'var(--color-dim)' }}>{subtitle}</p>
+        </div>
+      </div>
+      {inner}
+    </div>
+  )
+
+  if (status !== 'ok') {
+    return wrap(<div className="text-sm py-10 text-center" style={{ color: status === 'error' ? 'var(--color-warn)' : 'var(--color-dim)' }}>
+      {status === 'error' ? t('state.apiError') : status === 'empty' ? t('state.waitingSync') : t('state.loading')}
+    </div>)
   }
 
   const chartData = {
@@ -84,19 +87,5 @@ export default function BlocktimeChart() {
     },
   }
 
-  return (
-    <div className="rounded-lg border p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h3 className="text-base font-medium" style={{ color: 'var(--color-text)' }}>{t('charts.blocktimeTitle')}</h3>
-          <p className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>
-            {isMock ? t('fork.mockNotice') : t('charts.blocktimeStats', { avg: data.avg_delta.toFixed(0), median: data.median_delta })}
-          </p>
-        </div>
-      </div>
-      <div style={{ height: '240px' }}>
-        <Line data={chartData} options={options} />
-      </div>
-    </div>
-  )
+  return wrap(<div style={{ height: '240px' }}><Line data={chartData} options={options} /></div>)
 }

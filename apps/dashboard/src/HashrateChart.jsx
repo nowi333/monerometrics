@@ -9,42 +9,45 @@ import { api, formatHashrate } from './api'
 
 Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
-// Donnees mockees : courbe hashrate realiste (~5 GH/s avec variations)
-function buildMock(window) {
-  const points = []
-  const n = window === '24h' ? 24 : window === '7d' ? 7 : 30
-  const now = Date.now()
-  const stepMs = window === '24h' ? 3600e3 : 86400e3
-  let base = 5.1e9
-  for (let i = n - 1; i >= 0; i--) {
-    base += (Math.random() - 0.5) * 0.4e9
-    base = Math.max(4.2e9, Math.min(5.9e9, base))
-    points.push({
-      bucket: new Date(now - i * stepMs).toISOString(),
-      hashrate_h_s: Math.round(base),
-    })
-  }
-  return { window, bucket_size: window === '24h' ? '1 hour' : '1 day', points, _mock: true }
-}
-
 export default function HashrateChart() {
   const { t } = useTranslation()
   const [data, setData] = useState(null)
-  const [isMock, setIsMock] = useState(false)
+  const [status, setStatus] = useState('loading') // loading | ok | empty | error
   const [window, setWindow] = useState('30d')
 
   useEffect(() => {
+    setStatus('loading')
     api.networkHashrate(window)
       .then(d => {
-        if (d && d.points && d.points.length > 0) { setData(d); setIsMock(false) }
-        else { setData(buildMock(window)); setIsMock(true) }
+        if (d && d.points && d.points.length > 0) { setData(d); setStatus('ok') }
+        else { setData(null); setStatus('empty') }
       })
-      .catch(() => { setData(buildMock(window)); setIsMock(true) })
+      .catch(() => { setData(null); setStatus('error') })
   }, [window])
 
-  if (!data) {
-    return <div className="text-sm p-4" style={{ color: 'var(--color-dim)' }}>{t('state.loading')}</div>
-  }
+  const header = (
+    <div className="flex justify-between items-center mb-4">
+      <h3 className="text-base font-medium" style={{ color: 'var(--color-text)' }}>{t('charts.hashrateTitle')}</h3>
+      <select value={window} onChange={e => setWindow(e.target.value)}
+        className="bg-transparent border rounded px-3 py-1 text-sm"
+        style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
+        <option value="24h">24h</option>
+        <option value="7d">7d</option>
+        <option value="30d">30d</option>
+      </select>
+    </div>
+  )
+
+  const wrap = (inner) => (
+    <div className="rounded-lg border p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
+      {header}
+      {inner}
+    </div>
+  )
+
+  if (status === 'loading') return wrap(<div className="text-sm py-12 text-center" style={{ color: 'var(--color-dim)' }}>{t('state.loading')}</div>)
+  if (status === 'error') return wrap(<div className="text-sm py-12 text-center" style={{ color: 'var(--color-warn)' }}>{t('state.apiError')}</div>)
+  if (status === 'empty') return wrap(<div className="text-sm py-12 text-center" style={{ color: 'var(--color-dim)' }}>{t('state.waitingSync')}</div>)
 
   const labels = data.points.map(p => {
     const d = new Date(p.bucket)
@@ -83,24 +86,5 @@ export default function HashrateChart() {
     },
   }
 
-  return (
-    <div className="rounded-lg border p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h3 className="text-base font-medium" style={{ color: 'var(--color-text)' }}>{t('charts.hashrateTitle')}</h3>
-          {isMock && <p className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>{t('fork.mockNotice')}</p>}
-        </div>
-        <select value={window} onChange={e => setWindow(e.target.value)}
-          className="bg-transparent border rounded px-3 py-1 text-sm"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
-          <option value="24h">24h</option>
-          <option value="7d">7d</option>
-          <option value="30d">30d</option>
-        </select>
-      </div>
-      <div style={{ height: '240px' }}>
-        <Line data={chartData} options={options} />
-      </div>
-    </div>
-  )
+  return wrap(<div style={{ height: '240px' }}><Line data={chartData} options={options} /></div>)
 }

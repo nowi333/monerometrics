@@ -87,6 +87,7 @@ i18n
           'state.loadingReorgs': 'Loading reorgs stats...',
           'state.loadingOrphans': 'Loading orphans...',
           'state.apiError': 'API error',
+          'state.waitingSync': 'Waiting for monerod sync (worker indexing in progress)',
           'state.noData': 'No data yet (worker waiting for monerod sync)',
           'state.noOrphans': 'No orphan blocks detected',
 
@@ -190,6 +191,7 @@ i18n
           'state.loadingReorgs': 'Chargement stats reorgs...',
           'state.loadingOrphans': 'Chargement orphelins...',
           'state.apiError': 'Erreur API',
+          'state.waitingSync': 'En attente de synchronisation monerod (indexation worker en cours)',
           'state.noData': 'Aucune donnee (worker en attente sync monerod)',
           'state.noOrphans': 'Aucun bloc orphelin detecte',
 

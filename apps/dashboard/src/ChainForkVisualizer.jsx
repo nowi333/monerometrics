@@ -19,58 +19,6 @@ function poolColor(pool) {
   return POOL_COLORS[pool] || POOL_COLORS['unknown']
 }
 
-// Donnees mockees realistes pour la demo (tant que le worker n'a pas indexe).
-// Represente une chaine canonique avec 2 forks/orphans.
-function buildMockData() {
-  const baseHeight = 3683700
-  const baseTs = Math.floor(Date.now() / 1000) - 50 * 120
-  const pools = ['supportxmr.com', 'p2pool', 'hashvault.pro', 'moneroocean.stream', 'c3pool.com', 'nanopool.org', 'kryptex.com', 'unknown']
-  const blocks = []
-  let prevHash = 'genesis'
-  for (let i = 0; i < 50; i++) {
-    const height = baseHeight + i
-    const hash = Math.random().toString(16).slice(2, 18).padEnd(16, '0')
-    const pool = pools[Math.floor(Math.random() * pools.length)]
-    blocks.push({
-      height,
-      hash,
-      prev_hash: prevHash,
-      is_canonical: true,
-      is_fork_point: false,
-      miner_pool: pool,
-      timestamp_unix: baseTs + i * 120 + Math.floor(Math.random() * 40 - 20),
-      tx_count: Math.floor(Math.random() * 30),
-    })
-    prevHash = hash
-  }
-  // Injecter 2 orphans (forks) a des hauteurs precises
-  const fork1Height = baseHeight + 12
-  const fork2Height = baseHeight + 31
-  for (const fh of [fork1Height, fork2Height]) {
-    const canonical = blocks.find(b => b.height === fh)
-    if (canonical) {
-      canonical.is_fork_point = true
-      blocks.push({
-        height: fh,
-        hash: Math.random().toString(16).slice(2, 18).padEnd(16, '0'),
-        prev_hash: blocks.find(b => b.height === fh - 1)?.hash || '',
-        is_canonical: false,
-        is_fork_point: false,
-        miner_pool: ['unknown', 'p2pool'][Math.floor(Math.random() * 2)],
-        timestamp_unix: canonical.timestamp_unix + 15,
-        tx_count: Math.floor(Math.random() * 20),
-      })
-    }
-  }
-  return {
-    tip_height: baseHeight + 49,
-    blocks_count: blocks.length,
-    reorgs_count: 2,
-    blocks,
-    _mock: true,
-  }
-}
-
 export default function ChainForkVisualizer() {
   const { t } = useTranslation()
   const svgRef = useRef(null)
@@ -78,26 +26,19 @@ export default function ChainForkVisualizer() {
   const gRef = useRef(null)
   const zoomRef = useRef(null)
   const [data, setData] = useState(null)
-  const [isMock, setIsMock] = useState(false)
+  const [status, setStatus] = useState('loading') // loading | ok | empty | error
   const [tooltip, setTooltip] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  // Fetch des donnees (fallback mock si vide)
+  // Fetch des donnees (aucun mock : etat explicite si vide ou erreur)
   useEffect(() => {
+    setStatus('loading')
     api.chainForkWindow(60)
       .then(d => {
-        if (d && d.blocks && d.blocks.length > 0) {
-          setData(d)
-          setIsMock(false)
-        } else {
-          setData(buildMockData())
-          setIsMock(true)
-        }
+        if (d && d.blocks && d.blocks.length > 0) { setData(d); setStatus('ok') }
+        else { setData(null); setStatus('empty') }
       })
-      .catch(() => {
-        setData(buildMockData())
-        setIsMock(true)
-      })
+      .catch(() => { setData(null); setStatus('error') })
   }, [])
 
   // Dimensions des blocs
@@ -169,7 +110,6 @@ export default function ChainForkVisualizer() {
     // === Liens forks (orphans) ===
     orphans.forEach(orphan => {
       const x = xPos(orphan.height)
-      // Ligne diagonale du parent canonical vers l'orphan
       g.append('path')
         .attr('d', `M ${x + BLOCK_W / 2} ${CANONICAL_Y + BLOCK_H} L ${x + BLOCK_W / 2} ${FORK_Y}`)
         .attr('stroke', 'var(--color-danger)')
@@ -197,7 +137,6 @@ export default function ChainForkVisualizer() {
         })
         .on('mouseleave', () => setTooltip(null))
 
-      // Rectangle du bloc
       blockG.append('rect')
         .attr('x', x).attr('y', y)
         .attr('width', BLOCK_W).attr('height', BLOCK_H)
@@ -207,7 +146,6 @@ export default function ChainForkVisualizer() {
         .attr('stroke', isOrphan ? 'var(--color-danger)' : poolColor(block.miner_pool))
         .attr('stroke-width', block.is_fork_point ? 2.5 : 1)
 
-      // Hauteur du bloc (texte)
       blockG.append('text')
         .attr('x', x + BLOCK_W / 2).attr('y', y + 17)
         .attr('text-anchor', 'middle')
@@ -217,7 +155,6 @@ export default function ChainForkVisualizer() {
         .attr('font-family', 'var(--font-mono)')
         .text(block.height.toString().slice(-4))
 
-      // Hash court
       blockG.append('text')
         .attr('x', x + BLOCK_W / 2).attr('y', y + 31)
         .attr('text-anchor', 'middle')
@@ -227,7 +164,6 @@ export default function ChainForkVisualizer() {
         .text(block.hash.slice(0, 6))
     }
 
-    // Dessiner canonical + orphans
     canonical.forEach(b => drawBlock(b, CANONICAL_Y, false))
     orphans.forEach(b => drawBlock(b, FORK_Y, true))
 
@@ -257,7 +193,6 @@ export default function ChainForkVisualizer() {
     zoomRef.current = zoom
     svg.call(zoom)
 
-    // Position initiale : scroll a droite (blocs recents)
     const initialScale = 1
     const initialX = Math.min(0, -(width - 800))
     svg.call(zoom.transform, d3.zoomIdentity.translate(initialX, 0).scale(initialScale))
@@ -302,6 +237,15 @@ export default function ChainForkVisualizer() {
     ? [...new Set(data.blocks.map(b => b.miner_pool || 'unknown'))]
     : []
 
+  const subtitle =
+    status === 'ok'
+      ? t('fork.stats', { blocks: data.blocks_count, reorgs: data.reorgs_count })
+      : status === 'error'
+        ? t('state.apiError')
+        : status === 'empty'
+          ? t('state.waitingSync')
+          : t('state.loading')
+
   return (
     <div
       ref={containerRef}
@@ -314,49 +258,56 @@ export default function ChainForkVisualizer() {
           <h3 className="text-base font-medium" style={{ color: 'var(--color-text)' }}>
             {t('fork.title')}
           </h3>
-          {data && (
-            <p className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>
-              {isMock
-                ? t('fork.mockNotice')
-                : t('fork.stats', { blocks: data.blocks_count, reorgs: data.reorgs_count })}
-            </p>
-          )}
+          <p className="text-xs mt-1" style={{ color: status === 'error' ? 'var(--color-warn)' : 'var(--color-dim)' }}>
+            {subtitle}
+          </p>
         </div>
 
-        {/* Controles */}
-        <div className="flex items-center gap-1">
-          <button onClick={handleZoomOut} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.zoomOut')}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-          <button onClick={handleZoomIn} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.zoomIn')}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-          <button onClick={handleReset} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.reset')}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-          </button>
-          <button onClick={toggleFullscreen} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.fullscreen')}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-          </button>
-        </div>
+        {/* Controles (actifs uniquement quand le graphe est rendu) */}
+        {status === 'ok' && (
+          <div className="flex items-center gap-1">
+            <button onClick={handleZoomOut} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.zoomOut')}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+            <button onClick={handleZoomIn} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.zoomIn')}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+            <button onClick={handleReset} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.reset')}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+            <button onClick={toggleFullscreen} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.fullscreen')}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* SVG */}
-      <div style={{ overflow: 'hidden', borderRadius: '8px', background: 'var(--color-bg)' }}>
-        <svg
-          ref={svgRef}
-          style={{ width: '100%', height: isFullscreen ? '80vh' : '300px', display: 'block', cursor: 'grab' }}
-        />
-      </div>
+      {/* SVG ou etat */}
+      {status === 'ok' ? (
+        <div style={{ overflow: 'hidden', borderRadius: '8px', background: 'var(--color-bg)' }}>
+          <svg
+            ref={svgRef}
+            style={{ width: '100%', height: isFullscreen ? '80vh' : '300px', display: 'block', cursor: 'grab' }}
+          />
+        </div>
+      ) : (
+        <div className="flex items-center justify-center text-sm"
+          style={{ height: '300px', borderRadius: '8px', background: 'var(--color-bg)', color: status === 'error' ? 'var(--color-warn)' : 'var(--color-dim)' }}>
+          {status === 'error' ? t('state.apiError') : status === 'empty' ? t('state.waitingSync') : t('state.loading')}
+        </div>
+      )}
 
       {/* Legende pools */}
-      <div className="flex flex-wrap gap-3 mt-4">
-        {activePools.map(pool => (
-          <div key={pool} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-dim)' }}>
-            <span className="w-3 h-3 rounded-sm" style={{ background: poolColor(pool) }} />
-            {pool}
-          </div>
-        ))}
-      </div>
+      {status === 'ok' && (
+        <div className="flex flex-wrap gap-3 mt-4">
+          {activePools.map(pool => (
+            <div key={pool} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-dim)' }}>
+              <span className="w-3 h-3 rounded-sm" style={{ background: poolColor(pool) }} />
+              {pool}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Tooltip */}
       {tooltip && (

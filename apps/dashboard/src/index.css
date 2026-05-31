@@ -22,6 +22,7 @@
   --color-dim: #8b9099;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
+  --color-warn: #f59e0b;
   --color-danger: #ef4444;
   --color-info: #3b82f6;
   --color-purple: #a78bfa;
@@ -48,6 +49,7 @@
   --color-dim: #6b7280;
   --color-success: #16a34a;
   --color-warning: #d97706;
+  --color-warn: #d97706;
   --color-danger: #dc2626;
   --color-info: #2563eb;
   --color-purple: #7c3aed;
