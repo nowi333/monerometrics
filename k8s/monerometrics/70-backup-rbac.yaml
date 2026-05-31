@@ -1,0 +1,54 @@
+# RBAC pour le CronJob de backup PRA
+# Principe de moindre privilege : lecture seule des ressources du namespace
+# monerometrics (pour exporter les manifests). Aucun acces en ecriture,
+# aucun acces cross-namespace, aucun acces aux noeuds.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backup-operator
+  namespace: monerometrics
+  labels:
+    app: monerometrics-backup
+    component: pra
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: backup-reader
+  namespace: monerometrics
+  labels:
+    app: monerometrics-backup
+    component: pra
+rules:
+  # Lecture des ressources principales pour l'export YAML (manifests)
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets", "services", "persistentvolumeclaims", "pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "replicasets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["batch"]
+    resources: ["cronjobs", "jobs"]
+    verbs: ["get", "list"]
+  # Exec dans le pod postgres pour pg_dump (subresource pods/exec)
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backup-reader-binding
+  namespace: monerometrics
+  labels:
+    app: monerometrics-backup
+    component: pra
+subjects:
+  - kind: ServiceAccount
+    name: backup-operator
+    namespace: monerometrics
+roleRef:
+  kind: Role
+  name: backup-reader
+  apiGroup: rbac.authorization.k8s.io

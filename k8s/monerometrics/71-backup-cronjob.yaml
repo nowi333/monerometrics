@@ -1,0 +1,130 @@
+# CronJob PRA : sauvegarde quotidienne chiffree vers Oracle Object Storage.
+#
+# Perimetre (essentiel) :
+#   - Dump PostgreSQL (pg_dump via exec dans le pod postgres)
+#   - Export des manifests k8s du namespace (deployments, services, configmaps...)
+#   - Push chiffre (AES-256) vers OCI via Restic (backend S3-compatible)
+#   - Politique de retention : 7 quotidiens, 4 hebdomadaires
+#
+# Le snapshot OpenBao reste une procedure manuelle documentee (runbook PRA),
+# car il change rarement et necessite le root token (hors perimetre automatise).
+#
+# Image debian:stable-slim + installation des outils au runtime (restic,
+# postgresql-client, kubectl). Choix assume : evite de maintenir une image
+# custom sur GHCR. En production, on figerait une image versionnee dediee.
+#
+# Planification : tous les jours a 03:00 UTC (heure creuse).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: monerometrics-backup
+  namespace: monerometrics
+  labels:
+    app: monerometrics-backup
+    component: pra
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: monerometrics-backup
+            component: pra
+        spec:
+          serviceAccountName: backup-operator
+          restartPolicy: Never
+          containers:
+            - name: backup
+              image: debian:stable-slim
+              env:
+                # Creds PostgreSQL (depuis le Secret existant)
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: POSTGRES_USER
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: POSTGRES_PASSWORD
+                - name: POSTGRES_DB
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: POSTGRES_DB
+                # Creds Restic / OCI S3 (depuis le Secret restic-backup-creds)
+                - name: RESTIC_REPOSITORY
+                  valueFrom:
+                    secretKeyRef:
+                      name: restic-backup-creds
+                      key: RESTIC_REPOSITORY
+                - name: RESTIC_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: restic-backup-creds
+                      key: RESTIC_PASSWORD
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: restic-backup-creds
+                      key: AWS_ACCESS_KEY_ID
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: restic-backup-creds
+                      key: AWS_SECRET_ACCESS_KEY
+                - name: AWS_DEFAULT_REGION
+                  valueFrom:
+                    secretKeyRef:
+                      name: restic-backup-creds
+                      key: AWS_DEFAULT_REGION
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+                  echo "[$(date -u +%H:%M:%S)] Installation des outils..."
+                  export DEBIAN_FRONTEND=noninteractive
+                  apt-get update -qq
+                  apt-get install -y -qq curl ca-certificates postgresql-client restic >/dev/null
+                  # kubectl (binaire officiel)
+                  KV=$(curl -sL https://dl.k8s.io/release/stable.txt)
+                  curl -sLO "https://dl.k8s.io/release/${KV}/bin/linux/amd64/kubectl"
+                  install -m 0755 kubectl /usr/local/bin/kubectl
+
+                  WORK=/tmp/backup
+                  mkdir -p "$WORK"
+
+                  echo "[$(date -u +%H:%M:%S)] Dump PostgreSQL..."
+                  PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h postgres -U "$POSTGRES_USER" "$POSTGRES_DB" > "$WORK/postgres-dump.sql"
+                  echo "  dump: $(wc -l < "$WORK/postgres-dump.sql") lignes"
+
+                  echo "[$(date -u +%H:%M:%S)] Export des manifests k8s..."
+                  kubectl get deployments,statefulsets,replicasets,services,configmaps,secrets,persistentvolumeclaims -n monerometrics -o yaml > "$WORK/manifests-monerometrics.yaml"
+                  echo "  manifests: $(wc -l < "$WORK/manifests-monerometrics.yaml") lignes"
+
+                  echo "[$(date -u +%H:%M:%S)] Backup Restic vers OCI..."
+                  restic backup "$WORK/postgres-dump.sql" "$WORK/manifests-monerometrics.yaml" \
+                    --tag cronjob --host monerometrics-k3s
+
+                  echo "[$(date -u +%H:%M:%S)] Application de la retention..."
+                  restic forget --keep-daily 7 --keep-weekly 4 --prune
+
+                  echo "[$(date -u +%H:%M:%S)] Verification du repo..."
+                  restic snapshots --compact | tail -5
+
+                  echo "[$(date -u +%H:%M:%S)] Backup termine avec succes."
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi

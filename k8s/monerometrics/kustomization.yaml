@@ -18,6 +18,8 @@ resources:
   - 50-deployment-postgres.yaml
   - 50-deployment-monerod.yaml
   - 50-deployment-worker.yaml
+  - 70-backup-rbac.yaml
+  - 71-backup-cronjob.yaml
 
 labels:
   - pairs:
