@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Logo from './Logo'
-import StatusPill from './StatusPill'
+import Documentation from './Documentation'
 import ThemeToggle from './ThemeToggle'
 import LanguageSwitcher from './LanguageSwitcher'
 import KPICards from './KPICards'
@@ -13,16 +14,23 @@ import OrphansTable from './OrphansTable'
 
 export default function App() {
   const { t } = useTranslation()
+  const [view, setView] = useState('dashboard')
 
   return (
-    <div className="min-h-screen p-6 max-w-6xl mx-auto">
+    <div className="min-h-screen p-3 sm:p-6 max-w-6xl mx-auto">
       <header
-        className="mb-8 flex items-center justify-between pb-4 border-b gap-4"
+        className="mb-8 flex flex-wrap items-center justify-between pb-4 border-b gap-3"
         style={{ borderColor: 'var(--color-border)' }}
       >
         <Logo />
-        <StatusPill />
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setView(view === 'dashboard' ? 'docs' : 'dashboard')}
+            className="text-sm px-3 py-1 rounded border hover:opacity-80 transition-opacity"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+          >
+            {view === 'dashboard' ? t('doc.nav') : t('doc.backToDashboard')}
+          </button>
           <LanguageSwitcher />
           <ThemeToggle />
         </div>
@@ -37,6 +45,7 @@ export default function App() {
         </p>
       </div>
 
+      {view === 'docs' ? <Documentation /> : <>
       <KPICards />
 
       <ChainForkVisualizer />
@@ -55,6 +64,7 @@ export default function App() {
       </div>
 
       <OrphansTable />
+      </>}
 
       <footer
         className="mt-8 pt-4 border-t text-center text-xs"

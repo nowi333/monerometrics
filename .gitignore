@@ -128,3 +128,8 @@ yarn-debug.log*
 # ============================================================
 docs/captures/.tmp/
 *.draft.md
+
+# Fichiers parasites / locaux
+nohup.out
+*.bak
+*.tfplan

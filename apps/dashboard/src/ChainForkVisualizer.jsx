@@ -186,15 +186,17 @@ export default function ChainForkVisualizer() {
 
     // === Zoom & Pan (d3-zoom) ===
     const zoom = d3.zoom()
-      .scaleExtent([0.3, 4])
+      .scaleExtent([0.3, 20])
       .on('zoom', (event) => {
         g.attr('transform', event.transform)
       })
     zoomRef.current = zoom
     svg.call(zoom)
 
-    const initialScale = 1
-    const initialX = Math.min(0, -(width - 800))
+    // Vue initiale : zoom rapproche, cadre sur le bout de chaine (blocs recents, a droite).
+    const viewW = Math.max(width, 800)
+    const initialScale = 6
+    const initialX = viewW - width * initialScale - MARGIN_LEFT * initialScale
     svg.call(zoom.transform, d3.zoomIdentity.translate(initialX, 0).scale(initialScale))
   }, [data, t])
 
