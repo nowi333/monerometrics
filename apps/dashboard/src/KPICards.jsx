@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, formatHashrate } from './api'
+import InfoTooltip from './InfoTooltip'
 
 /**
  * 4 KPI cards alignees sur le mockup.
@@ -64,6 +65,7 @@ export default function KPICards() {
       value: `${network.mempool_tx_count} ${t('kpi.txs')}`,
       detail: t('kpi.pending'),
       detailColor: 'var(--color-dim)',
+      info: t('info.mempool'),
     },
     {
       label: t('kpi.reorgWatcher'),
@@ -88,10 +90,11 @@ export default function KPICards() {
           }}
         >
           <div
-            className="text-xs uppercase tracking-wide mb-2"
+            className="text-xs mb-2 flex items-center gap-1.5"
             style={{ color: c.accent ? 'var(--color-warning)' : 'var(--color-dim)' }}
           >
-            {c.label}
+            <span className="uppercase tracking-wide">{c.label}</span>
+            {c.info && <InfoTooltip text={c.info} />}
           </div>
           <div
             className="text-xl font-medium mb-1"

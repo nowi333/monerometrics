@@ -4,14 +4,14 @@ const ENDPOINTS = [
   { m: 'GET', p: '/health', k: 'health' },
   { m: 'GET', p: '/info', k: 'info' },
   { m: 'GET', p: '/network/info', k: 'networkInfo' },
-  { m: 'GET', p: '/network/hashrate', k: 'networkHashrate', q: 'window=24h|7d|30d' },
-  { m: 'GET', p: '/network/blocktime', k: 'networkBlocktime', q: 'window=24h|7d|30d' },
+  { m: 'GET', p: '/network/hashrate', k: 'networkHashrate', q: 'window=1h|24h|7d|30d|90d|1y|5y' },
+  { m: 'GET', p: '/network/blocktime', k: 'networkBlocktime', q: 'window=1h|24h|7d|30d' },
   { m: 'GET', p: '/chain/window', k: 'chainWindow', q: 'from=INT&to=INT' },
   { m: 'GET', p: '/chain/fork-window', k: 'chainForkWindow', q: 'limit=10..500' },
   { m: 'GET', p: '/reorgs', k: 'reorgs', q: 'limit=1..1000' },
   { m: 'GET', p: '/reorgs/stats', k: 'reorgsStats' },
   { m: 'GET', p: '/orphans/recent', k: 'orphansRecent', q: 'limit=1..500' },
-  { m: 'GET', p: '/pools/distribution', k: 'poolsDistribution', q: 'window=24h|7d|30d' },
+  { m: 'GET', p: '/pools/distribution', k: 'poolsDistribution', q: 'window=1h|6h|24h|48h|7d' },
 ]
 
 export default function Documentation() {

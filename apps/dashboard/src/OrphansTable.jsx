@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from './api'
+import InfoTooltip from './InfoTooltip'
 
 export default function OrphansTable() {
   const { t } = useTranslation()
@@ -16,7 +17,7 @@ export default function OrphansTable() {
 
   return (
     <div className="bg-[color:var(--color-card)] border border-[color:var(--color-border)] rounded-lg p-6">
-      <h3 className="text-base font-medium mb-4">{t('orphans.title')}</h3>
+      <h3 className="text-base font-medium mb-4 flex items-center gap-2">{t('orphans.title')}<InfoTooltip text={t('info.orphans')} /></h3>
       {orphans.length === 0 ? (
         <div className="text-center text-[color:var(--color-dim)] py-8">
           {t('state.noOrphans')}

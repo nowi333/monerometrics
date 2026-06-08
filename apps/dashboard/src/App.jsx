@@ -22,7 +22,7 @@ export default function App() {
         className="mb-8 flex flex-wrap items-center justify-between pb-4 border-b gap-3"
         style={{ borderColor: 'var(--color-border)' }}
       >
-        <Logo />
+        <Logo onClick={() => { window.location.href = '/' }} />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setView(view === 'dashboard' ? 'docs' : 'dashboard')}

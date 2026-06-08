@@ -147,6 +147,14 @@ i18n
           'doc.fundingTitle': 'Support the project',
           'doc.fundingP1': 'monerometrics runs on a self-funded infrastructure.',
 
+          // Info tooltips (explication + limite)
+          'info.mempool': 'Number of unconfirmed transactions waiting in the node mempool. Reflects current pending demand on the network. Limit: live snapshot from the node, not a historical average.',
+          'info.blocktime': 'Time elapsed between consecutive canonical blocks. Monero targets 120s; variance reflects hashrate fluctuations. Limit: per-block measurement, short windows only (up to 30d).',
+          'info.pools': 'Share of canonical blocks mined per pool over the window, a decentralization indicator. Limit: pools are identified via their public APIs, so attribution is reliable only on recent windows; unidentified blocks (solo miners, untracked pools) appear as unknown.',
+          'info.reorgs': 'Reorganizations are events where the chain replaces recently accepted blocks with a competing longer branch. Counted over 24h, 7d and 30d. Limit: only reorgs observed since this node started indexing are recorded.',
+          'info.orphans': 'Orphan blocks are valid blocks that were replaced during a reorganization and left out of the canonical chain. Limit: shows the most recent orphans only, and depends on what this node observed.',
+          'info.fork': 'Visual map of the latest blocks: the canonical chain and any orphan branches, color-coded by mining pool. Limit: shows a recent window of blocks, not the full history.',
+
           // Language switcher
           'lang.label': 'Language',
         },
@@ -279,6 +287,14 @@ i18n
           'doc.ep.poolsDistribution': 'Repartition des blocs canoniques par pool sur la fenetre (mesure de decentralisation).',
           'doc.fundingTitle': 'Soutenir le projet',
           'doc.fundingP1': 'monerometrics fonctionne sur une infrastructure autofinancee.',
+
+          // Info tooltips (explication + limite)
+          'info.mempool': 'Nombre de transactions non confirmees en attente dans le mempool du noeud. Reflete la demande en attente sur le reseau. Limite : instantane en direct du noeud, pas une moyenne historique.',
+          'info.blocktime': 'Temps ecoule entre blocs canoniques consecutifs. Monero cible 120s ; la variance reflete les fluctuations de hashrate. Limite : mesure par bloc, fenetres courtes uniquement (jusqu a 30j).',
+          'info.pools': 'Part des blocs canoniques mines par pool sur la fenetre, un indicateur de decentralisation. Limite : les pools sont identifies via leurs API publiques, donc l attribution est fiable seulement sur les fenetres recentes ; les blocs non identifies (mineurs solo, pools non suivis) apparaissent en unknown.',
+          'info.reorgs': 'Les reorganisations sont des evenements ou la chaine remplace des blocs recemment acceptes par une branche concurrente plus longue. Comptees sur 24h, 7j et 30j. Limite : seules les reorgs observees depuis le demarrage de l indexation de ce noeud sont enregistrees.',
+          'info.orphans': 'Les blocs orphelins sont des blocs valides remplaces lors d une reorganisation et exclus de la chaine canonique. Limite : affiche uniquement les orphelins les plus recents, et depend de ce que ce noeud a observe.',
+          'info.fork': 'Carte visuelle des derniers blocs : la chaine canonique et les eventuelles branches orphelines, colorees par pool de minage. Limite : affiche une fenetre recente de blocs, pas tout l historique.',
 
           // Language switcher
           'lang.label': 'Langue',

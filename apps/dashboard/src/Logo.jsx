@@ -29,9 +29,14 @@ export function LogoMark({ size = 32, className = '' }) {
   )
 }
 
-export default function Logo() {
+export default function Logo({ onClick }) {
   return (
-    <div className="flex items-center gap-3">
+    <div
+      className="flex items-center gap-3 cursor-pointer select-none"
+      onClick={onClick}
+      role="button"
+      title="monerometrics.net"
+    >
       <LogoMark size={36} />
       <span
         className="text-base font-medium tracking-tight"

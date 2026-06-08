@@ -206,13 +206,15 @@ async def reorgs_stats():
 
 @app.get("/pools/distribution", response_model=PoolDistributionResponse)
 async def pools_distribution(
-    window: str = Query("24h", regex="^(24h|7d|30d)$"),
+    window: str = Query("24h", regex="^(1h|6h|24h|48h|7d)$"),
 ):
     """
     Repartition des blocs canoniques minees par pool sur la fenetre.
     Mesure la decentralisation du reseau (concentration de hashrate).
+    Fenetres limitees au recent : l'attribution pool est fiable seulement
+    sur la profondeur exposee par les API des pools.
     """
-    interval_map = {"24h": "24 hours", "7d": "7 days", "30d": "30 days"}
+    interval_map = {"1h": "1 hour", "6h": "6 hours", "24h": "24 hours", "48h": "48 hours", "7d": "7 days"}
     interval = interval_map[window]
 
     pool_obj = get_pool()
@@ -301,6 +303,20 @@ async def monerod_get_info():
 
 # === Endpoints Network ===
 
+# === Helpers fenetres temporelles ===
+# Mapping window -> (intervalle SQL, granularite date_trunc)
+WINDOW_CONFIG = {
+    "1h":  ("1 hour",    "minute"),
+    "24h": ("24 hours",  "hour"),
+    "7d":  ("7 days",    "hour"),
+    "30d": ("30 days",   "day"),
+    "90d": ("90 days",   "day"),
+    "1y":  ("365 days",  "week"),
+    "5y":  ("1825 days", "month"),
+}
+WINDOW_REGEX = "^(1h|24h|7d|30d|90d|1y|5y)$"
+
+
 # Cache memoire pour /network/info (TTL 30s)
 _network_info_cache = {"data": None, "timestamp": 0}
 
@@ -328,12 +344,8 @@ async def network_info():
             return _network_info_cache["data"]
         raise HTTPException(503, "monerod unreachable")
 
-    # Mempool count via RPC dedie
-    try:
-        pool = await monerod_rpc("get_transaction_pool_stats")
-        mempool_count = pool.get("pool_stats", {}).get("txs_total", 0)
-    except Exception:
-        mempool_count = 0
+    # Mempool count : tx_pool_size depuis get_info (RPC get_transaction_pool_stats indispo sur ce noeud)
+    mempool_count = int(info.get("tx_pool_size", 0) or 0)
 
     # Calcul hashrate : difficulty / target_block_time (120s pour Monero)
     difficulty = int(info.get("difficulty", 0))
@@ -372,24 +384,24 @@ async def network_info():
 
 @app.get("/network/hashrate", response_model=HashrateResponse)
 async def network_hashrate(
-    window: str = Query("30d", regex="^(24h|7d|30d)$"),
+    window: str = Query("30d", regex=WINDOW_REGEX),
 ):
     """
     Hashrate historique calcule depuis (difficulty / 120s).
-    Bucketise par heure (24h) ou par jour (7d/30d).
+    Bucketise selon la fenetre (minute -> mois).
     """
-    interval_map = {"24h": "24 hours", "7d": "7 days", "30d": "30 days"}
-    bucket_size = "1 hour" if window == "24h" else "1 day"
-    interval = interval_map[window]
+    interval, grain = WINDOW_CONFIG[window]
+    bucket_size = f"1 {grain}"
 
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             f"""
-            SELECT date_trunc('{bucket_size.split()[1]}', timestamp_human) AS bucket,
+            SELECT date_trunc('{grain}', timestamp_human) AS bucket,
                    (AVG(difficulty) / 120)::bigint AS hashrate_h_s
             FROM blocks
             WHERE is_canonical = true
+              AND timestamp_unix > 0
               AND timestamp_human >= NOW() - INTERVAL '{interval}'
             GROUP BY bucket
             ORDER BY bucket
@@ -402,14 +414,13 @@ async def network_hashrate(
 
 @app.get("/network/blocktime", response_model=BlocktimeResponse)
 async def network_blocktime(
-    window: str = Query("24h", regex="^(24h|7d|30d)$"),
+    window: str = Query("24h", regex=WINDOW_REGEX),
 ):
     """
     Variance temps entre blocs canoniques consecutifs.
     Statistique : Monero cible 120s, mais varie selon hashrate.
     """
-    interval_map = {"24h": "24 hours", "7d": "7 days", "30d": "30 days"}
-    interval = interval_map[window]
+    interval, _grain = WINDOW_CONFIG[window]
 
     pool = get_pool()
     async with pool.acquire() as conn:

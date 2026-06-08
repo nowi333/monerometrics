@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Doughnut } from 'react-chartjs-2'
 import { Chart, ArcElement, Tooltip } from 'chart.js'
 import { api } from './api'
+import InfoTooltip from './InfoTooltip'
 
 Chart.register(ArcElement, Tooltip)
 
@@ -37,7 +38,7 @@ export default function PoolsDistribution() {
   const header = (
     <div className="flex justify-between items-center mb-4">
       <div>
-        <h3 className="text-base font-medium" style={{ color: 'var(--color-text)' }}>{t('toppools.title')}</h3>
+        <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>{t('toppools.title')}<InfoTooltip text={t('info.pools')} /></h3>
         <p className="text-xs mt-1" style={{ color: status === 'error' ? 'var(--color-warn)' : 'var(--color-dim)' }}>
           {status === 'ok' ? t('toppools.total', { count: data.total_blocks })
             : status === 'error' ? t('state.apiError')

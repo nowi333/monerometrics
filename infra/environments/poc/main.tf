@@ -50,11 +50,9 @@ module "dns" {
   # Activation Cloudflare proxy (nuage orange) -> anti-DDoS L7 + TLS edge.
   # "@" = apex (monerometrics.net sans prefixe).
   a_records = {
-    "@"       = module.edge.public_ip_address
-    "www"     = module.edge.public_ip_address
-    "api"     = module.edge.public_ip_address
-    "grafana" = module.edge.public_ip_address
-    "wazuh"   = module.edge.public_ip_address
+    "@"   = module.edge.public_ip_address
+    "www" = module.edge.public_ip_address
+    "api" = module.edge.public_ip_address
   }
   proxied = true
 }

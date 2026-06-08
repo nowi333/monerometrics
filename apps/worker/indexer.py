@@ -35,7 +35,7 @@ MAX_BLOCKS_PER_BATCH = int(os.getenv("MAX_BLOCKS_PER_BATCH", "100"))
 # Couverture ~95% (le reste = solo miners ou pools non suivis -> 'unknown').
 
 POOL_INDEX_REFRESH_INTERVAL = int(os.getenv("POOL_INDEX_REFRESH_INTERVAL", "300"))  # 5 min
-POOL_FETCH_LIMIT = int(os.getenv("POOL_FETCH_LIMIT", "100"))
+POOL_FETCH_LIMIT = int(os.getenv("POOL_FETCH_LIMIT", "2000"))
 
 # Config des pools : {name: (url_template, parser_type)}
 # parser_type : 'standard' | 'nanopool' | 'kryptex'

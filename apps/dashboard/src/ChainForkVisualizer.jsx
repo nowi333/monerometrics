@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import * as d3 from 'd3'
 import { api, timeAgo } from './api'
+import InfoTooltip from './InfoTooltip'
 
 // Couleurs par pool (coherentes avec PoolsDistribution)
 const POOL_COLORS = {
@@ -33,7 +34,7 @@ export default function ChainForkVisualizer() {
   // Fetch des donnees (aucun mock : etat explicite si vide ou erreur)
   useEffect(() => {
     setStatus('loading')
-    api.chainForkWindow(60)
+    api.chainForkWindow(200)
       .then(d => {
         if (d && d.blocks && d.blocks.length > 0) { setData(d); setStatus('ok') }
         else { setData(null); setStatus('empty') }
@@ -257,8 +258,8 @@ export default function ChainForkVisualizer() {
       {/* Header */}
       <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
         <div>
-          <h3 className="text-base font-medium" style={{ color: 'var(--color-text)' }}>
-            {t('fork.title')}
+          <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
+            {t('fork.title')}<InfoTooltip text={t('info.fork')} />
           </h3>
           <p className="text-xs mt-1" style={{ color: status === 'error' ? 'var(--color-warn)' : 'var(--color-dim)' }}>
             {subtitle}
