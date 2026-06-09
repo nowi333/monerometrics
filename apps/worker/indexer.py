@@ -35,7 +35,7 @@ MAX_BLOCKS_PER_BATCH = int(os.getenv("MAX_BLOCKS_PER_BATCH", "100"))
 # Couverture ~95% (le reste = solo miners ou pools non suivis -> 'unknown').
 
 POOL_INDEX_REFRESH_INTERVAL = int(os.getenv("POOL_INDEX_REFRESH_INTERVAL", "300"))  # 5 min
-POOL_FETCH_LIMIT = int(os.getenv("POOL_FETCH_LIMIT", "2000"))
+POOL_FETCH_LIMIT = int(os.getenv("POOL_FETCH_LIMIT", "10000"))
 
 # Config des pools : {name: (url_template, parser_type)}
 # parser_type : 'standard' | 'nanopool' | 'kryptex'
@@ -47,6 +47,7 @@ POOL_APIS = {
     "c3pool.com": ("https://api.c3pool.org/pool/blocks?limit={limit}", "standard"),
     "nanopool.org": ("https://xmr.nanopool.org/api/v1/pool/blocks/0/{limit}", "nanopool"),
     "kryptex.com": ("https://pool.kryptex.com/xmr/api/v1/pool/blocks?limit={limit}", "kryptex"),
+    "herominers.com": ("https://monero.herominers.com/api/stats", "herominers"),
 }
 
 # Index global {block_hash: pool_name}, rafraichi periodiquement
@@ -81,6 +82,22 @@ def _parse_pool_response(parser_type: str, data) -> list:
             hh = b.get("hash")
             if h and hh:
                 blocks.append((int(h), hh.lower()))
+    elif parser_type == "herominers":
+        # cryptonote-nodejs-pool : {pool: {blocks: ["hash:ts:diff:...", height, ...]}}
+        # liste plate alternee : index pair = chaine, index impair = hauteur
+        raw = data.get("pool", {}).get("blocks", [])
+        i = 0
+        while i < len(raw) - 1:
+            entry = raw[i]
+            height_val = raw[i + 1]
+            try:
+                hh = str(entry).split(":")[0]
+                h = int(height_val)
+                if hh and len(hh) == 64:
+                    blocks.append((h, hh.lower()))
+            except (ValueError, IndexError):
+                pass
+            i += 2
     return blocks
 
 

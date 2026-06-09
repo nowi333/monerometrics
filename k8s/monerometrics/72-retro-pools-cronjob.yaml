@@ -1,0 +1,42 @@
+# CronJob : retro-attribution des pools sur les blocs recents (corrige le delai
+# de publication des API pools). Tourne toutes les 2h, leger.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: monerometrics-retro-pools
+  namespace: monerometrics
+  labels:
+    app: monerometrics-retro-pools
+    component: indexer
+spec:
+  schedule: "15 */2 * * *"
+  concurrencyPolicy: Replace
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 180
+      template:
+        metadata:
+          annotations:
+            vault.hashicorp.com/agent-inject: "true"
+            vault.hashicorp.com/role: "monerometrics-worker"
+            vault.hashicorp.com/agent-inject-secret-postgres-credentials: "secret/data/postgres/credentials"
+            vault.hashicorp.com/agent-inject-template-postgres-credentials: |
+              {{- with secret "secret/data/postgres/credentials" -}}
+              export POSTGRES_USER="{{ .Data.data.POSTGRES_USER }}"
+              export POSTGRES_PASSWORD="{{ .Data.data.POSTGRES_PASSWORD }}"
+              export POSTGRES_DB="{{ .Data.data.POSTGRES_DB }}"
+              {{- end -}}
+          labels:
+            app: monerometrics-retro-pools
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: retro-pools
+              image: ghcr.io/nowi333/monerometrics-worker:0.3.4
+              command: ["python", "-u", "retro_pools.py"]
+              env:
+                - name: PG_HOST
+                  value: "postgres"

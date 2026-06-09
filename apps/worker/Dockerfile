@@ -9,7 +9,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY indexer.py .
+COPY indexer.py retro_pools.py .
 
 # noe user (UID 1000) pour ne pas tourner en root dans le pod
 RUN adduser -D -u 1000 worker

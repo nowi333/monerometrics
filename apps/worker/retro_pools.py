@@ -3,7 +3,7 @@ Retro-attribution one-shot des pools sur les blocs deja indexes.
 Recupere le max de chaque API pool, puis UPDATE blocks.miner_pool.
 A lancer dans le pod worker (acces OpenBao + Postgres).
 """
-import os, time, json, httpx, psycopg2
+import os, time, json, httpx, psycopg
 
 # Reutilise la logique de l'indexeur
 POOL_APIS = {
@@ -14,12 +14,13 @@ POOL_APIS = {
     "c3pool.com": ("https://api.c3pool.org/pool/blocks?limit={limit}", "standard"),
     "nanopool.org": ("https://xmr.nanopool.org/api/v1/pool/blocks/0/{limit}", "nanopool"),
     "kryptex.com": ("https://pool.kryptex.com/xmr/api/v1/pool/blocks?limit={limit}", "kryptex"),
+    "herominers.com": ("https://monero.herominers.com/api/stats", "herominers"),
 }
 # Profondeur demandee par pool (selon plafond reel constate)
 LIMITS = {
     "supportxmr.com": 10000, "p2pool": 1000, "hashvault.pro": 10000,
     "moneroocean.stream": 10000, "c3pool.com": 10000,
-    "nanopool.org": 10000, "kryptex.com": 10000,
+    "nanopool.org": 10000, "kryptex.com": 10000, "herominers.com": 10000,
 }
 
 def parse(parser_type, data):
@@ -30,6 +31,20 @@ def parse(parser_type, data):
         rows = data.get("data", [])
     elif parser_type == "kryptex":
         rows = data.get("results", [])
+    elif parser_type == "herominers":
+        raw = data.get("pool", {}).get("blocks", [])
+        out = []
+        i = 0
+        while i < len(raw) - 1:
+            try:
+                hh = str(raw[i]).split(":")[0]
+                h = int(raw[i + 1])
+                if hh and len(hh) == 64:
+                    out.append((h, hh.lower()))
+            except (ValueError, IndexError):
+                pass
+            i += 2
+        return out
     else:
         rows = []
     for b in rows:
@@ -73,7 +88,7 @@ with httpx.Client(timeout=30, follow_redirects=True, headers={"User-Agent": "mm-
 print(f"Index total: {len(index)} hash uniques")
 
 # 2. UPDATE en base
-conn = psycopg2.connect(host=PG_HOST, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD)
+conn = psycopg.connect(host=PG_HOST, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD)
 conn.autocommit = False
 cur = conn.cursor()
 updated = 0
@@ -93,3 +108,12 @@ for pool, n in cur.fetchall():
     print(f"  {pool}: {n}")
 cur.close()
 conn.close()
+
+
+# Arret du sidecar vault-agent (sinon le Job ne se termine jamais).
+# Le vault-agent expose un endpoint de quit sur le port 8200 en local.
+try:
+    import httpx as _httpx
+    _httpx.post("http://127.0.0.1:8200/agent/v1/quit", timeout=5)
+except Exception:
+    pass
