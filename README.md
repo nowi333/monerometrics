@@ -18,50 +18,107 @@ monerometrics fills that gap with a neutral, verifiable, reorg-aware observatory
 It is **open-source and self-funded**, with no ads and no tracking. The dashboard and the
 community API stay free; a future freemium tier would only cover intensive commercial usage.
 
-> **From a diploma project to a community tool.** monerometrics V1 was built and defended as
-> the supporting project of a French professional qualification (*Administrateur
-> d'Infrastructures Sécurisées*, RNCP level 6) — and it earned the diploma. With the exam now
-> behind it, the goal of V2 is to hand the project over to the **Monero community**: fully
+> **From a diploma project to a community tool.** monerometrics V1 was built and defended as a
+> French professional IT-infrastructure project — and it earned the diploma. With that chapter
+> closed, the goal of V2 is to hand the project over to the **Monero community**: fully
 > open-source, self-funded, and useful well beyond a classroom.
+
+- **Dashboard** — [monerometrics.net](https://monerometrics.net)
+- **Public API** — [api.monerometrics.net](https://api.monerometrics.net) (OpenAPI documented)
 
 ---
 
 ## What it does
 
-- **Dashboard** ([monerometrics.net](https://monerometrics.net)) — React SPA: hashrate, block-time
-  variance, mempool, mining-pool distribution, a chain-fork visualizer and reorg/orphan history.
-  FR / EN / ES.
-- **Public API** ([api.monerometrics.net](https://api.monerometrics.net)) — FastAPI, 11 read-only
-  JSON endpoints (service, network, chain/reorgs, pools). OpenAPI documented.
+- **Dashboard** — React SPA: network hashrate, block-time variance, mempool, mining-pool
+  distribution, an interactive chain-fork visualizer and reorg/orphan history. Available in
+  **English, French and Spanish**, light/dark themes.
+- **Public API** — FastAPI, 11 read-only JSON endpoints grouped by theme (service, network,
+  chain/reorgs, pools). Automatically documented via OpenAPI.
 - **Reorg detection** — a Python worker reads each block from a synced node, computes the
-  indicators and records reorganizations by comparing the current chain state to the stored one.
+  indicators and **detects reorganizations** by re-checking a rolling window of recent blocks
+  against the node, recording their real depth and the transactions they displaced.
 
-## Architecture (real, as deployed)
+## Architecture
 
-This describes the **POC that actually ran**, not an idealized target. Clean, up-to-date
-architecture diagrams will be added once the stack is redeployed on Hetzner.
+A visitor reaches the dashboard or API through Cloudflare, which terminates TLS and applies its
+edge protections, then forwards to a hardened **edge** server (nginx + ModSecurity WAF). The
+edge serves the static dashboard and reverse-proxies the API to the **k3s** node, where the
+application core runs: a Monero node, the indexer, PostgreSQL and the API.
 
-- **Cloud**: Microsoft Azure (IaaS) for the POC — **currently being migrated to Hetzner** for cost.
-  Oracle Cloud (OCI) hosts the SIEM and the off-site backups.
-- **Three servers** (Ubuntu 24.04 LTS), each in an isolated subnet with its own firewall:
-  - `bastion` — sole SSH entry point (ProxyJump to the others)
-  - `edge` — only public web face (80/443): nginx reverse proxy + **ModSecurity WAF**
-    (OWASP CRS 4.25). Also serves the React dashboard as static files.
-  - `k3s` — application core, no public IP: `monerod`, worker, PostgreSQL, API, OpenBao.
-- **Containerized core** (in k3s): `monerod` 0.18 (pruned), Python worker, PostgreSQL 17, FastAPI.
-- **Private network**: Tailscale (WireGuard), zero-trust admin — Grafana and Wazuh are reachable
-  over Tailscale only, never from the internet.
-- **DNS / TLS**: Cloudflare (proxied) + Let's Encrypt (wildcard via DNS-01).
-- **Secrets**: OpenBao (free fork of Vault). **Supervision**: Prometheus + Grafana.
-  **SIEM**: Wazuh (on OCI). **Backups**: Restic, encrypted, cross-cloud to OCI (3-2-1).
+```mermaid
+flowchart LR
+    User(["Visitor"]) -->|HTTPS| CF["Cloudflare<br/>DNS · WAF · proxy"]
+    CF -->|"HTTP/1.1 origin pull"| Edge
+    subgraph HZ["Hetzner Cloud · private network 10.0.0.0/24"]
+        Edge["edge 10.0.0.20<br/>nginx + ModSecurity WAF<br/>static dashboard"]
+        subgraph K3S["k3s 10.0.0.30 · no public ingress"]
+            API["FastAPI"]
+            Worker["Python worker<br/>(indexer)"]
+            DB[("PostgreSQL 17")]
+            Node["monerod 0.18<br/>pruned"]
+        end
+        Edge -->|"api. proxy_pass"| API
+        API --> DB
+        Worker --> DB
+        Worker -->|JSON-RPC| Node
+    end
+    Node <-->|"P2P sync"| Monero(["Monero network"])
+```
 
-Everything is **Infrastructure-as-Code**: Azure resources via Terraform, server configuration
-and hardening (CIS L1) via Ansible. A `deployment_mode` variable (`poc` | `prod`) scales the
-sizing and redundancy without changing the deployment logic.
+## Infrastructure
 
-> **Status**: the POC was built, deployed and operated end-to-end on Azure; the cloud resources
-> were then torn down to stop costs. The codebase is being cleaned up and ported to Hetzner.
-> It is not currently live.
+The platform runs on **Hetzner Cloud** (region Nuremberg) as three Ubuntu 24.04 servers on a
+private network, each protected by its own Hetzner firewall. Administration is done over a
+**Tailscale** (WireGuard) zero-trust mesh; Grafana and the Wazuh SIEM are reachable over
+Tailscale only, never from the internet. The SIEM and the encrypted off-site backups live on a
+separate cloud (**Oracle Cloud**, free tier) to isolate failure domains.
+
+```mermaid
+flowchart TB
+    Admin(["Administrator"]) -->|"SSH 22"| Bastion
+    Internet(["Internet"]) -->|"80 / 443"| Edge
+    subgraph HZ["Hetzner Cloud (nbg1) · 10.0.0.0/24"]
+        Bastion["bastion 10.0.0.10<br/>firewall: SSH from admin IP only"]
+        Edge["edge 10.0.0.20<br/>firewall: 80/443 from internet"]
+        K3s["k3s 10.0.0.30 + data volume<br/>firewall: no inbound"]
+        Bastion -. ProxyJump .-> Edge
+        Bastion -. ProxyJump .-> K3s
+    end
+    Mesh["Tailscale mesh<br/>(admin · Grafana · agents)"]
+    Bastion --- Mesh
+    Edge --- Mesh
+    K3s --- Mesh
+    subgraph OCI["Oracle Cloud · free tier"]
+        Wazuh["Wazuh SIEM"]
+        Backups[("Restic backups<br/>S3-compatible, encrypted")]
+    end
+    K3s -->|"3-2-1 encrypted"| Backups
+    K3s -.->|"agents 1514"| Wazuh
+    Edge -.->|"agents 1514"| Wazuh
+    Bastion -.->|"agents 1514"| Wazuh
+```
+
+| Server | Type | Public exposure | Role |
+|---|---|---|---|
+| `bastion` | CX22 | SSH from admin IP only | Sole SSH entry point, ProxyJump to the others |
+| `edge` | CX22 | 80/443 from the internet | nginx reverse proxy + ModSecurity WAF, serves the static dashboard |
+| `k3s` | CX32 + 128 GB volume | none (outbound only) | k3s cluster: monerod, worker, PostgreSQL, API, OpenBao |
+
+Key choices:
+
+- **Defense in depth.** Per-server firewalls, a single SSH entry point, a WAF on the only public
+  web surface, a zero-trust admin mesh, and a k3s node with **no inbound exposure at all**
+  (admin and edge reach it over the private network; its public IP is outbound-only, for node
+  sync and image pulls).
+- **HTTP/1.1 origin behind Cloudflare.** Cloudflare serves HTTP/2 and HTTP/3 to clients; the
+  Cloudflare-to-origin hop stays HTTP/1.1, which keeps the ModSecurity WAF fully active.
+- **Everything is Infrastructure-as-Code.** Hetzner resources via **Terraform**
+  (`hcloud` + `cloudflare` providers), server configuration and CIS-aligned hardening via
+  **Ansible**. Container images are built and published to GHCR.
+- **Secrets** are managed with **OpenBao** (a free fork of Vault); supervision with
+  **Prometheus + Grafana**; detection with **Wazuh**; backups with **Restic** (3-2-1,
+  cross-cloud).
 
 ## How the indexer works
 
@@ -81,6 +138,20 @@ synced, runs **two passes** against the database:
 
 2. **Forward indexing.** It then fetches the new blocks above the last indexed height, in
    batches of `MAX_BLOCKS_PER_BATCH`, and upserts them as canonical.
+
+```mermaid
+flowchart TB
+    Start(["Every POLL_INTERVAL"]) --> Info["GET /get_info"]
+    Info --> Sync{"node synced?"}
+    Sync -->|no| Wait["log progress · sleep"]
+    Sync -->|yes| Rescan["Rescan last N blocks<br/>get_block_headers_range"]
+    Rescan --> Diff{"stored hash<br/>≠ node hash?"}
+    Diff -->|yes| Reorg["mark old → orphan<br/>insert new canonical<br/>record reorg (depth, tx)"]
+    Diff -->|no| Fwd
+    Reorg --> Fwd["Forward index<br/>new blocks (batch)"]
+    Fwd --> Metrics["update Prometheus metrics"]
+    Metrics --> Start
+```
 
 **Mining-pool attribution** ([`apps/worker/pools.py`](apps/worker/pools.py)) cross-references each
 block hash against an index `{block_hash → pool}` aggregated every 5 minutes from the public
@@ -114,14 +185,39 @@ The orphan/canonical split is what powers the dashboard's chain-fork visualizer 
 
 ```
 apps/          Application code
-  dashboard/   React + Vite SPA (FR/EN/ES)
+  dashboard/   React + Vite SPA (EN/FR/ES)
   api/         FastAPI service
-  worker/      Python indexer (reorg detection)
-infra/         Terraform (modules, environments, bootstrap)
-config/        Ansible (inventory, playbooks, roles)
+  worker/      Python indexer (reorg detection) + shared pool module
+infra/         Terraform — modules (network, server, dns) + environments
+config/        Ansible — inventory, playbooks, roles (hardening, nginx, k3s, ...)
 k8s/           Kubernetes (k3s) manifests
 scripts/       Helpers (env loader)
 ```
+
+## Deploying
+
+The whole platform is reproducible from code. With a Hetzner project, a Cloudflare-managed
+domain and the required tokens in your environment:
+
+```bash
+# 1. Load tokens (HCLOUD_TOKEN, CLOUDFLARE_API_TOKEN, TAILSCALE_AUTH_KEY, GHCR) from the keychain
+source scripts/load-env.sh
+
+# 2. Provision the servers, private network, firewalls and DNS records
+cd infra/environments/poc
+terraform init
+terraform apply        # creates bastion, edge, k3s + Cloudflare A records
+
+# 3. Configure and harden the servers (CIS L1, nginx+WAF, k3s, data volume, Tailscale)
+cd ../../../config/ansible
+ansible-playbook site.yml
+
+# 4. Deploy the application workloads on k3s
+kubectl apply -k k8s/monerometrics/
+```
+
+Server sizing, datacenter and the data-volume size are Terraform variables
+(see [`infra/environments/poc/terraform.tfvars.example`](infra/environments/poc/terraform.tfvars.example)).
 
 ## Local development (dashboard)
 
@@ -137,9 +233,9 @@ The dashboard reads the public API; point it at `api.monerometrics.net` (see `sr
 ## Security & secrets
 
 - **No secret in the repo.** Credentials are pulled from the macOS Keychain / environment at
-  runtime (`scripts/azure-env.sh`) or stored in OpenBao. Terraform state is remote and encrypted.
-- Defense in depth: NSG/firewall segmentation, SSH bastion, WAF, zero-trust admin mesh,
-  risk analysis (EBIOS RM) and a tested cross-cloud disaster-recovery plan.
+  runtime (`scripts/load-env.sh`) or stored in OpenBao. Terraform state is kept out of the repo.
+- Defense in depth: firewall segmentation, SSH bastion, WAF, zero-trust admin mesh, risk analysis
+  (EBIOS RM) and a tested cross-cloud disaster-recovery plan.
 
 ## Support the project
 
