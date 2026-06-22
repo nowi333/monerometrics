@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="monerometrics API",
     description="API publique lecture seule sur l'indexation Monero",
-    version="0.3.1",
+    version="0.3.4",
     lifespan=lifespan,
 )
 
@@ -214,6 +214,10 @@ async def pools_distribution(
     Fenetres limitees au recent : l'attribution pool est fiable seulement
     sur la profondeur exposee par les API des pools.
     """
+    cached = _agg_cache_get(f"pools:{window}", 60)
+    if cached is not None:
+        return cached
+
     interval_map = {"1h": "1 hour", "6h": "6 hours", "24h": "24 hours", "48h": "48 hours", "7d": "7 days"}
     interval = interval_map[window]
 
@@ -241,11 +245,13 @@ async def pools_distribution(
         for r in rows
     ]
 
-    return PoolDistributionResponse(
+    response = PoolDistributionResponse(
         window=window,
         total_blocks=total,
         distribution=distribution,
     )
+    _agg_cache_set(f"pools:{window}", response)
+    return response
 
 
 @app.get("/orphans/recent", response_model=OrphansResponse)
@@ -320,6 +326,25 @@ WINDOW_REGEX = "^(1h|24h|7d|30d|90d|1y|5y)$"
 # Cache memoire pour /network/info (TTL 30s)
 _network_info_cache = {"data": None, "timestamp": 0}
 
+# Cache TTL generique pour les agregations lourdes (hashrate, blocktime, pools).
+# Ces requetes balayent potentiellement des millions de lignes ; on sert le
+# meme resultat pendant quelques secondes pour fluidifier le dashboard et
+# proteger PostgreSQL des rechargements repetes.
+_agg_cache: dict[str, tuple] = {}
+
+
+def _agg_cache_get(key: str, ttl: int):
+    import time
+    entry = _agg_cache.get(key)
+    if entry and (time.time() - entry[1]) < ttl:
+        return entry[0]
+    return None
+
+
+def _agg_cache_set(key: str, value) -> None:
+    import time
+    _agg_cache[key] = (value, time.time())
+
 
 @app.get("/network/info", response_model=NetworkInfoResponse)
 async def network_info():
@@ -390,6 +415,10 @@ async def network_hashrate(
     Hashrate historique calcule depuis (difficulty / 120s).
     Bucketise selon la fenetre (minute -> mois).
     """
+    cached = _agg_cache_get(f"hashrate:{window}", 60)
+    if cached is not None:
+        return cached
+
     interval, grain = WINDOW_CONFIG[window]
     bucket_size = f"1 {grain}"
 
@@ -409,7 +438,9 @@ async def network_hashrate(
         )
 
     points = [HashratePoint(bucket=r["bucket"], hashrate_h_s=r["hashrate_h_s"] or 0) for r in rows]
-    return HashrateResponse(window=window, bucket_size=bucket_size, points=points)
+    response = HashrateResponse(window=window, bucket_size=bucket_size, points=points)
+    _agg_cache_set(f"hashrate:{window}", response)
+    return response
 
 
 @app.get("/network/blocktime", response_model=BlocktimeResponse)
@@ -420,6 +451,10 @@ async def network_blocktime(
     Variance temps entre blocs canoniques consecutifs.
     Statistique : Monero cible 120s, mais varie selon hashrate.
     """
+    cached = _agg_cache_get(f"blocktime:{window}", 60)
+    if cached is not None:
+        return cached
+
     interval, _grain = WINDOW_CONFIG[window]
 
     pool = get_pool()
@@ -450,12 +485,14 @@ async def network_blocktime(
         avg = 0.0
         median = 0
 
-    return BlocktimeResponse(
+    response = BlocktimeResponse(
         window=window,
         avg_delta=round(avg, 2),
         median_delta=median,
         points=points,
     )
+    _agg_cache_set(f"blocktime:{window}", response)
+    return response
 
 
 # === Endpoint Fork Window (pour Cytoscape) ===

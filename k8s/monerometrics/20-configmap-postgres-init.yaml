@@ -31,6 +31,12 @@ data:
     CREATE UNIQUE INDEX IF NOT EXISTS idx_blocks_one_canonical_per_height
         ON blocks(height) WHERE is_canonical;
     CREATE INDEX IF NOT EXISTS idx_blocks_timestamp ON blocks(timestamp_unix);
+    -- Index partiel sur timestamp_human : sert les agregations de l'API filtrees
+    -- par fenetre temporelle sur les blocs canoniques (hashrate, temps de bloc,
+    -- distribution des pools). Indispensable avec un historique de plusieurs
+    -- millions de blocs (evite un parcours complet a chaque graphe).
+    CREATE INDEX IF NOT EXISTS idx_blocks_canonical_time
+        ON blocks(timestamp_human) WHERE is_canonical;
     CREATE INDEX IF NOT EXISTS idx_blocks_orphans ON blocks(height) WHERE NOT is_canonical;
 
     CREATE TABLE IF NOT EXISTS reorgs_detected (
