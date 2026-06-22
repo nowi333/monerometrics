@@ -1,0 +1,20 @@
+---
+# PodMonitor : indique a Prometheus (kube-prometheus-stack) de scraper les
+# metriques du worker exposees sur le port 'metrics' (:9100/metrics).
+# Le label release=kube-prometheus-stack est requis par le selecteur par defaut
+# du chart (podMonitorSelectorNilUsesHelmValues=true).
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: worker
+  namespace: monerometrics
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: worker
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s

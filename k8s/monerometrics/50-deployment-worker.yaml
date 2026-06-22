@@ -36,7 +36,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: worker
-          image: ghcr.io/nowi333/monerometrics-worker:0.3.4
+          image: ghcr.io/nowi333/monerometrics-worker:0.4.0
           imagePullPolicy: IfNotPresent
           # Credentials Postgres injectes par OpenBao via vault-agent sidecar
           # dans /vault/secrets/postgres-credentials, lus par le worker au demarrage
@@ -47,6 +47,25 @@ spec:
               value: "30"
             - name: MAX_BLOCKS_PER_BATCH
               value: "100"
+            - name: CONFIRMATION_WINDOW
+              value: "60"
+            - name: METRICS_PORT
+              value: "9100"
+          ports:
+            - name: metrics
+              containerPort: 9100
+          # Liveness : le worker reecrit /tmp/worker-heartbeat (timestamp Unix) a
+          # chaque poll. Si la boucle se fige, le heartbeat vieillit et k8s redemarre le pod.
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - 'test $(( $(date +%s) - $(cat /tmp/worker-heartbeat 2>/dev/null || echo 0) )) -lt 180'
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 3
           resources:
             requests:
               cpu: 50m

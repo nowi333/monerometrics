@@ -1,169 +1,126 @@
 """
 Worker monerometrics : indexe les blocs Monero dans Postgres et detecte les reorgs.
 
-Boucle principale :
-1. Poll monerod /get_info pour savoir si le node est sync
-2. Si sync, lit la derniere hauteur indexee dans Postgres
-3. Recupere les nouveaux blocs via /json_rpc getblock
-4. Insert dans blocks + transactions
-5. Detecte les reorgs : si un bloc deja indexe a change de hash -> insert dans reorgs_detected
+Boucle principale (a chaque poll) :
+1. /get_info : le node est-il synchronise ? quelle est sa tete (tip) ?
+2. Rescan de la fenetre de confirmation : re-verifie les N derniers blocs deja
+   indexes en comparant leur hash a celui du node. Tout ecart = reorganisation
+   -> l'ancien bloc devient orphelin, le nouveau devient canonique, et un
+   evenement reorgs_detected est enregistre (profondeur + tx affectees reelles).
+3. Indexation en avant : recupere les blocs nouveaux (tip non encore indexe).
 
-Variables d environnement :
-- MONEROD_URL : URL JSON-RPC de monerod (defaut http://monerod:18081)
-- DATABASE_URL : connection string Postgres (defaut depuis env Pod)
-- POLL_INTERVAL : secondes entre 2 polls (defaut 30)
+Cette double passe est le point cle : sans le rescan de la fenetre de
+confirmation, une reorg qui reecrit des hauteurs DEJA indexees ne serait jamais
+detectee (l'indexation en avant ne revisite jamais le passe).
+
+Variables d'environnement :
+- MONEROD_URL              : URL JSON-RPC de monerod (defaut http://monerod:18081)
+- DATABASE_URL             : connection string Postgres (sinon construite via secrets)
+- POLL_INTERVAL            : secondes entre 2 polls (defaut 30)
+- MAX_BLOCKS_PER_BATCH     : blocs indexes par poll en rattrapage (defaut 100)
+- CONFIRMATION_WINDOW      : nb de blocs recents re-verifies a chaque poll (defaut 60)
+- POOL_INDEX_REFRESH_INTERVAL : rafraichissement de l'index pools (defaut 300s)
+- POOL_FETCH_LIMIT         : profondeur demandee aux API pools (defaut 10000)
+- METRICS_PORT             : port d'exposition des metriques Prometheus (defaut 9100)
+- HEARTBEAT_FILE           : fichier touche a chaque poll, pour la liveness probe
 """
 
 import os
 import sys
 import time
 import logging
+from decimal import Decimal
 from datetime import datetime, timezone
 
 import httpx
 import psycopg
-from psycopg.rows import dict_row
+from prometheus_client import start_http_server, Counter, Gauge
 
-# === Configuration via env + secrets OpenBao ===
+import pools
+
+# === Configuration via env ===
 MONEROD_URL = os.getenv("MONEROD_URL", "http://monerod:18081")
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "30"))
 MAX_BLOCKS_PER_BATCH = int(os.getenv("MAX_BLOCKS_PER_BATCH", "100"))
-
-# === Pool detection via API declaratives (methode miningpoolstats) ===
-# Chaque pool expose ses blocs trouves. On agrege pour construire un index
-# {block_hash: pool_name} qu'on consulte lors de l'indexation.
-# Couverture ~95% (le reste = solo miners ou pools non suivis -> 'unknown').
-
-POOL_INDEX_REFRESH_INTERVAL = int(os.getenv("POOL_INDEX_REFRESH_INTERVAL", "300"))  # 5 min
+CONFIRMATION_WINDOW = int(os.getenv("CONFIRMATION_WINDOW", "60"))
+POOL_INDEX_REFRESH_INTERVAL = int(os.getenv("POOL_INDEX_REFRESH_INTERVAL", "300"))
 POOL_FETCH_LIMIT = int(os.getenv("POOL_FETCH_LIMIT", "10000"))
+METRICS_PORT = int(os.getenv("METRICS_PORT", "9100"))
+HEARTBEAT_FILE = os.getenv("HEARTBEAT_FILE", "/tmp/worker-heartbeat")
 
-# Config des pools : {name: (url_template, parser_type)}
-# parser_type : 'standard' | 'nanopool' | 'kryptex'
-POOL_APIS = {
-    "supportxmr.com": ("https://www.supportxmr.com/api/pool/blocks?limit={limit}", "standard"),
-    "p2pool": ("https://p2pool.observer/api/pool/blocks?limit={limit}", "standard"),
-    "hashvault.pro": ("https://api.hashvault.pro/v3/monero/pool/blocks?limit={limit}&page=0", "standard"),
-    "moneroocean.stream": ("https://api.moneroocean.stream/pool/blocks?limit={limit}", "standard"),
-    "c3pool.com": ("https://api.c3pool.org/pool/blocks?limit={limit}", "standard"),
-    "nanopool.org": ("https://xmr.nanopool.org/api/v1/pool/blocks/0/{limit}", "nanopool"),
-    "kryptex.com": ("https://pool.kryptex.com/xmr/api/v1/pool/blocks?limit={limit}", "kryptex"),
-    "herominers.com": ("https://monero.herominers.com/api/stats", "herominers"),
-}
+ATOMIC_UNITS = Decimal(10) ** 12  # 1 XMR = 1e12 unites atomiques
 
-# Index global {block_hash: pool_name}, rafraichi periodiquement
-_pool_index = {}
-_pool_index_last_refresh = 0
+# === Logging stdout pour kubectl logs ===
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    stream=sys.stdout,
+)
+log = logging.getLogger("monerometrics-worker")
 
-
-def _parse_pool_response(parser_type: str, data) -> list:
-    """
-    Normalise la reponse d'un pool en liste de (height, hash).
-    Gere les 3 formats : standard, nanopool (wrapper data), kryptex (wrapper results).
-    """
-    blocks = []
-    if parser_type == "standard":
-        # [{height, hash, ts}, ...]
-        for b in data:
-            h = b.get("height")
-            hh = b.get("hash")
-            if h and hh:
-                blocks.append((int(h), hh.lower()))
-    elif parser_type == "nanopool":
-        # {status, data: [{block_number, hash, date}]}
-        for b in data.get("data", []):
-            h = b.get("block_number")
-            hh = b.get("hash")
-            if h and hh:
-                blocks.append((int(h), hh.lower()))
-    elif parser_type == "kryptex":
-        # {count, results: [{height, hash, date}]}
-        for b in data.get("results", []):
-            h = b.get("height")
-            hh = b.get("hash")
-            if h and hh:
-                blocks.append((int(h), hh.lower()))
-    elif parser_type == "herominers":
-        # cryptonote-nodejs-pool : {pool: {blocks: ["hash:ts:diff:...", height, ...]}}
-        # liste plate alternee : index pair = chaine, index impair = hauteur
-        raw = data.get("pool", {}).get("blocks", [])
-        i = 0
-        while i < len(raw) - 1:
-            entry = raw[i]
-            height_val = raw[i + 1]
-            try:
-                hh = str(entry).split(":")[0]
-                h = int(height_val)
-                if hh and len(hh) == 64:
-                    blocks.append((h, hh.lower()))
-            except (ValueError, IndexError):
-                pass
-            i += 2
-    return blocks
+# === Metriques Prometheus ===
+M_LAST_INDEXED = Gauge("monerometrics_last_indexed_height", "Derniere hauteur canonique indexee")
+M_NODE_TIP = Gauge("monerometrics_node_tip_height", "Hauteur de la tete du node monerod")
+M_LAG = Gauge("monerometrics_indexing_lag_blocks", "Retard d'indexation (tip - derniere hauteur indexee)")
+M_SYNCED = Gauge("monerometrics_node_synced", "1 si monerod est synchronise, sinon 0")
+M_LAST_LOOP = Gauge("monerometrics_last_loop_unixtime", "Timestamp Unix du dernier passage de boucle")
+M_POOL_INDEX = Gauge("monerometrics_pool_index_size", "Nombre de hash dans l'index pools")
+M_BLOCKS = Counter("monerometrics_blocks_indexed_total", "Total de blocs indexes depuis le demarrage")
+M_REORGS = Counter("monerometrics_reorgs_detected_total", "Total de reorgs detectees depuis le demarrage")
 
 
-def fetch_pool_blocks(client: httpx.Client, name: str, url_template: str, parser_type: str) -> list:
-    """Recupere les derniers blocs trouves par un pool. Retourne [(height, hash)]."""
-    url = url_template.format(limit=POOL_FETCH_LIMIT)
-    try:
-        r = client.get(url, timeout=12, follow_redirects=True,
-                       headers={"User-Agent": "monerometrics/1.0"})
-        r.raise_for_status()
-        return _parse_pool_response(parser_type, r.json())
-    except Exception as e:
-        log.warning(f"Pool API {name} failed: {e}")
-        return []
+# === Chargement des credentials Postgres : OpenBao en priorite, env en fallback ===
+def load_secrets_from_openbao():
+    """Lit /vault/secrets/postgres-credentials (format: export KEY="value")."""
+    secret_file = "/vault/secrets/postgres-credentials"
+    if not os.path.exists(secret_file):
+        return None
+    secrets = {}
+    with open(secret_file) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("export ") and "=" in line:
+                key, value = line[len("export "):].split("=", 1)
+                secrets[key.strip()] = value.strip().strip('"')
+    return secrets
 
 
-def refresh_pool_index(client: httpx.Client) -> None:
-    """Reconstruit l'index {block_hash: pool_name} en agregeant tous les pools."""
-    global _pool_index, _pool_index_last_refresh
-    new_index = {}
-    total = 0
-    for name, (url_template, parser_type) in POOL_APIS.items():
-        blocks = fetch_pool_blocks(client, name, url_template, parser_type)
-        for height, block_hash in blocks:
-            new_index[block_hash] = name
-            total += 1
-    _pool_index = new_index
-    _pool_index_last_refresh = time.time()
-    log.info(f"Pool index refreshed: {len(_pool_index)} unique block hashes from {total} entries across {len(POOL_APIS)} pools")
+_openbao_secrets = load_secrets_from_openbao()
+if _openbao_secrets:
+    PG_USER = _openbao_secrets.get("POSTGRES_USER")
+    PG_PASSWORD = _openbao_secrets.get("POSTGRES_PASSWORD")
+    PG_DB = _openbao_secrets.get("POSTGRES_DB")
+    _source = "OpenBao /vault/secrets/postgres-credentials"
+else:
+    PG_USER = os.getenv("POSTGRES_USER") or os.getenv("PG_USER", "monerometrics")
+    PG_PASSWORD = os.getenv("POSTGRES_PASSWORD") or os.getenv("PG_PASSWORD", "")
+    PG_DB = os.getenv("POSTGRES_DB") or os.getenv("PG_DB", "monerometrics")
+    _source = "env vars (fallback)"
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"postgresql://{PG_USER}:{PG_PASSWORD}@postgres:5432/{PG_DB}",
+)
+
+# Index pools {block_hash: pool_name}, rafraichi periodiquement
+_pool_index: dict[str, str] = {}
+_pool_index_last_refresh = 0.0
 
 
-def maybe_refresh_pool_index(client: httpx.Client) -> None:
-    """Rafraichit l'index si l'intervalle est ecoule."""
-    if time.time() - _pool_index_last_refresh >= POOL_INDEX_REFRESH_INTERVAL:
-        refresh_pool_index(client)
-
-
+# === Attribution pool ===
 def detect_pool(block: dict) -> str:
     """
-    Identifie le pool ayant mine un bloc, methode hybride :
-
-    1. Croisement API (methode miningpoolstats) : consulte l'index
-       {block_hash: pool_name} construit a partir des API declaratives
-       des principaux pools. Si le hash du bloc y figure -> pool identifie.
-
-    2. Fallback on-chain P2Pool : si le hash n'est pas dans l'index mais que
-       la coinbase a plusieurs outputs (signature structurelle P2Pool), on
-       classe en 'p2pool'.
-
-    3. Sinon : 'unknown' (solo miner ou pool non suivi).
-
-    Limitation assumee (privacy-by-design Monero) :
-    - Les pools centralises ne signent PAS leur coinbase on-chain
-    - Identification = uniquement via donnees declaratives off-chain (API pools)
-    - ~95% de couverture, comme les agregateurs publics (miningpoolstats)
-
-    Retourne : nom du pool ('supportxmr.com', 'p2pool', ...) | 'unknown'
+    Identifie le pool ayant mine un bloc (methode hybride) :
+    1. Croisement avec l'index API {block_hash: pool_name}.
+    2. Fallback on-chain P2Pool : coinbase a outputs multiples.
+    3. Sinon 'unknown' (mineur solo ou pool non suivi).
     """
     header = block.get("block_header", {})
     block_hash = (header.get("hash") or "").lower()
 
-    # 1. Croisement avec index API
     if block_hash and block_hash in _pool_index:
         return _pool_index[block_hash]
 
-    # 2. Fallback on-chain : detection P2Pool par multi-output coinbase
     try:
         block_json = block.get("json")
         if isinstance(block_json, str):
@@ -175,76 +132,28 @@ def detect_pool(block: dict) -> str:
     except (KeyError, TypeError, ValueError):
         pass
 
-    # 3. Non identifie
     return "unknown"
 
 
-def load_secrets_from_openbao():
-    """
-    Lit /vault/secrets/postgres-credentials injecte par OpenBao agent (sidecar).
-    Format attendu : export KEY="value" par ligne.
-    Retourne dict {KEY: value} ou None si fichier absent.
-    """
-    secret_file = "/vault/secrets/postgres-credentials"
-    if not os.path.exists(secret_file):
-        return None
-    secrets = {}
-    with open(secret_file) as f:
-        for line in f:
-            line = line.strip()
-            if line.startswith("export "):
-                # Parse format: export KEY="value"
-                key_value = line[len("export "):]
-                if "=" in key_value:
-                    key, value = key_value.split("=", 1)
-                    secrets[key.strip()] = value.strip().strip('"')
-    return secrets
+def maybe_refresh_pool_index(client: httpx.Client) -> None:
+    """Rafraichit l'index pools si l'intervalle est ecoule."""
+    global _pool_index, _pool_index_last_refresh
+    if time.time() - _pool_index_last_refresh >= POOL_INDEX_REFRESH_INTERVAL:
+        _pool_index = pools.build_pool_index(client, POOL_FETCH_LIMIT)
+        _pool_index_last_refresh = time.time()
+        M_POOL_INDEX.set(len(_pool_index))
 
 
-# Charger credentials Postgres : OpenBao en priorite, env vars k8s en fallback
-_openbao_secrets = load_secrets_from_openbao()
-if _openbao_secrets:
-    PG_USER = _openbao_secrets.get("POSTGRES_USER")
-    PG_PASSWORD = _openbao_secrets.get("POSTGRES_PASSWORD")
-    PG_DB = _openbao_secrets.get("POSTGRES_DB")
-    _source = "OpenBao /vault/secrets/postgres-credentials"
-else:
-    # Fallback : env vars (dev local ou bootstrap sans OpenBao)
-    PG_USER = os.getenv("POSTGRES_USER") or os.getenv("PG_USER", "monerometrics")
-    PG_PASSWORD = os.getenv("POSTGRES_PASSWORD") or os.getenv("PG_PASSWORD", "")
-    PG_DB = os.getenv("POSTGRES_DB") or os.getenv("PG_DB", "monerometrics")
-    _source = "env vars (fallback)"
-
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    f"postgresql://{PG_USER}:{PG_PASSWORD}@postgres:5432/{PG_DB}"
-)
-
-# === Logging stdout pour kubectl logs ===
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    stream=sys.stdout,
-)
-log = logging.getLogger("monerometrics-worker")
-log.info(f"Postgres credentials source: {_source}")
-
-
+# === RPC monerod ===
 def get_info(client: httpx.Client) -> dict:
-    """Appelle /get_info pour avoir le statut du node."""
     r = client.get(f"{MONEROD_URL}/get_info", timeout=10)
     r.raise_for_status()
     return r.json()
 
 
 def get_block_by_height(client: httpx.Client, height: int) -> dict:
-    """Recupere un bloc par sa hauteur via JSON-RPC."""
-    payload = {
-        "jsonrpc": "2.0",
-        "id": "0",
-        "method": "get_block",
-        "params": {"height": height},
-    }
+    """Bloc complet par hauteur (inclut block_header + json pour le fallback pool)."""
+    payload = {"jsonrpc": "2.0", "id": "0", "method": "get_block", "params": {"height": height}}
     r = client.post(f"{MONEROD_URL}/json_rpc", json=payload, timeout=10)
     r.raise_for_status()
     data = r.json()
@@ -253,131 +162,236 @@ def get_block_by_height(client: httpx.Client, height: int) -> dict:
     return data["result"]
 
 
+def get_block_headers_range(client: httpx.Client, start: int, end: int) -> list[dict]:
+    """En-tetes [start, end] inclus en un seul appel (max ~1000). Sert au rescan reorg."""
+    payload = {
+        "jsonrpc": "2.0", "id": "0", "method": "get_block_headers_range",
+        "params": {"start_height": start, "end_height": end},
+    }
+    r = client.post(f"{MONEROD_URL}/json_rpc", json=payload, timeout=15)
+    r.raise_for_status()
+    data = r.json()
+    if "error" in data:
+        raise RuntimeError(f"monerod error: {data['error']}")
+    return data["result"].get("headers", [])
+
+
+# === Acces base ===
 def get_last_indexed_height(conn: psycopg.Connection) -> int:
-    """Lit la derniere hauteur indexee dans Postgres. Retourne -1 si vide."""
     with conn.cursor() as cur:
         cur.execute("SELECT COALESCE(MAX(height), -1) FROM blocks WHERE is_canonical = TRUE")
         return cur.fetchone()[0]
 
 
-def insert_block(conn: psycopg.Connection, block: dict) -> None:
-    """Insert un bloc dans la table blocks. ON CONFLICT pour detecter les reorgs."""
+def upsert_canonical_block(conn: psycopg.Connection, block: dict) -> None:
+    """
+    Insere/maj un bloc comme canonique. La cle primaire est le hash, donc
+    plusieurs blocs peuvent coexister a une meme hauteur (canonique + orphelins).
+    L'index unique partiel 'un seul canonique par hauteur' impose d'avoir
+    prealablement bascule l'eventuel ancien canonique en orphelin (cf. reorg).
+    """
     header = block["block_header"]
-    height = header["height"]
-    new_hash = header["hash"]
-
+    reward = Decimal(int(header.get("reward", 0))) / ATOMIC_UNITS
     with conn.cursor() as cur:
-        # Verifier si on a deja ce bloc avec un hash different (= reorg)
-        cur.execute("SELECT hash FROM blocks WHERE height = %s", (height,))
-        existing = cur.fetchone()
-
-        if existing and existing[0] != new_hash:
-            # REORG detecte !
-            log.warning(f"REORG detected at height {height} : old={existing[0][:16]} new={new_hash[:16]}")
-            cur.execute(
-                """
-                INSERT INTO reorgs_detected (fork_point_height, depth, old_chain_tip_hash, new_chain_tip_hash, notes)
-                VALUES (%s, %s, %s, %s, %s)
-                """,
-                (height, 1, existing[0], new_hash, "Detected during indexing"),
-            )
-            # Marquer l'ancien bloc comme orphan
-            cur.execute("UPDATE blocks SET is_canonical = FALSE WHERE height = %s AND hash = %s", (height, existing[0]))
-
-        # Upsert le bloc canonical actuel
         cur.execute(
             """
             INSERT INTO blocks (
-                height, hash, prev_hash, timestamp_unix, timestamp_human,
+                hash, height, prev_hash, timestamp_unix, timestamp_human,
                 difficulty, tx_count, size_bytes, miner_address, miner_pool,
                 reward_xmr, is_canonical
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
-            ON CONFLICT (height) DO UPDATE SET
-                hash = EXCLUDED.hash,
-                prev_hash = EXCLUDED.prev_hash,
-                timestamp_unix = EXCLUDED.timestamp_unix,
-                timestamp_human = EXCLUDED.timestamp_human,
-                difficulty = EXCLUDED.difficulty,
-                tx_count = EXCLUDED.tx_count,
-                size_bytes = EXCLUDED.size_bytes,
-                reward_xmr = EXCLUDED.reward_xmr,
-                is_canonical = TRUE
+            ON CONFLICT (hash) DO UPDATE SET
+                is_canonical = TRUE,
+                miner_pool = COALESCE(EXCLUDED.miner_pool, blocks.miner_pool)
             """,
             (
-                height,
-                new_hash,
+                header["hash"],
+                header["height"],
                 header.get("prev_hash", ""),
                 header["timestamp"],
                 datetime.fromtimestamp(header["timestamp"], tz=timezone.utc),
-                header["difficulty"],
+                int(header["difficulty"]),
                 header.get("num_txes", 0),
                 header.get("block_size", 0),
                 None,  # miner_address : masque par privacy Monero (stealth address)
-                detect_pool(block),  # miner_pool : nom pool via API croisees | p2pool | unknown
-                header.get("reward", 0) / 1e12,  # atomic units -> XMR
-                # is_canonical hardcoded TRUE via le query
+                detect_pool(block),
+                reward,
             ),
         )
 
 
-def index_loop():
-    """Boucle principale du worker."""
-    log.info(f"Starting worker · monerod={MONEROD_URL} · poll_interval={POLL_INTERVAL}s")
+def index_forward(client: httpx.Client, conn: psycopg.Connection, top: int) -> int:
+    """Indexe les blocs nouveaux (au-dela de la derniere hauteur canonique), par batch."""
+    last = get_last_indexed_height(conn)
+    next_height = last + 1
+    if next_height > top:
+        return 0
+
+    end = min(next_height + MAX_BLOCKS_PER_BATCH, top + 1)  # borne exclusive
+    log.info(f"Indexing blocks {next_height:,} to {end - 1:,}")
+    for h in range(next_height, end):
+        upsert_canonical_block(conn, get_block_by_height(client, h))
+    conn.commit()
+    count = end - next_height
+    M_BLOCKS.inc(count)
+    log.info(f"Committed {count} blocks (now at height {end - 1:,})")
+    return count
+
+
+def rescan_confirmation_window(client: httpx.Client, conn: psycopg.Connection, top: int) -> int:
+    """
+    Re-verifie les CONFIRMATION_WINDOW derniers blocs indexes : compare le hash
+    canonique stocke a celui du node. Tout ecart est une reorganisation, traitee
+    et historisee (profondeur + tx affectees reelles). Retourne le nb de hauteurs reorga.
+    """
+    start = max(0, top - CONFIRMATION_WINDOW + 1)
+
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT height, hash, tx_count FROM blocks "
+            "WHERE is_canonical = TRUE AND height BETWEEN %s AND %s",
+            (start, top),
+        )
+        stored = {row[0]: (row[1], row[2]) for row in cur.fetchall()}
+
+    if not stored:
+        return 0
+
+    headers = get_block_headers_range(client, start, min(top, max(stored)))
+    node_hashes = {h["height"]: h["hash"] for h in headers}
+
+    # Hauteurs dont le hash canonique stocke differe de celui du node
+    changed: list[tuple[int, str, int, str]] = []  # (height, old_hash, old_tx, new_hash)
+    for height, (old_hash, old_tx) in stored.items():
+        node_hash = node_hashes.get(height)
+        if node_hash and node_hash != old_hash:
+            changed.append((height, old_hash, old_tx, node_hash))
+
+    if not changed:
+        return 0
+
+    changed.sort(key=lambda c: c[0])
+    log.warning(f"REORG detected on {len(changed)} height(s): {[c[0] for c in changed]}")
+
+    # Applique le remplacement : ancien -> orphelin, nouveau -> canonique
+    with conn.cursor() as cur:
+        for height, old_hash, _old_tx, _new_hash in changed:
+            cur.execute(
+                "UPDATE blocks SET is_canonical = FALSE WHERE hash = %s", (old_hash,)
+            )
+    for height, _old_hash, _old_tx, _new_hash in changed:
+        upsert_canonical_block(conn, get_block_by_height(client, height))
+
+    # Regroupe les hauteurs contigues en evenements de reorg distincts
+    _record_reorg_events(conn, changed)
+    conn.commit()
+    M_REORGS.inc(_count_groups(changed))
+    return len(changed)
+
+
+def _count_groups(changed: list[tuple[int, str, int, str]]) -> int:
+    groups = 0
+    prev = None
+    for height, *_ in changed:
+        if prev is None or height != prev + 1:
+            groups += 1
+        prev = height
+    return groups
+
+
+def _record_reorg_events(conn: psycopg.Connection, changed: list[tuple[int, str, int, str]]) -> None:
+    """Insere un evenement reorgs_detected par run de hauteurs contigues."""
+    runs: list[list[tuple[int, str, int, str]]] = []
+    for item in changed:  # changed est deja trie par hauteur
+        if runs and item[0] == runs[-1][-1][0] + 1:
+            runs[-1].append(item)
+        else:
+            runs.append([item])
+
+    with conn.cursor() as cur:
+        for run in runs:
+            fork_point = run[0][0]
+            depth = len(run)
+            tip = run[-1]  # plus haute hauteur du run
+            old_tip_hash = tip[1]
+            new_tip_hash = tip[3]
+            affected_tx = sum(item[2] for item in run)
+            cur.execute(
+                """
+                INSERT INTO reorgs_detected
+                    (fork_point_height, depth, old_chain_tip_hash,
+                     new_chain_tip_hash, affected_tx_count, notes)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (fork_point, depth, old_tip_hash, new_tip_hash, affected_tx,
+                 "Detected during confirmation-window rescan"),
+            )
+
+
+def _heartbeat() -> None:
+    """Touche le fichier de heartbeat (consomme par la liveness probe k8s)."""
+    try:
+        with open(HEARTBEAT_FILE, "w") as f:
+            f.write(str(int(time.time())))
+    except OSError:
+        pass
+
+
+def index_loop() -> None:
+    log.info(
+        f"Starting worker · monerod={MONEROD_URL} · poll={POLL_INTERVAL}s "
+        f"· batch={MAX_BLOCKS_PER_BATCH} · window={CONFIRMATION_WINDOW}"
+    )
+    log.info(f"Postgres credentials source: {_source}")
 
     with httpx.Client() as http_client:
-        # Premier remplissage de l'index pools au demarrage
-        refresh_pool_index(http_client)
+        maybe_refresh_pool_index(http_client)
 
         while True:
+            _heartbeat()
+            M_LAST_LOOP.set(time.time())
             try:
-                # 0. Rafraichir l'index pools si necessaire (toutes les 5 min)
                 maybe_refresh_pool_index(http_client)
 
-                # 1. Status monerod
                 info = get_info(http_client)
                 synced = info.get("synchronized", False)
-                local_height = info.get("height", 0)
-                target_height = info.get("target_height", 0) or local_height
-                pct = (local_height / target_height * 100) if target_height else 0
+                node_height = info.get("height", 0)
+                target_height = info.get("target_height", 0) or node_height
+                top = node_height - 1  # hauteur du bloc de tete
+                M_SYNCED.set(1 if synced else 0)
+                M_NODE_TIP.set(top)
 
                 if not synced:
-                    log.info(f"Waiting for monerod sync · {local_height:,}/{target_height:,} ({pct:.2f}%)")
+                    pct = (node_height / target_height * 100) if target_height else 0
+                    log.info(f"Waiting for monerod sync · {node_height:,}/{target_height:,} ({pct:.2f}%)")
                     time.sleep(POLL_INTERVAL)
                     continue
 
-                # 2. Sync OK, on indexe
                 with psycopg.connect(DATABASE_URL, autocommit=False) as conn:
+                    # 1. Detecter d'abord les reorgs sur les blocs deja indexes
+                    rescan_confirmation_window(http_client, conn, top)
+                    # 2. Puis indexer les blocs nouveaux
+                    index_forward(http_client, conn, top)
+
                     last = get_last_indexed_height(conn)
-                    next_height = last + 1
-
-                    if next_height > local_height - 1:
-                        log.info(f"Up to date · last indexed = {last:,} · monerod tip = {local_height:,}")
-                        time.sleep(POLL_INTERVAL)
-                        continue
-
-                    # On rattrape par batch pour pas spam monerod
-                    end_height = min(next_height + MAX_BLOCKS_PER_BATCH, local_height)
-                    log.info(f"Indexing blocks {next_height:,} to {end_height - 1:,}")
-
-                    for h in range(next_height, end_height):
-                        block = get_block_by_height(http_client, h)
-                        insert_block(conn, block)
-
-                    conn.commit()
-                    log.info(f"Committed {end_height - next_height} blocks (now at height {end_height - 1:,})")
+                    M_LAST_INDEXED.set(last)
+                    M_LAG.set(max(0, top - last))
+                    if last >= top:
+                        log.info(f"Up to date · last indexed = {last:,} · node tip = {top:,}")
 
             except httpx.RequestError as e:
-                log.error(f"HTTP error talking to monerod : {e}")
-                time.sleep(POLL_INTERVAL)
+                log.error(f"HTTP error talking to monerod: {e}")
             except psycopg.OperationalError as e:
-                log.error(f"Database error : {e}")
-                time.sleep(POLL_INTERVAL)
+                log.error(f"Database error: {e}")
             except Exception as e:
-                log.exception(f"Unexpected error : {e}")
-                time.sleep(POLL_INTERVAL)
+                log.exception(f"Unexpected error: {e}")
+
+            time.sleep(POLL_INTERVAL)
 
 
 if __name__ == "__main__":
+    start_http_server(METRICS_PORT)
+    log.info(f"Prometheus metrics exposed on :{METRICS_PORT}/metrics")
     try:
         index_loop()
     except KeyboardInterrupt:
