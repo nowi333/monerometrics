@@ -136,8 +136,11 @@ synced, runs **two passes** against the database:
    work — plain forward-only indexing never revisits the past, so it would silently miss every
    reorg that rewrites already-indexed heights.
 
-2. **Forward indexing.** It then fetches the new blocks above the last indexed height, in
-   batches of `MAX_BLOCKS_PER_BATCH`, and upserts them as canonical.
+2. **Forward indexing.** It then fetches the new blocks above the last indexed height. Close to
+   the tip it pulls **full blocks** one by one for accurate pool attribution; when it is far
+   behind (fresh deploy), it switches to a **fast header backfill** (`get_block_headers_range`,
+   ~1000 blocks per call), which is enough for the network-health series and lets the long
+   windows (90 d, 1 y, 5 y) fill with real history in well under two hours instead of never.
 
 ```mermaid
 flowchart TB

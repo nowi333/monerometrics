@@ -36,7 +36,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: worker
-          image: ghcr.io/nowi333/monerometrics-worker:0.4.0
+          image: ghcr.io/nowi333/monerometrics-worker:0.4.1
           imagePullPolicy: IfNotPresent
           # Credentials Postgres injectes par OpenBao via vault-agent sidecar
           # dans /vault/secrets/postgres-credentials, lus par le worker au demarrage
@@ -49,6 +49,11 @@ spec:
               value: "100"
             - name: CONFIRMATION_WINDOW
               value: "60"
+            # Backfill historique rapide (en-tetes) tant que le retard depasse LIVE_BLOCKS
+            - name: LIVE_BLOCKS
+              value: "1000"
+            - name: BACKFILL_CHUNKS_PER_POLL
+              value: "20"
             - name: METRICS_PORT
               value: "9100"
           ports:

@@ -22,6 +22,10 @@ terraform.rc
 crash.log
 crash.*.log
 
+# Lock files au niveau des modules : non versionnes (seuls les environnements
+# pinnent les providers). Regeneres par 'terraform init' / le hook pre-commit.
+infra/modules/*/.terraform.lock.hcl
+
 # ============================================================
 # Ansible
 # ============================================================

@@ -43,6 +43,16 @@ MONEROD_URL = os.getenv("MONEROD_URL", "http://monerod:18081")
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "30"))
 MAX_BLOCKS_PER_BATCH = int(os.getenv("MAX_BLOCKS_PER_BATCH", "100"))
 CONFIRMATION_WINDOW = int(os.getenv("CONFIRMATION_WINDOW", "60"))
+
+# Backfill historique rapide : tant que le retard depasse LIVE_BLOCKS, on
+# rattrape par en-tetes (get_block_headers_range, ~1000 blocs/appel) au lieu de
+# bloc complet par bloc complet. Les en-tetes suffisent aux series reseau
+# (hashrate, temps de bloc, difficulte, tx) ; l'attribution pool fine est
+# reservee au mode live (les API pools ne couvrent que le recent de toute facon).
+LIVE_BLOCKS = int(os.getenv("LIVE_BLOCKS", "1000"))
+BACKFILL_CHUNK = int(os.getenv("BACKFILL_CHUNK", "1000"))            # max monerod par appel
+BACKFILL_CHUNKS_PER_POLL = int(os.getenv("BACKFILL_CHUNKS_PER_POLL", "20"))
+
 POOL_INDEX_REFRESH_INTERVAL = int(os.getenv("POOL_INDEX_REFRESH_INTERVAL", "300"))
 POOL_FETCH_LIMIT = int(os.getenv("POOL_FETCH_LIMIT", "10000"))
 METRICS_PORT = int(os.getenv("METRICS_PORT", "9100"))
@@ -183,14 +193,14 @@ def get_last_indexed_height(conn: psycopg.Connection) -> int:
         return cur.fetchone()[0]
 
 
-def upsert_canonical_block(conn: psycopg.Connection, block: dict) -> None:
+def _insert_canonical(conn: psycopg.Connection, header: dict, pool: str) -> None:
     """
-    Insere/maj un bloc comme canonique. La cle primaire est le hash, donc
-    plusieurs blocs peuvent coexister a une meme hauteur (canonique + orphelins).
-    L'index unique partiel 'un seul canonique par hauteur' impose d'avoir
-    prealablement bascule l'eventuel ancien canonique en orphelin (cf. reorg).
+    Insere/maj un bloc comme canonique a partir de son en-tete + son pool.
+    La cle primaire est le hash, donc plusieurs blocs peuvent coexister a une
+    meme hauteur (canonique + orphelins). L'index unique partiel 'un seul
+    canonique par hauteur' impose d'avoir prealablement bascule l'eventuel
+    ancien canonique en orphelin (cf. reorg).
     """
-    header = block["block_header"]
     reward = Decimal(int(header.get("reward", 0))) / ATOMIC_UNITS
     with conn.cursor() as cur:
         cur.execute(
@@ -214,21 +224,43 @@ def upsert_canonical_block(conn: psycopg.Connection, block: dict) -> None:
                 header.get("num_txes", 0),
                 header.get("block_size", 0),
                 None,  # miner_address : masque par privacy Monero (stealth address)
-                detect_pool(block),
+                pool,
                 reward,
             ),
         )
 
 
+def upsert_canonical_block(conn: psycopg.Connection, block: dict) -> None:
+    """Mode live : bloc complet, attribution pool fine (index + fallback P2Pool)."""
+    _insert_canonical(conn, block["block_header"], detect_pool(block))
+
+
+def upsert_canonical_header(conn: psycopg.Connection, header: dict) -> None:
+    """Mode backfill : en-tete seul, pool depuis l'index s'il y figure, sinon 'unknown'."""
+    pool = _pool_index.get((header.get("hash") or "").lower(), "unknown")
+    _insert_canonical(conn, header, pool)
+
+
 def index_forward(client: httpx.Client, conn: psycopg.Connection, top: int) -> int:
-    """Indexe les blocs nouveaux (au-dela de la derniere hauteur canonique), par batch."""
+    """
+    Indexe les blocs nouveaux. Deux strategies selon le retard :
+    - retard > LIVE_BLOCKS  : backfill rapide par en-tetes (series historiques).
+    - retard <= LIVE_BLOCKS : mode live, bloc complet (attribution pool precise).
+    """
     last = get_last_indexed_height(conn)
     next_height = last + 1
     if next_height > top:
         return 0
 
+    if top - last > LIVE_BLOCKS:
+        return _backfill_headers(client, conn, next_height, top)
+    return _index_live(client, conn, next_height, top)
+
+
+def _index_live(client: httpx.Client, conn: psycopg.Connection, next_height: int, top: int) -> int:
+    """Indexe les derniers blocs un par un (bloc complet) pour une attribution pool fiable."""
     end = min(next_height + MAX_BLOCKS_PER_BATCH, top + 1)  # borne exclusive
-    log.info(f"Indexing blocks {next_height:,} to {end - 1:,}")
+    log.info(f"Indexing blocks {next_height:,} to {end - 1:,} (live)")
     for h in range(next_height, end):
         upsert_canonical_block(conn, get_block_by_height(client, h))
     conn.commit()
@@ -236,6 +268,32 @@ def index_forward(client: httpx.Client, conn: psycopg.Connection, top: int) -> i
     M_BLOCKS.inc(count)
     log.info(f"Committed {count} blocks (now at height {end - 1:,})")
     return count
+
+
+def _backfill_headers(client: httpx.Client, conn: psycopg.Connection, next_height: int, top: int) -> int:
+    """
+    Rattrape l'historique par en-tetes (get_block_headers_range), en s'arretant
+    LIVE_BLOCKS avant la tete pour laisser le mode live finir le recent.
+    Commit par chunk pour la progression et eviter une transaction geante.
+    """
+    target = top - LIVE_BLOCKS
+    total = 0
+    chunks = 0
+    h = next_height
+    while h <= target and chunks < BACKFILL_CHUNKS_PER_POLL:
+        end = min(h + BACKFILL_CHUNK - 1, target)
+        headers = get_block_headers_range(client, h, end)
+        if not headers:
+            break
+        for hdr in headers:
+            upsert_canonical_header(conn, hdr)
+        conn.commit()
+        total += len(headers)
+        chunks += 1
+        h = end + 1
+    M_BLOCKS.inc(total)
+    log.info(f"Backfilled {total:,} block headers up to {h - 1:,} (node tip {top:,})")
+    return total
 
 
 def rescan_confirmation_window(client: httpx.Client, conn: psycopg.Connection, top: int) -> int:
