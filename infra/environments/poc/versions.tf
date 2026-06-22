@@ -1,13 +1,12 @@
-# versions.tf
-# Configuration Terraform et backend distant pour l environment POC.
+# versions.tf — Environnement POC (Hetzner Cloud)
 
 terraform {
   required_version = ">= 1.15.0"
 
   required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 4.20"
+    hcloud = {
+      source  = "hetznercloud/hcloud"
+      version = "~> 1.49"
     }
     cloudflare = {
       source  = "cloudflare/cloudflare"
@@ -15,20 +14,15 @@ terraform {
     }
   }
 
-  # Backend distant : stocke le state dans le Storage Account cree par le bootstrap.
-  backend "azurerm" {
-    resource_group_name  = "rg-monerometrics-tfstate"
-    storage_account_name = "stmonerometricstfdezfto"
-    container_name       = "tfstate"
-    key                  = "environments/poc/terraform.tfstate"
-  }
+  # State local pour le POC. Le fichier terraform.tfstate est gitignore
+  # (peut contenir des donnees sensibles).
+  # Cible production : backend distant chiffre, par ex. S3-compatible vers
+  # Oracle Cloud Object Storage (deja utilise pour les sauvegardes Restic).
 }
 
-provider "azurerm" {
-  features {}
-  resource_provider_registrations = "none"
-}
+# Provider hcloud : authentifie via la variable d'env HCLOUD_TOKEN
+# (chargee par scripts/load-env.sh depuis le Keychain macOS).
+provider "hcloud" {}
 
-# Provider cloudflare : authentifie via la variable d env CLOUDFLARE_API_TOKEN
-# chargee par scripts/azure-env.sh depuis Keychain macOS.
+# Provider cloudflare : authentifie via CLOUDFLARE_API_TOKEN (meme mecanisme).
 provider "cloudflare" {}

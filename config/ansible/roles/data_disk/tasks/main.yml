@@ -1,16 +1,24 @@
 ---
 # Tasks du role data_disk
-# Formate (si necessaire) et monte le data disk Azure
+# Decouvre, formate (si necessaire) et monte le volume de donnees Hetzner.
 
-- name: Check if data disk device exists
-  ansible.builtin.stat:
-    path: "{{ data_disk_device }}"
-  register: data_disk_stat
+- name: Discover Hetzner data volume device (if not set explicitly)
+  ansible.builtin.shell: "set -o pipefail; ls -1 {{ data_disk_device_glob }} 2>/dev/null | head -n1"
+  args:
+    executable: /bin/bash
+  register: data_disk_discovered
+  changed_when: false
+  failed_when: false
+  when: data_disk_device | length == 0
 
-- name: Fail if data disk not attached
+- name: Resolve data disk device path
+  ansible.builtin.set_fact:
+    data_disk_device: "{{ data_disk_device if (data_disk_device | length > 0) else (data_disk_discovered.stdout | default('') | trim) }}"
+
+- name: Fail if no data disk device resolved
   ansible.builtin.fail:
-    msg: "Data disk not found at {{ data_disk_device }}. Verify Azure attachment."
-  when: not data_disk_stat.stat.exists
+    msg: "No data volume found (glob {{ data_disk_device_glob }}). Verify the Hetzner volume is attached to this server."
+  when: data_disk_device | length == 0
 
 - name: Get filesystem info on data disk
   ansible.builtin.command: "blkid -o value -s TYPE {{ data_disk_device }}"

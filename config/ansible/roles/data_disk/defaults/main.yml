@@ -1,10 +1,13 @@
 ---
 # Defaults du role data_disk
-# Monte le data disk Azure attache au LUN 0 sur /var/lib/monerometrics-data
-
-# Le LUN 0 est mappe vers /dev/disk/azure/scsi1/lun0
-# Cette nomenclature est stable, contrairement a /dev/sdc qui peut changer
-data_disk_device: "/dev/disk/azure/scsi1/lun0"
+# Monte le volume de donnees Hetzner sur /var/lib/monerometrics-data.
+#
+# Un volume Hetzner attache apparait sous un chemin stable :
+#   /dev/disk/by-id/scsi-0HC_Volume_<id>
+# data_disk_device vide => decouverte automatique via le glob ci-dessous
+# (il n'y a qu'un seul volume de donnees sur le noeud k3s).
+data_disk_device: ""
+data_disk_device_glob: "/dev/disk/by-id/scsi-0HC_Volume_*"
 data_disk_mountpoint: "/var/lib/monerometrics-data"
 data_disk_fstype: "ext4"
 data_disk_owner: "root"

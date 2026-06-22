@@ -22,7 +22,7 @@ k3s_server_args:
 
 # === Reseau ===
 # Cluster CIDR et service CIDR par defaut k3s, on ne touche pas en POC
-# (a documenter si conflit avec subnet Azure futurs)
+# (a documenter si conflit avec le sous-reseau prive Hetzner)
 
 # === Token cluster ===
 # Necessaire pour ajouter des workers plus tard (Sprint 5 si scale-out)

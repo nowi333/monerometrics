@@ -1,34 +1,30 @@
-# outputs.tf
-# Valeurs exposees par le module aux appelants.
-# Les modules compute / identity / observability vont reutiliser ces IDs
-# pour deployer leurs VM dans les bons subnets.
+# outputs.tf — Module network (Hetzner Cloud)
 
-output "resource_group_name" {
-  description = "Nom du Resource Group reseau."
-  value       = azurerm_resource_group.network.name
+output "network_id" {
+  description = "ID du reseau prive. Reference le sous-reseau pour garantir qu'il existe avant l'attachement des serveurs."
+  value       = hcloud_network_subnet.main.network_id
 }
 
-output "vnet_id" {
-  description = "ID complet du VNet."
-  value       = azurerm_virtual_network.main.id
+output "network_name" {
+  description = "Nom du reseau prive."
+  value       = hcloud_network.main.name
 }
 
-output "vnet_name" {
-  description = "Nom du VNet."
-  value       = azurerm_virtual_network.main.name
+output "network_cidr" {
+  description = "CIDR du reseau prive."
+  value       = hcloud_network.main.ip_range
 }
 
-output "subnet_ids" {
-  description = "Map des IDs de subnets, indexee par nom logique (dmz, app, data, mgmt, monitoring, reserved)."
-  value       = { for k, s in azurerm_subnet.this : k => s.id }
+output "subnet_cidr" {
+  description = "CIDR du sous-reseau cloud."
+  value       = hcloud_network_subnet.main.ip_range
 }
 
-output "subnet_cidrs" {
-  description = "Map des CIDR des subnets, indexee par nom logique."
-  value       = var.subnets
-}
-
-output "nsg_ids" {
-  description = "Map des IDs de NSG, indexee par nom logique."
-  value       = { for k, n in azurerm_network_security_group.this : k => n.id }
+output "firewall_ids" {
+  description = "Map des IDs de firewall par role."
+  value = {
+    bastion = hcloud_firewall.bastion.id
+    edge    = hcloud_firewall.edge.id
+    k3s     = hcloud_firewall.k3s.id
+  }
 }

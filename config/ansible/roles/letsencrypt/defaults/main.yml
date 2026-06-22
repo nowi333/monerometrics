@@ -12,7 +12,7 @@ letsencrypt_san_domains:
   - "*.monerometrics.net"
 
 # === Cloudflare API ===
-# Token recupere depuis l env (charge par scripts/azure-env.sh)
+# Token recupere depuis l env (charge par scripts/load-env.sh)
 letsencrypt_cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
 
 # === Chemins ===

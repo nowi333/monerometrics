@@ -1,7 +1,22 @@
 # terraform.tfvars.example
-# Copie ce fichier en terraform.tfvars (gitignored) et remplis avec tes valeurs.
-# terraform.tfvars est lu automatiquement par Terraform au moment du plan/apply.
+# Copie ce fichier en terraform.tfvars (gitignored) et remplis tes valeurs.
+# terraform.tfvars est lu automatiquement par Terraform au plan/apply.
+#
+# Le jeton Hetzner et le token Cloudflare ne sont PAS ici : ils sont passes
+# par variables d'environnement (HCLOUD_TOKEN, CLOUDFLARE_API_TOKEN), chargees
+# par scripts/load-env.sh depuis le Keychain.
 
-# Ton IP publique en format CIDR /32.
-# Pour la recuperer : curl ifconfig.me
+# Ton IP publique en CIDR /32 (curl ifconfig.me) — autorisee a joindre le bastion.
 admin_source_ip = "X.X.X.X/32"
+
+# Cle publique SSH (contenu de ~/.ssh/monerometrics/bastion.pub).
+bastion_ssh_public_key = "ssh-ed25519 AAAA... admin@monerometrics"
+
+# Datacenter Hetzner (optionnel) : nbg1 (Nuremberg), fsn1 (Falkenstein), hel1 (Helsinki).
+# location = "nbg1"
+
+# Types de serveurs (optionnel — gamme x86 cx*/cpx*).
+# bastion_server_type  = "cx22"
+# edge_server_type     = "cx22"
+# k3s_server_type      = "cx32"
+# k3s_data_volume_size = 128

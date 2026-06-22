@@ -1,305 +1,107 @@
-# main.tf
-# Module network monerometrics.
+# main.tf — Module network (Hetzner Cloud)
 #
 # Cree :
-#   - 1 VNet
-#   - N subnets (parametre via var.subnets)
-#   - N NSG associes 1-1 aux subnets (un NSG par subnet, contrôle granulaire)
-#   - 1 route table optionnelle (forced tunneling via OPNsense)
+#   - 1 reseau prive (hcloud_network) + 1 sous-reseau cloud
+#   - 3 firewalls (bastion, edge, k3s) appliques par label de role
 #
-# Convention : chaque ressource est nommee {project}-{environment}-{role}
-# Exemple : monerometrics-poc-vnet, monerometrics-poc-snet-dmz
-
-# ============================================================
-# Locals : valeurs derivees, utilisees plusieurs fois
-# ============================================================
+# Modele de securite Hetzner (different d'Azure) :
+#   - Les firewalls hcloud filtrent l'interface PUBLIQUE des serveurs.
+#   - Le trafic interne au reseau prive n'est pas filtre : c'est le perimetre
+#     de confiance (equivalent d'un VLAN d'administration).
+#   - La segmentation repose donc sur "qui a une IP publique joignable" :
+#     bastion (SSH admin), edge (80/443), k3s (rien en entree).
 
 locals {
-  # Prefixe utilise dans tous les noms.
   name_prefix = "${var.project}-${var.environment}"
-
-  # Fusionne les tags par defaut avec ceux fournis par l appelant.
-  # Tag systematique component=network pour filtrer les couts.
-  common_tags = merge(
-    var.tags,
-    {
-      component  = "network"
-      managed_by = "terraform"
-    }
-  )
+  common_labels = merge(var.labels, {
+    managed_by = "terraform"
+    component  = "network"
+  })
 }
 
 # ============================================================
-# Virtual Network
+# Reseau prive + sous-reseau
 # ============================================================
-
-resource "azurerm_virtual_network" "main" {
-  name                = "${local.name_prefix}-vnet"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.network.name
-  address_space       = [var.vnet_cidr]
-  tags                = local.common_tags
+resource "hcloud_network" "main" {
+  name     = "${local.name_prefix}-net"
+  ip_range = var.network_cidr
+  labels   = local.common_labels
 }
 
-# Resource Group dedie aux ressources reseau.
-# Pattern : chaque domaine fonctionnel a son propre RG (network, compute, data, observability).
-# Avantages : isolation, lifecycle separe, IAM granulaire, suppression simplifiee.
-resource "azurerm_resource_group" "network" {
-  name     = "${local.name_prefix}-rg-network"
-  location = var.location
-  tags     = local.common_tags
+resource "hcloud_network_subnet" "main" {
+  network_id   = hcloud_network.main.id
+  type         = "cloud"
+  network_zone = var.network_zone
+  ip_range     = var.subnet_cidr
 }
 
 # ============================================================
-# Subnets : un par role fonctionnel
+# Firewall bastion : SSH depuis l'IP de l'administrateur uniquement
 # ============================================================
+resource "hcloud_firewall" "bastion" {
+  name   = "${local.name_prefix}-fw-bastion"
+  labels = local.common_labels
 
-# for_each itere sur la map var.subnets.
-# Chaque entree devient une ressource Azure indexee par sa cle (dmz, app, etc.).
-resource "azurerm_subnet" "this" {
-  for_each = var.subnets
+  rule {
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "22"
+    source_ips  = [var.admin_source_ip]
+    description = "SSH depuis l'administrateur"
+  }
 
-  name                 = "${local.name_prefix}-snet-${each.key}"
-  resource_group_name  = azurerm_resource_group.network.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = [each.value]
-}
+  rule {
+    direction   = "in"
+    protocol    = "icmp"
+    source_ips  = [var.admin_source_ip]
+    description = "ping diagnostic depuis l'administrateur"
+  }
 
-# ============================================================
-# Network Security Groups : un par subnet
-# ============================================================
-
-# Pourquoi un NSG par subnet et pas un global ?
-# - Defense en profondeur : compromis du subnet App ne donne pas l acces au subnet Data.
-# - Lecture facile : on sait directement quel NSG regarder pour quel subnet.
-# - Pas de regles "transverses" complexes a debugger.
-
-resource "azurerm_network_security_group" "this" {
-  for_each = var.subnets
-
-  name                = "${local.name_prefix}-nsg-${each.key}"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.network.name
-  tags                = local.common_tags
-}
-
-# Association NSG <-> Subnet
-resource "azurerm_subnet_network_security_group_association" "this" {
-  for_each = var.subnets
-
-  subnet_id                 = azurerm_subnet.this[each.key].id
-  network_security_group_id = azurerm_network_security_group.this[each.key].id
+  apply_to {
+    label_selector = "role=bastion"
+  }
 }
 
 # ============================================================
-# Regles de securite par subnet
+# Firewall edge : 80/443 depuis Internet (origin pull Cloudflare)
+# Pas de SSH public : l'admin atteint l'edge via le bastion (reseau prive).
 # ============================================================
+resource "hcloud_firewall" "edge" {
+  name   = "${local.name_prefix}-fw-edge"
+  labels = local.common_labels
 
-# DMZ : accepte le trafic Internet sur 443/80 vers OPNsense
-resource "azurerm_network_security_rule" "dmz_allow_https" {
-  name                        = "allow-https-from-internet"
-  priority                    = 100
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_ranges     = ["80", "443"]
-  source_address_prefix       = "Internet"
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.network.name
-  network_security_group_name = azurerm_network_security_group.this["dmz"].name
-}
+  rule {
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "80"
+    source_ips  = ["0.0.0.0/0", "::/0"]
+    description = "HTTP (redirection 301 vers HTTPS)"
+  }
 
-# Mgmt : accepte SSH depuis l IP de l administrateur uniquement
-# Critique : on ne met JAMAIS 0.0.0.0/0 ici.
-resource "azurerm_network_security_rule" "mgmt_allow_ssh_admin" {
-  name                        = "allow-ssh-from-admin"
-  priority                    = 100
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_range      = "22"
-  source_address_prefix       = var.admin_source_ip
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.network.name
-  network_security_group_name = azurerm_network_security_group.this["mgmt"].name
-}
+  rule {
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "443"
+    source_ips  = ["0.0.0.0/0", "::/0"]
+    description = "HTTPS (origin pull Cloudflare)"
+  }
 
-# App : accepte le trafic depuis la DMZ (nginx -> k3s)
-resource "azurerm_network_security_rule" "app_allow_from_dmz" {
-  name                        = "allow-http-https-from-dmz"
-  priority                    = 100
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_ranges     = ["80", "443"]
-  source_address_prefix       = var.subnets["dmz"]
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.network.name
-  network_security_group_name = azurerm_network_security_group.this["app"].name
-}
-
-# App : SSH depuis le subnet Mgmt (bastion)
-resource "azurerm_network_security_rule" "app_allow_ssh_from_mgmt" {
-  name                        = "allow-ssh-from-mgmt"
-  priority                    = 110
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_range      = "22"
-  source_address_prefix       = var.subnets["mgmt"]
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.network.name
-  network_security_group_name = azurerm_network_security_group.this["app"].name
-}
-
-# kube-apiserver k3s : accessible depuis bastion (subnet mgmt) uniquement.
-# Ouvre le port 6443 pour permettre kubectl via tunnel SSH local -> bastion -> k3s.
-resource "azurerm_network_security_rule" "app_allow_k3s_api_from_mgmt" {
-  name                        = "allow-k3s-api-from-mgmt"
-  priority                    = 120
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_range      = "6443"
-  source_address_prefix       = "10.0.30.0/24"
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.network.name
-  network_security_group_name = azurerm_network_security_group.this["app"].name
-}
-
-# Data : accepte le trafic applicatif depuis le subnet App uniquement
-resource "azurerm_network_security_rule" "data_allow_from_app" {
-  name                        = "allow-app-from-app-subnet"
-  priority                    = 100
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_ranges     = ["5432", "18081"] # Postgres, monerod RPC
-  source_address_prefix       = var.subnets["app"]
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.network.name
-  network_security_group_name = azurerm_network_security_group.this["data"].name
-}
-
-# Data : SSH depuis le subnet Mgmt
-resource "azurerm_network_security_rule" "data_allow_ssh_from_mgmt" {
-  name                        = "allow-ssh-from-mgmt"
-  priority                    = 110
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_range      = "22"
-  source_address_prefix       = var.subnets["mgmt"]
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.network.name
-  network_security_group_name = azurerm_network_security_group.this["data"].name
-}
-
-# Monitoring : accepte les agents Wazuh / Prometheus / Loki depuis tous les subnets internes
-resource "azurerm_network_security_rule" "monitoring_allow_agents" {
-  name                        = "allow-agents-from-vnet"
-  priority                    = 100
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_ranges     = ["1514", "1515", "9090", "3100"] # Wazuh, Prometheus, Loki
-  source_address_prefix       = var.vnet_cidr
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.network.name
-  network_security_group_name = azurerm_network_security_group.this["monitoring"].name
-}
-
-# Monitoring : SSH depuis Mgmt
-resource "azurerm_network_security_rule" "monitoring_allow_ssh_from_mgmt" {
-  name                        = "allow-ssh-from-mgmt"
-  priority                    = 110
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_range      = "22"
-  source_address_prefix       = var.subnets["mgmt"]
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.network.name
-  network_security_group_name = azurerm_network_security_group.this["monitoring"].name
-}
-
-# Regle deny-all explicite sur tous les NSG (priority 4096, plus elevee = applique en dernier).
-# Azure a une regle deny implicite par defaut, mais une regle explicite :
-# - Apparait dans les rapports d audit
-# - Permet d ajouter des deny specifiques avant si besoin
-resource "azurerm_network_security_rule" "deny_all_inbound" {
-  for_each = var.subnets
-
-  name                        = "deny-all-inbound"
-  priority                    = 4096
-  direction                   = "Inbound"
-  access                      = "Deny"
-  protocol                    = "*"
-  source_port_range           = "*"
-  destination_port_range      = "*"
-  source_address_prefix       = "*"
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.network.name
-  network_security_group_name = azurerm_network_security_group.this[each.key].name
+  apply_to {
+    label_selector = "role=edge"
+  }
 }
 
 # ============================================================
-# Route Table (forced tunneling via OPNsense)
+# Firewall k3s : AUCUNE regle entrante = tout le trafic public est bloque.
+# k3s n'expose rien publiquement. L'admin et l'edge le joignent via le reseau
+# prive (non filtre). L'IP publique ne sert qu'au sortant : synchronisation
+# du noeud monerod et pull des images depuis GHCR.
 # ============================================================
-# Conditionnelle : on ne l active que quand OPNsense est deploye.
-# Sinon, les VM en cours de provisioning ne peuvent pas joindre Azure pour leur installation.
+resource "hcloud_firewall" "k3s" {
+  name   = "${local.name_prefix}-fw-k3s"
+  labels = local.common_labels
 
-resource "azurerm_route_table" "forced_tunneling" {
-  count = var.enable_forced_tunneling ? 1 : 0
-
-  name                = "${local.name_prefix}-rt-forced-tunneling"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.network.name
-  tags                = local.common_tags
-}
-
-resource "azurerm_route" "default_via_opnsense" {
-  count = var.enable_forced_tunneling ? 1 : 0
-
-  name                   = "default-via-opnsense"
-  resource_group_name    = azurerm_resource_group.network.name
-  route_table_name       = azurerm_route_table.forced_tunneling[0].name
-  address_prefix         = "0.0.0.0/0"
-  next_hop_type          = "VirtualAppliance"
-  next_hop_in_ip_address = var.opnsense_internal_ip
-}
-
-# Association de la route table aux subnets internes (pas DMZ ni Mgmt
-# qui ont besoin de sortir directement sur Internet pour leurs services).
-resource "azurerm_subnet_route_table_association" "internal_subnets" {
-  for_each = var.enable_forced_tunneling ? toset(["app", "data", "monitoring"]) : toset([])
-
-  subnet_id      = azurerm_subnet.this[each.key].id
-  route_table_id = azurerm_route_table.forced_tunneling[0].id
-}
-
-# DMZ : accepte SSH depuis le subnet mgmt (bastion) pour bootstrap Ansible
-# Pattern ProxyJump : edge n est jamais directement accessible depuis Internet
-# sur 22, uniquement via rebond depuis le bastion.
-resource "azurerm_network_security_rule" "dmz_allow_ssh_from_mgmt" {
-  name                        = "allow-ssh-from-mgmt"
-  priority                    = 110
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_range      = "22"
-  source_address_prefix       = var.subnets["mgmt"]
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.network.name
-  network_security_group_name = azurerm_network_security_group.this["dmz"].name
+  apply_to {
+    label_selector = "role=k3s"
+  }
 }
