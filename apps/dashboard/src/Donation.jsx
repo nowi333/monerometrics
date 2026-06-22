@@ -30,7 +30,8 @@ export default function Donation() {
 
   return (
     <div
-      className="rounded-lg border p-6 mb-4"
+      id="donation"
+      className="rounded-lg border p-6 mb-4 scroll-mt-4"
       style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
     >
       <h3 className="text-base font-medium mb-2" style={{ color: 'var(--color-text)' }}>

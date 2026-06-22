@@ -154,6 +154,7 @@ i18n
           'info.fork': 'Visual map of the latest blocks: the canonical chain and any orphan branches, color-coded by mining pool. Limit: shows a recent window of blocks, not the full history.',
 
           // Donation
+          'donate.nav': 'Donate',
           'donate.title': 'Support monerometrics',
           'donate.body': 'monerometrics is open-source and self-funded, with no ads and no tracking. If it is useful to you, a Monero donation helps cover the infrastructure costs and keeps the public dashboard and API free.',
           'donate.address': 'Monero address',
@@ -302,6 +303,7 @@ i18n
           'info.fork': 'Carte visuelle des derniers blocs : la chaine canonique et les eventuelles branches orphelines, colorees par pool de minage. Limite : affiche une fenetre recente de blocs, pas tout l historique.',
 
           // Donation
+          'donate.nav': 'Faire un don',
           'donate.title': 'Soutenir monerometrics',
           'donate.body': 'monerometrics est open-source et autofinance, sans publicite ni tracage. Si le projet vous est utile, un don en Monero aide a couvrir les couts d infrastructure et garde le tableau de bord et l API publics gratuits.',
           'donate.address': 'Adresse Monero',
@@ -451,6 +453,7 @@ i18n
           'info.fork': 'Mapa visual de los ultimos bloques: la cadena canonica y las posibles ramas huerfanas, coloreadas por pool de mineria. Limite: muestra una ventana reciente de bloques, no todo el historial.',
 
           // Donation
+          'donate.nav': 'Donar',
           'donate.title': 'Apoya monerometrics',
           'donate.body': 'monerometrics es de codigo abierto y autofinanciado, sin publicidad ni rastreo. Si te resulta util, una donacion en Monero ayuda a cubrir los costos de infraestructura y mantiene gratuitos el panel y la API publicos.',
           'donate.address': 'Direccion Monero',
