@@ -18,6 +18,12 @@ monerometrics fills that gap with a neutral, verifiable, reorg-aware observatory
 It is **open-source and self-funded**, with no ads and no tracking. The dashboard and the
 community API stay free; a future freemium tier would only cover intensive commercial usage.
 
+> **From a diploma project to a community tool.** monerometrics V1 was built and defended as
+> the supporting project of a French professional qualification (*Administrateur
+> d'Infrastructures Sécurisées*, RNCP level 6) — and it earned the diploma. With the exam now
+> behind it, the goal of V2 is to hand the project over to the **Monero community**: fully
+> open-source, self-funded, and useful well beyond a classroom.
+
 ---
 
 ## What it does
@@ -56,6 +62,53 @@ sizing and redundancy without changing the deployment logic.
 > **Status**: the POC was built, deployed and operated end-to-end on Azure; the cloud resources
 > were then torn down to stop costs. The codebase is being cleaned up and ported to Hetzner.
 > It is not currently live.
+
+## How the indexer works
+
+The worker ([`apps/worker/indexer.py`](apps/worker/indexer.py)) is the heart of the project. Every
+`POLL_INTERVAL` seconds it asks `monerod` for its state (`/get_info`) and, when the node is
+synced, runs **two passes** against the database:
+
+1. **Confirmation-window rescan (reorg detection).** It re-fetches the headers of the last
+   `CONFIRMATION_WINDOW` blocks (default 60) in a single `get_block_headers_range` call and
+   compares each block hash to the canonical hash already stored. Any mismatch is a
+   reorganization: the previously stored block is flagged **orphan** (`is_canonical = false`),
+   the node's new block becomes canonical, and a row is written to `reorgs_detected` with the
+   **real depth** (number of contiguous rewritten heights) and **affected transaction count**
+   (sum of the orphaned blocks' tx counts). This pass is what makes reorg detection actually
+   work — plain forward-only indexing never revisits the past, so it would silently miss every
+   reorg that rewrites already-indexed heights.
+
+2. **Forward indexing.** It then fetches the new blocks above the last indexed height, in
+   batches of `MAX_BLOCKS_PER_BATCH`, and upserts them as canonical.
+
+**Mining-pool attribution** ([`apps/worker/pools.py`](apps/worker/pools.py)) cross-references each
+block hash against an index `{block_hash → pool}` aggregated every 5 minutes from the public
+block lists of the major pools (supportxmr, p2pool, hashvault, moneroocean, c3pool, nanopool,
+kryptex, herominers). If a hash isn't found, a structural P2Pool heuristic (multi-output
+coinbase) is tried; otherwise the block is `unknown`. Coverage is ~95%, the same ceiling as
+public aggregators — Monero's privacy means centralized pools don't sign their coinbase on-chain.
+
+**Observability.** The worker exposes Prometheus metrics on `:9100/metrics` (indexing lag, reorg
+counter, sync state, pool-index size, last-loop timestamp) and writes a heartbeat file consumed
+by a Kubernetes liveness probe, so a stalled loop gets restarted automatically.
+
+## Data model
+
+Two tables in PostgreSQL ([`k8s/monerometrics/20-configmap-postgres-init.yaml`](k8s/monerometrics/20-configmap-postgres-init.yaml)),
+read-only from the API's point of view:
+
+- **`blocks`** — the primary key is the **block hash**, *not* the height. This is deliberate: it
+  lets several blocks coexist at the same height (the canonical one plus the orphans left behind
+  by a reorg). A **partial unique index** (`UNIQUE (height) WHERE is_canonical`) guarantees there
+  is exactly one canonical block per height at any instant. Columns include `height`, `prev_hash`,
+  timestamps, `difficulty`, `tx_count`, `miner_pool`, `reward_xmr` (stored as an exact `NUMERIC`,
+  not a float) and the `is_canonical` flag.
+- **`reorgs_detected`** — one row per detected reorganization event: `fork_point_height`, `depth`,
+  `old_chain_tip_hash`, `new_chain_tip_hash`, `affected_tx_count` and `detected_at`.
+
+The orphan/canonical split is what powers the dashboard's chain-fork visualizer and the
+`/orphans/recent` and `/reorgs/stats` endpoints.
 
 ## Repository layout
 
