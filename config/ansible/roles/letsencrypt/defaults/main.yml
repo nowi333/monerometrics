@@ -18,3 +18,10 @@ letsencrypt_cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
 # === Chemins ===
 letsencrypt_credentials_file: "/root/.secrets/cloudflare.ini"
 letsencrypt_cert_dir: "/etc/letsencrypt/live/{{ letsencrypt_domain }}"
+
+# === HTTP/2 origin ===
+# false : nginx origin ecoute en HTTP/1.1 uniquement. Necessaire car la lib
+# ModSecurity v3 packagee Ubuntu segfault sur HTTP/2 (cf. monerometrics-tls.conf.j2).
+# Cloudflare sert HTTP/2 + HTTP/3 aux clients ; l'origin reste en HTTP/1.1.
+# Ne passer a true qu'apres avoir remplace libmodsecurity par une version corrigee.
+letsencrypt_http2_enabled: false

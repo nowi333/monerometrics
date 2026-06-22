@@ -1,7 +1,6 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import Logo from './Logo'
-import Documentation from './Documentation'
 import ThemeToggle from './ThemeToggle'
 import LanguageSwitcher from './LanguageSwitcher'
 import KPICards from './KPICards'
@@ -11,6 +10,11 @@ import HashrateChart from './HashrateChart'
 import PoolsDistribution from './PoolsDistribution'
 import ReorgsStats from './ReorgsStats'
 import OrphansTable from './OrphansTable'
+import Donation from './Donation'
+
+// La page Documentation n'est affichee qu'a la demande : on la charge
+// en lazy pour la sortir du bundle initial du dashboard.
+const Documentation = lazy(() => import('./Documentation'))
 
 export default function App() {
   const { t } = useTranslation()
@@ -45,7 +49,15 @@ export default function App() {
         </p>
       </div>
 
-      {view === 'docs' ? <Documentation /> : <>
+      {view === 'docs' ? (
+        <Suspense fallback={
+          <div className="text-sm py-12 text-center" style={{ color: 'var(--color-dim)' }}>
+            {t('state.loading')}
+          </div>
+        }>
+          <Documentation />
+        </Suspense>
+      ) : <>
       <KPICards />
 
       <ChainForkVisualizer />
@@ -64,6 +76,8 @@ export default function App() {
       </div>
 
       <OrphansTable />
+
+      <Donation />
       </>}
 
       <footer

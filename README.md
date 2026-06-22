@@ -1,72 +1,97 @@
 # monerometrics
 
-> Infrastructure-as-Code for a reorg-aware Monero blockchain data service.
+> A reorg-aware observatory for the health of the Monero network — public dashboard + API.
 
-[![Terraform](https://img.shields.io/badge/Terraform-1.15-7B42BC?logo=terraform)](https://www.terraform.io/)
-[![Azure](https://img.shields.io/badge/Cloud-Azure-0078D4?logo=microsoftazure)](https://azure.microsoft.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![IaC](https://img.shields.io/badge/IaC-Terraform%20%2B%20Ansible-7B42BC?logo=terraform)](https://www.terraform.io/)
+[![Monero](https://img.shields.io/badge/Monero-XMR-FF6600?logo=monero)](https://www.getmonero.org/)
 
-`monerometrics` is the infrastructure repository powering a public service that delivers reliable, reorg-aware Monero blockchain data through a free dashboard and a paid API. The project was born from the May–August 2025 Qubic informational attack against Monero, which exposed how hard it can be for the community to obtain trustworthy chain data during and after a major reorg event.
+`monerometrics` measures and historizes the health of the Monero network: network hashrate,
+block time, mempool state, mining-pool distribution and — above all — **chain reorganizations
+(reorgs) and orphan blocks**, which most block explorers surface poorly.
 
-This repository is fully **Infrastructure-as-Code**: every component, from the firewall to the SIEM, is provisioned through Terraform and configured through Ansible. The runtime workloads run on a hardened k3s cluster behind an OPNsense firewall with Suricata IDS/IPS.
+The project was born from the **August 2025 Qubic episode**, during which a mining pool
+approached a majority of the network hashrate and triggered reorganizations, raising concerns
+about Monero's resilience. The public debate lacked reliable, accessible data to settle it.
+monerometrics fills that gap with a neutral, verifiable, reorg-aware observatory.
+
+It is **open-source and self-funded**, with no ads and no tracking. The dashboard and the
+community API stay free; a future freemium tier would only cover intensive commercial usage.
 
 ---
 
-## Architecture overview
+## What it does
 
-- **Cloud**: Microsoft Azure, region France Central
-- **Edge security**: OPNsense + Suricata IDS/IPS, nginx + ModSecurity (OWASP CRS 4.25 LTS) + CrowdSec
-- **Compute**: k3s 3-node cluster on hardened Ubuntu 24.04 LTS
-- **Data layer**: pruned `monerod` with reorg detection, PostgreSQL with Patroni HA
-- **Identity & secrets**: Authentik (OIDC, MFA TOTP), OpenBao (community fork of Vault, MPL 2.0)
-- **Observability**: Wazuh (SIEM/HIDS/XDR), Prometheus, Grafana, Loki, Grafana Alloy
-- **Backups**: Restic encrypted snapshots to Azure Blob Storage
+- **Dashboard** ([monerometrics.net](https://monerometrics.net)) — React SPA: hashrate, block-time
+  variance, mempool, mining-pool distribution, a chain-fork visualizer and reorg/orphan history.
+  FR / EN / ES.
+- **Public API** ([api.monerometrics.net](https://api.monerometrics.net)) — FastAPI, 11 read-only
+  JSON endpoints (service, network, chain/reorgs, pools). OpenAPI documented.
+- **Reorg detection** — a Python worker reads each block from a synced node, computes the
+  indicators and records reorganizations by comparing the current chain state to the stored one.
 
-See [`docs/architecture/`](docs/architecture/) for full network diagrams, defense-in-depth model, and DevOps toolchain.
+## Architecture (real, as deployed)
+
+This describes the **POC that actually ran**, not an idealized target. Clean, up-to-date
+architecture diagrams will be added once the stack is redeployed on Hetzner.
+
+- **Cloud**: Microsoft Azure (IaaS) for the POC — **currently being migrated to Hetzner** for cost.
+  Oracle Cloud (OCI) hosts the SIEM and the off-site backups.
+- **Three servers** (Ubuntu 24.04 LTS), each in an isolated subnet with its own firewall:
+  - `bastion` — sole SSH entry point (ProxyJump to the others)
+  - `edge` — only public web face (80/443): nginx reverse proxy + **ModSecurity WAF**
+    (OWASP CRS 4.25). Also serves the React dashboard as static files.
+  - `k3s` — application core, no public IP: `monerod`, worker, PostgreSQL, API, OpenBao.
+- **Containerized core** (in k3s): `monerod` 0.18 (pruned), Python worker, PostgreSQL 17, FastAPI.
+- **Private network**: Tailscale (WireGuard), zero-trust admin — Grafana and Wazuh are reachable
+  over Tailscale only, never from the internet.
+- **DNS / TLS**: Cloudflare (proxied) + Let's Encrypt (wildcard via DNS-01).
+- **Secrets**: OpenBao (free fork of Vault). **Supervision**: Prometheus + Grafana.
+  **SIEM**: Wazuh (on OCI). **Backups**: Restic, encrypted, cross-cloud to OCI (3-2-1).
+
+Everything is **Infrastructure-as-Code**: Azure resources via Terraform, server configuration
+and hardening (CIS L1) via Ansible. A `deployment_mode` variable (`poc` | `prod`) scales the
+sizing and redundancy without changing the deployment logic.
+
+> **Status**: the POC was built, deployed and operated end-to-end on Azure; the cloud resources
+> were then torn down to stop costs. The codebase is being cleaned up and ported to Hetzner.
+> It is not currently live.
 
 ## Repository layout
 
 ```
+apps/          Application code
+  dashboard/   React + Vite SPA (FR/EN/ES)
+  api/         FastAPI service
+  worker/      Python indexer (reorg detection)
 infra/         Terraform (modules, environments, bootstrap)
 config/        Ansible (inventory, playbooks, roles)
-k8s/           Kubernetes manifests (base + overlays)
-docs/          Architecture, EBIOS RM, PSSI, runbooks, captures
-scripts/       Helpers (Azure env loader, deploy/destroy)
-.github/       CI/CD workflows
+k8s/           Kubernetes (k3s) manifests
+scripts/       Helpers (env loader)
 ```
 
-## Design principles
+## Local development (dashboard)
 
-1. **Production-grade by design, POC-sized at runtime.** All HA components (Patroni, multi-AZ monerod, 3-node databases) are fully implemented in code and can be scaled by flipping a Terraform variable. The default deployment runs a minimal footprint to fit a 50 $/month budget.
-2. **Secrets never in code.** All credentials are stored in OpenBao or pulled from Azure Key Vault / macOS Keychain at runtime. Terraform state is stored remotely and encrypted.
-3. **Idempotent infrastructure.** Anything provisioned with `terraform apply` can be reproduced from scratch in under 30 minutes.
-4. **Open source where possible.** Active tracking of license changes — OpenBao replaced HashiCorp Vault after the BSL relicensing, Grafana Alloy replaced end-of-life Promtail.
-
-## Quick start
-
-> Requires a Mac/Linux workstation with the tools listed below, an Azure subscription, and an OpenBao or Keychain-based secret store.
-
-```
-# 1. Prerequisites
-brew install terraform azure-cli ansible kubectl helm gh
-
-# 2. Authenticate to Azure
-source scripts/azure-env.sh    # loads SP credentials from macOS Keychain
-az account show
-
-# 3. Bootstrap (one-time): create resource group and remote state backend
-cd infra/bootstrap
-terraform init && terraform apply
-
-# 4. Provision the POC environment
-cd ../environments/poc
-terraform init && terraform plan
-terraform apply
+```bash
+cd apps/dashboard
+npm install
+npm run dev      # local dev server
+npm run build    # production build to dist/
 ```
 
-## Status
+The dashboard reads the public API; point it at `api.monerometrics.net` (see `src/api.js`).
 
-This project is part of a French professional certification (Titre Professionnel niveau 6 — *Administrateur d'Infrastructures Sécurisées*). It is **not** production-ready as-is and should not be used to manage real Monero data without further hardening and audit.
+## Security & secrets
+
+- **No secret in the repo.** Credentials are pulled from the macOS Keychain / environment at
+  runtime (`scripts/azure-env.sh`) or stored in OpenBao. Terraform state is remote and encrypted.
+- Defense in depth: NSG/firewall segmentation, SSH bastion, WAF, zero-trust admin mesh,
+  risk analysis (EBIOS RM) and a tested cross-cloud disaster-recovery plan.
+
+## Support the project
+
+monerometrics runs on a modest self-funded infrastructure (no ads, no tracking, no data sold).
+A Monero donation address is available on the dashboard.
 
 ## License
 
@@ -74,4 +99,4 @@ MIT — see [`LICENSE`](LICENSE).
 
 ---
 
-**No advertising. No tracking. No data sold. Just blockchain data, done right.**
+**No advertising. No tracking. No data sold. Just Monero network data, done honestly.**

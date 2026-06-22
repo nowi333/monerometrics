@@ -24,8 +24,20 @@ server {
 
 # === Server HTTPS : sert la page ===
 server {
+{% if letsencrypt_http2_enabled | default(false) %}
     listen 443 ssl http2 default_server;
     listen [::]:443 ssl http2 default_server;
+{% else %}
+    # HTTP/2 desactive au niveau origin : la lib ModSecurity v3 packagee Ubuntu
+    # (libmodsecurity3) segfault (SIGSEGV / signal 11) sur certaines requetes
+    # HTTP/2 via le connecteur nginx. Cloudflare (proxy actif) sert HTTP/2 et
+    # HTTP/3 aux clients ; la liaison Cloudflare -> origin reste en HTTP/1.1,
+    # ce qui evite le crash tout en gardant le WAF pleinement actif.
+    # Ne reactiver (letsencrypt_http2_enabled: true) qu'apres avoir remplace
+    # libmodsecurity par une version corrigee et re-teste les 5 familles d'attaque.
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+{% endif %}
 
     # Module WAF charge dynamiquement si le role modsecurity est applique.
     # Le glob '*' tolere l'absence du fichier.

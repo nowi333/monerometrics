@@ -28,7 +28,6 @@ i18n
           // Top pools table
           'toppools.title': 'Top mining pools',
           'toppools.poolsUnit': 'pools',
-          'toppools.poolsUnit': 'pools',
           'toppools.pool': 'Pool',
           'toppools.blocks': 'Blocks',
           'toppools.share': 'Share',
@@ -42,7 +41,6 @@ i18n
           'fork.canonicalBlock': 'Canonical block',
           'fork.orphanBlock': 'Orphan block',
           'fork.stats': '{{blocks}} blocks · {{reorgs}} reorgs detected',
-          'fork.mockNotice': 'Demo data (worker indexing once monerod sync completes)',
           'fork.zoomIn': 'Zoom in',
           'fork.zoomOut': 'Zoom out',
           'fork.reset': 'Reset view',
@@ -155,6 +153,14 @@ i18n
           'info.orphans': 'Orphan blocks are valid blocks that were replaced during a reorganization and left out of the canonical chain. Limit: shows the most recent orphans only, and depends on what this node observed.',
           'info.fork': 'Visual map of the latest blocks: the canonical chain and any orphan branches, color-coded by mining pool. Limit: shows a recent window of blocks, not the full history.',
 
+          // Donation
+          'donate.title': 'Support monerometrics',
+          'donate.body': 'monerometrics is open-source and self-funded, with no ads and no tracking. If it is useful to you, a Monero donation helps cover the infrastructure costs and keeps the public dashboard and API free.',
+          'donate.address': 'Monero address',
+          'donate.copy': 'Copy address',
+          'donate.copied': 'Copied!',
+          'donate.scan': 'Scan to donate',
+
           // Language switcher
           'lang.label': 'Language',
         },
@@ -183,7 +189,6 @@ i18n
           'fork.canonicalBlock': 'Bloc canonique',
           'fork.orphanBlock': 'Bloc orphelin',
           'fork.stats': '{{blocks}} blocs · {{reorgs}} reorgs detectes',
-          'fork.mockNotice': 'Donnees demo (indexation des que monerod est synchronise)',
           'fork.zoomIn': 'Zoom avant',
           'fork.zoomOut': 'Zoom arriere',
           'fork.reset': 'Reinitialiser la vue',
@@ -296,8 +301,165 @@ i18n
           'info.orphans': 'Les blocs orphelins sont des blocs valides remplaces lors d une reorganisation et exclus de la chaine canonique. Limite : affiche uniquement les orphelins les plus recents, et depend de ce que ce noeud a observe.',
           'info.fork': 'Carte visuelle des derniers blocs : la chaine canonique et les eventuelles branches orphelines, colorees par pool de minage. Limite : affiche une fenetre recente de blocs, pas tout l historique.',
 
+          // Donation
+          'donate.title': 'Soutenir monerometrics',
+          'donate.body': 'monerometrics est open-source et autofinance, sans publicite ni tracage. Si le projet vous est utile, un don en Monero aide a couvrir les couts d infrastructure et garde le tableau de bord et l API publics gratuits.',
+          'donate.address': 'Adresse Monero',
+          'donate.copy': 'Copier l adresse',
+          'donate.copied': 'Copie !',
+          'donate.scan': 'Scanner pour faire un don',
+
           // Language switcher
           'lang.label': 'Langue',
+        },
+      },
+      es: {
+        translation: {
+          // Charts
+          'charts.hashrateTitle': 'Hashrate de la red',
+          'charts.hashrate': 'Hashrate',
+          'charts.blocktimeTitle': 'Varianza del tiempo de bloque',
+          'charts.blocktime': 'Tiempo de bloque',
+          'charts.target': 'Objetivo (120s)',
+          'charts.blocktimeStats': 'prom {{avg}}s · mediana {{median}}s',
+          // Top pools table
+          'toppools.title': 'Principales pools de mineria',
+          'toppools.poolsUnit': 'pools',
+          'toppools.pool': 'Pool',
+          'toppools.blocks': 'Bloques',
+          'toppools.share': 'Cuota',
+          'toppools.distribution': 'Distribucion',
+          'toppools.total': 'Total: {{count}} bloques canonicos',
+
+          // Fork visualizer
+          'fork.title': 'Visualizador de forks',
+          'fork.canonical': 'Cadena canonica',
+          'fork.orphans': 'Bloques huerfanos',
+          'fork.canonicalBlock': 'Bloque canonico',
+          'fork.orphanBlock': 'Bloque huerfano',
+          'fork.stats': '{{blocks}} bloques · {{reorgs}} reorgs detectadas',
+          'fork.zoomIn': 'Acercar',
+          'fork.zoomOut': 'Alejar',
+          'fork.reset': 'Restablecer vista',
+          'fork.fullscreen': 'Pantalla completa',
+          'fork.tipHeight': 'Altura',
+          'fork.tipHash': 'Hash',
+          'fork.tipPool': 'Pool',
+          'fork.tipTx': 'Nro tx',
+          'fork.tipTime': 'Minado',
+
+          // Status pill
+          'status.connecting': 'Conectando...',
+          'status.syncing': 'sincronizando',
+          'status.synced': 'sincronizado',
+          'status.block': 'bloque',
+
+          // KPI Cards refactor
+          'kpi.blockHeight': 'Altura de bloque',
+          'kpi.networkHashrate': 'Hashrate de la red',
+          'kpi.mempool': 'Mempool',
+          'kpi.reorgWatcher': 'Monitor de reorgs',
+          'kpi.txs': 'txs',
+          'kpi.events': 'eventos',
+          'kpi.pending': 'pendientes',
+          'kpi.maxDepth': 'profundidad max',
+          'kpi.noReorg': 'ninguna reorg detectada',
+          'kpi.targetBlocktime': 'objetivo 120s/bloque',
+
+          // Header
+          'app.title': 'monerometrics',
+          'app.subtitle': 'Panel publico de analisis de la red Monero · reorgs, pools de mineria, huerfanos',
+
+          // KPI Cards
+          'kpi.latestHeight': 'Altura mas reciente indexada',
+          'kpi.totalBlocks': 'Total de bloques indexados',
+          'kpi.orphanBlocks': 'Bloques huerfanos',
+          'kpi.reorgsDetected': 'Reorgs detectadas',
+
+          // States
+          'state.loading': 'Cargando...',
+          'state.loadingPools': 'Cargando distribucion de pools...',
+          'state.loadingReorgs': 'Cargando estadisticas de reorgs...',
+          'state.loadingOrphans': 'Cargando huerfanos...',
+          'state.apiError': 'Error de API',
+          'state.waitingSync': 'Esperando la sincronizacion de monerod (indexacion del worker en curso)',
+          'state.noData': 'Aun no hay datos (worker esperando la sincronizacion de monerod)',
+          'state.noOrphans': 'No se detectaron bloques huerfanos',
+
+          // Pools chart
+          'pools.title': 'Distribucion de pools de mineria',
+          'pools.total': 'Total: {{count}} bloques canonicos en la ventana',
+          'pools.window.24h': '24h',
+          'pools.window.7d': '7d',
+          'pools.window.30d': '30d',
+
+          // Reorgs stats
+          'reorgs.title': 'Estadisticas de reorgs detectadas',
+          'reorgs.column.window': 'Ventana',
+          'reorgs.column.count': 'Cantidad',
+          'reorgs.column.avgDepth': 'Profundidad media',
+          'reorgs.column.maxDepth': 'Profundidad max',
+          'reorgs.column.affectedTx': 'Tx afectadas',
+
+          // Orphans table
+          'orphans.title': 'Ultimos bloques huerfanos (max 20)',
+          'orphans.column.height': 'Altura',
+          'orphans.column.orphanHash': 'Hash huerfano',
+          'orphans.column.canonicalHash': 'Hash canonico',
+          'orphans.column.pool': 'Pool',
+          'orphans.column.tx': 'Tx',
+
+          // Footer
+          'footer.apiLink': 'API publica',
+          'footer.refresh': 'Datos actualizados cada 30 segundos',
+
+          // Documentation
+          'doc.nav': 'Documentacion',
+          'doc.backToDashboard': 'Panel',
+          'doc.aboutTitle': 'Acerca de monerometrics',
+          'doc.aboutP1': 'monerometrics es un panel publico que monitorea la salud de la red Monero. Se centra en un fenomeno que la mayoria de los exploradores de bloques muestran mal: las reorganizaciones de cadena, cuando la red reescribe brevemente su historia mas reciente.',
+          'doc.aboutP2': 'El proyecto nacio del episodio Qubic de agosto de 2025, durante el cual un pool de mineria se acerco a la mayoria del hashrate de la red y provoco reorganizaciones, generando preocupacion sobre la resiliencia de la red. El objetivo es ofrecer indicadores neutrales y factuales en lugar de opiniones.',
+          'doc.aboutP3': 'Todos los datos se calculan a partir de un nodo Monero sincronizado con la red, luego se indexan y se exponen a traves de una API publica.',
+          'doc.howTitle': 'Como funciona',
+          'doc.howP1': 'El proceso es intencionalmente simple, desde la cadena en bruto hasta los indicadores que ves aqui.',
+          'doc.step1': 'Un nodo Monero sincronizado con la red, fuente de verdad de la cadena.',
+          'doc.step2': 'Un worker lee cada bloque, calcula indicadores y detecta reorganizaciones.',
+          'doc.step3': 'Los indicadores y el historial se almacenan en una base de datos de series temporales.',
+          'doc.step4': 'Una API publica lo expone todo en JSON, consumido por este panel.',
+          'doc.apiTitle': 'API publica',
+          'doc.apiP1': 'Todos los endpoints son de solo lectura y devuelven JSON. Esquema OpenAPI completo:',
+          'doc.ep.health': 'Verificacion de disponibilidad y estado de la conexion a la base de datos.',
+          'doc.ep.info': 'Metadatos globales: ultima altura indexada, total de bloques, huerfanos y reorgs.',
+          'doc.ep.networkInfo': 'Estado actual de la red: sincronizacion, mempool, dificultad y hashrate estimado (en vivo del nodo).',
+          'doc.ep.networkHashrate': 'Hashrate historico de la red, agrupado por hora o dia en la ventana seleccionada.',
+          'doc.ep.networkBlocktime': 'Varianza del tiempo entre bloques canonicos consecutivos (objetivo de 120s).',
+          'doc.ep.chainWindow': 'Ventana de bloques en bruto entre dos alturas (max 1000 bloques).',
+          'doc.ep.chainForkWindow': 'Los ultimos N bloques con huerfanos y marcadores de fork, para el visualizador de cadena.',
+          'doc.ep.reorgs': 'Lista de las reorganizaciones detectadas mas recientes.',
+          'doc.ep.reorgsStats': 'Estadisticas de reorgs agregadas en ventanas de 24h, 7d y 30d.',
+          'doc.ep.orphansRecent': 'Bloques huerfanos recientes con su bloque canonico competidor.',
+          'doc.ep.poolsDistribution': 'Distribucion de bloques canonicos por pool de mineria en la ventana (medida de descentralizacion).',
+          'doc.fundingTitle': 'Apoya el proyecto',
+          'doc.fundingP1': 'monerometrics funciona sobre una infraestructura autofinanciada.',
+
+          // Info tooltips (explicacion + limite)
+          'info.mempool': 'Numero de transacciones no confirmadas en espera en el mempool del nodo. Refleja la demanda pendiente actual en la red. Limite: instantanea en vivo del nodo, no un promedio historico.',
+          'info.blocktime': 'Tiempo transcurrido entre bloques canonicos consecutivos. Monero apunta a 120s; la varianza refleja las fluctuaciones del hashrate. Limite: medicion por bloque, solo ventanas cortas (hasta 30d).',
+          'info.pools': 'Cuota de bloques canonicos minados por pool en la ventana, un indicador de descentralizacion. Limite: los pools se identifican mediante sus API publicas, por lo que la atribucion es fiable solo en ventanas recientes; los bloques no identificados (mineros solo, pools no rastreados) aparecen como unknown.',
+          'info.reorgs': 'Las reorganizaciones son eventos en los que la cadena reemplaza bloques aceptados recientemente por una rama competidora mas larga. Contadas en 24h, 7d y 30d. Limite: solo se registran las reorgs observadas desde que este nodo comenzo a indexar.',
+          'info.orphans': 'Los bloques huerfanos son bloques validos reemplazados durante una reorganizacion y excluidos de la cadena canonica. Limite: muestra solo los huerfanos mas recientes, y depende de lo que este nodo observo.',
+          'info.fork': 'Mapa visual de los ultimos bloques: la cadena canonica y las posibles ramas huerfanas, coloreadas por pool de mineria. Limite: muestra una ventana reciente de bloques, no todo el historial.',
+
+          // Donation
+          'donate.title': 'Apoya monerometrics',
+          'donate.body': 'monerometrics es de codigo abierto y autofinanciado, sin publicidad ni rastreo. Si te resulta util, una donacion en Monero ayuda a cubrir los costos de infraestructura y mantiene gratuitos el panel y la API publicos.',
+          'donate.address': 'Direccion Monero',
+          'donate.copy': 'Copiar direccion',
+          'donate.copied': 'Copiado!',
+          'donate.scan': 'Escanea para donar',
+
+          // Language switcher
+          'lang.label': 'Idioma',
         },
       },
     },

@@ -33,13 +33,15 @@ export default function ChainForkVisualizer() {
 
   // Fetch des donnees (aucun mock : etat explicite si vide ou erreur)
   useEffect(() => {
-    setStatus('loading')
+    let cancelled = false
     api.chainForkWindow(200)
       .then(d => {
+        if (cancelled) return
         if (d && d.blocks && d.blocks.length > 0) { setData(d); setStatus('ok') }
         else { setData(null); setStatus('empty') }
       })
-      .catch(() => { setData(null); setStatus('error') })
+      .catch(() => { if (!cancelled) { setData(null); setStatus('error') } })
+    return () => { cancelled = true }
   }, [])
 
   // Dimensions des blocs
@@ -131,6 +133,8 @@ export default function ChainForkVisualizer() {
             y: event.clientY,
             block,
             isOrphan,
+            // Anciennete capturee au survol (evite Date.now() pendant le render)
+            agoSeconds: Math.floor(Date.now() / 1000) - block.timestamp_unix,
           })
         })
         .on('mousemove', (event) => {
@@ -336,7 +340,7 @@ export default function ChainForkVisualizer() {
           <div className="truncate">{t('fork.tipHash')}: {tooltip.block.hash.slice(0, 16)}...</div>
           <div>{t('fork.tipPool')}: {tooltip.block.miner_pool || 'unknown'}</div>
           <div>{t('fork.tipTx')}: {tooltip.block.tx_count}</div>
-          <div>{t('fork.tipTime')}: {timeAgo(Math.floor(Date.now() / 1000) - tooltip.block.timestamp_unix)}</div>
+          <div>{t('fork.tipTime')}: {timeAgo(tooltip.agoSeconds)}</div>
         </div>
       )}
     </div>

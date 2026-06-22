@@ -38,13 +38,15 @@ export default function HashrateChart() {
   }
 
   useEffect(() => {
-    setStatus('loading')
+    let cancelled = false
     api.networkHashrate(window)
       .then(d => {
+        if (cancelled) return
         if (d && d.points && d.points.length > 0) { setData(d); setStatus('ok') }
         else { setData(null); setStatus('empty') }
       })
-      .catch(() => { setData(null); setStatus('error') })
+      .catch(() => { if (!cancelled) { setData(null); setStatus('error') } })
+    return () => { cancelled = true }
   }, [window])
 
   const current = data && data.points.length ? data.points[data.points.length - 1].hashrate_h_s : null

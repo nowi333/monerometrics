@@ -33,13 +33,15 @@ export default function BlocktimeChart() {
   }
 
   useEffect(() => {
-    setStatus('loading')
+    let cancelled = false
     api.networkBlocktime(window)
       .then(d => {
+        if (cancelled) return
         if (d && d.points && d.points.length > 0) { setData(d); setStatus('ok') }
         else { setData(null); setStatus('empty') }
       })
-      .catch(() => { setData(null); setStatus('error') })
+      .catch(() => { if (!cancelled) { setData(null); setStatus('error') } })
+    return () => { cancelled = true }
   }, [window])
 
   const subtitle =

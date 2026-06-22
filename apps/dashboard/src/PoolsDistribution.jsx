@@ -26,13 +26,15 @@ export default function PoolsDistribution() {
   const [window, setWindow] = useState('24h')
 
   useEffect(() => {
-    setStatus('loading')
+    let cancelled = false
     api.poolsDistribution(window)
       .then(d => {
+        if (cancelled) return
         if (d && d.distribution && d.distribution.length > 0) { setData(d); setStatus('ok') }
         else { setData(null); setStatus('empty') }
       })
-      .catch(() => { setData(null); setStatus('error') })
+      .catch(() => { if (!cancelled) { setData(null); setStatus('error') } })
+    return () => { cancelled = true }
   }, [window])
 
   const header = (
