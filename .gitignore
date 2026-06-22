@@ -134,18 +134,3 @@ nohup.out
 *.out
 *.bak
 *.tfplan
-*.pptx
-menage_mac.sh
-
-# ============================================================
-# Documentation d'examen (dossier projet, diagrammes FR/Azure, preuves de sprint)
-# Conservee en local, hors du repo public. Des schemas propres seront
-# reintroduits une fois la stack redeployee sur Hetzner.
-# ============================================================
-docs/dossier-projet/
-docs/architecture/diagrams/
-docs/evidence/
-docs/ebios/
-docs/pssi/
-docs/runbooks/
-docs/captures/
