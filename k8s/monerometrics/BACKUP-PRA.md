@@ -32,21 +32,23 @@ token (hors périmètre automatisé pour limiter l'exposition du secret).
 - `70-backup-rbac.yaml` : ServiceAccount `backup-operator` + Role (moindre
   privilège : lecture seule du namespace + exec sur le pod postgres).
 - `71-backup-cronjob.yaml` : CronJob quotidien (03:00 UTC). Image `debian:stable-slim`,
-  installe restic + postgresql-client + kubectl au runtime.
-- Secret `restic-backup-creds` : créé **hors manifest** (jamais versionné), voir ci-dessous.
+  installe restic + postgresql-client + kubectl au runtime. **Aucun secret en clair** :
+  les credentials Postgres et Restic/OCI sont injectés par OpenBao (vault-agent) et
+  sourcés au runtime.
 
-## Création du Secret (à faire une fois, hors Git)
+## Credentials (source unique : OpenBao)
 
-Les credentials ne sont jamais dans le dépôt. Création depuis le poste d'admin
-(valeurs lues depuis le trousseau macOS) :
+Les credentials ne sont **jamais** dans le dépôt ni dans un Secret Kubernetes : ils
+vivent dans OpenBao. Le rôle `monerometrics-backup` doit pouvoir lire les deux chemins
+`secret/postgres/credentials` et `secret/restic/credentials`. Seeding (une fois) :
 
 ```sh
-kubectl -n monerometrics create secret generic restic-backup-creds \
-  --from-literal=RESTIC_REPOSITORY='s3:https://<ns>.compat.objectstorage.eu-frankfurt-1.oraclecloud.com/monerometrics-backups' \
-  --from-literal=RESTIC_PASSWORD='<mot-de-passe-repo-restic>' \
-  --from-literal=AWS_ACCESS_KEY_ID='<oci-customer-secret-key-id>' \
-  --from-literal=AWS_SECRET_ACCESS_KEY='<oci-customer-secret-key>' \
-  --from-literal=AWS_DEFAULT_REGION='eu-frankfurt-1'
+bao kv put secret/restic/credentials \
+  RESTIC_REPOSITORY='s3:https://<ns>.compat.objectstorage.eu-frankfurt-1.oraclecloud.com/monerometrics-backups' \
+  RESTIC_PASSWORD='<mot-de-passe-repo-restic>' \
+  AWS_ACCESS_KEY_ID='<oci-customer-secret-key-id>' \
+  AWS_SECRET_ACCESS_KEY='<oci-customer-secret-key>' \
+  AWS_DEFAULT_REGION='eu-frankfurt-1'
 ```
 
 ## Secrets critiques de recouvrement

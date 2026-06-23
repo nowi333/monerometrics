@@ -272,12 +272,19 @@ manifests. Seed the database credentials once, and every consumer (PostgreSQL, w
 backup) reads them from there:
 
 ```bash
+# Database credentials (read by PostgreSQL, worker, API, backup)
 bao kv put secret/postgres/credentials \
   POSTGRES_USER=monerometrics POSTGRES_DB=monerometrics POSTGRES_PASSWORD='<strong-password>'
+
+# Backup credentials — Restic repository + OCI S3-compatible keys (read by the backup job)
+bao kv put secret/restic/credentials \
+  RESTIC_REPOSITORY='s3:https://<oci-endpoint>/<bucket>' RESTIC_PASSWORD='<restic-password>' \
+  AWS_ACCESS_KEY_ID='<key>' AWS_SECRET_ACCESS_KEY='<secret>' AWS_DEFAULT_REGION='<region>'
 ```
 
-The OpenBao Kubernetes auth roles `monerometrics-postgres`, `monerometrics-worker`,
-`monerometrics-api` and `monerometrics-backup` must each be allowed to read that path.
+OpenBao Kubernetes auth roles must allow: `monerometrics-postgres` / `-worker` / `-api` to read
+`secret/postgres/credentials`, and `monerometrics-backup` to read **both**
+`secret/postgres/credentials` and `secret/restic/credentials`.
 
 ## Local development (dashboard)
 

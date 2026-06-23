@@ -48,46 +48,31 @@ spec:
               export POSTGRES_PASSWORD="{{ .Data.data.POSTGRES_PASSWORD }}"
               export POSTGRES_DB="{{ .Data.data.POSTGRES_DB }}"
               {{- end }}
+            # Creds Restic / OCI S3 injectees par OpenBao (source unique).
+            vault.hashicorp.com/agent-inject-secret-restic-credentials: "secret/data/restic/credentials"
+            vault.hashicorp.com/agent-inject-template-restic-credentials: |
+              {{- with secret "secret/data/restic/credentials" -}}
+              export RESTIC_REPOSITORY="{{ .Data.data.RESTIC_REPOSITORY }}"
+              export RESTIC_PASSWORD="{{ .Data.data.RESTIC_PASSWORD }}"
+              export AWS_ACCESS_KEY_ID="{{ .Data.data.AWS_ACCESS_KEY_ID }}"
+              export AWS_SECRET_ACCESS_KEY="{{ .Data.data.AWS_SECRET_ACCESS_KEY }}"
+              export AWS_DEFAULT_REGION="{{ .Data.data.AWS_DEFAULT_REGION }}"
+              {{- end }}
         spec:
           serviceAccountName: backup-operator
           restartPolicy: Never
           containers:
             - name: backup
               image: debian:stable-slim
-              env:
-                # Creds Restic / OCI S3 (depuis le Secret restic-backup-creds)
-                - name: RESTIC_REPOSITORY
-                  valueFrom:
-                    secretKeyRef:
-                      name: restic-backup-creds
-                      key: RESTIC_REPOSITORY
-                - name: RESTIC_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: restic-backup-creds
-                      key: RESTIC_PASSWORD
-                - name: AWS_ACCESS_KEY_ID
-                  valueFrom:
-                    secretKeyRef:
-                      name: restic-backup-creds
-                      key: AWS_ACCESS_KEY_ID
-                - name: AWS_SECRET_ACCESS_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: restic-backup-creds
-                      key: AWS_SECRET_ACCESS_KEY
-                - name: AWS_DEFAULT_REGION
-                  valueFrom:
-                    secretKeyRef:
-                      name: restic-backup-creds
-                      key: AWS_DEFAULT_REGION
+              # Aucun secret en env : tout est injecte par OpenBao et source au runtime.
               command:
                 - /bin/bash
                 - -c
                 - |
                   set -euo pipefail
-                  # Charge les creds PostgreSQL injectees par OpenBao
+                  # Charge les creds injectees par OpenBao (Postgres + Restic/OCI)
                   source /vault/secrets/postgres-credentials
+                  source /vault/secrets/restic-credentials
                   echo "[$(date -u +%H:%M:%S)] Installation des outils..."
                   export DEBIAN_FRONTEND=noninteractive
                   apt-get update -qq
