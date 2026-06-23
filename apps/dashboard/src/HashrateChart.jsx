@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Line } from 'react-chartjs-2'
 import {
@@ -6,6 +6,7 @@ import {
   Tooltip, Legend, Filler,
 } from 'chart.js'
 import { api, formatHashrate } from './api'
+import { usePolledData } from './usePolledData'
 
 Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
@@ -27,8 +28,6 @@ function fmtFull(bucket) {
 
 export default function HashrateChart() {
   const { t } = useTranslation()
-  const [data, setData] = useState(null)
-  const [status, setStatus] = useState('loading')
   const [window, setWindow] = useState('30d')
   const boxRef = useRef(null)
   const toggleFs = () => {
@@ -37,17 +36,11 @@ export default function HashrateChart() {
     else document.exitFullscreen?.()
   }
 
-  useEffect(() => {
-    let cancelled = false
-    api.networkHashrate(window)
-      .then(d => {
-        if (cancelled) return
-        if (d && d.points && d.points.length > 0) { setData(d); setStatus('ok') }
-        else { setData(null); setStatus('empty') }
-      })
-      .catch(() => { if (!cancelled) { setData(null); setStatus('error') } })
-    return () => { cancelled = true }
-  }, [window])
+  const { data, status } = usePolledData(
+    () => api.networkHashrate(window),
+    d => d && d.points && d.points.length > 0,
+    [window],
+  )
 
   const current = data && data.points.length ? data.points[data.points.length - 1].hashrate_h_s : null
 

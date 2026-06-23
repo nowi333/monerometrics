@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Doughnut } from 'react-chartjs-2'
 import { Chart, ArcElement, Tooltip } from 'chart.js'
 import { api } from './api'
 import InfoTooltip from './InfoTooltip'
+import { usePolledData } from './usePolledData'
 
 Chart.register(ArcElement, Tooltip)
 
@@ -21,21 +22,13 @@ function poolColor(p) { return POOL_COLORS[p] || POOL_COLORS['unknown'] }
 
 export default function PoolsDistribution() {
   const { t } = useTranslation()
-  const [data, setData] = useState(null)
-  const [status, setStatus] = useState('loading') // loading | ok | empty | error
   const [window, setWindow] = useState('24h')
 
-  useEffect(() => {
-    let cancelled = false
-    api.poolsDistribution(window)
-      .then(d => {
-        if (cancelled) return
-        if (d && d.distribution && d.distribution.length > 0) { setData(d); setStatus('ok') }
-        else { setData(null); setStatus('empty') }
-      })
-      .catch(() => { if (!cancelled) { setData(null); setStatus('error') } })
-    return () => { cancelled = true }
-  }, [window])
+  const { data, status } = usePolledData(
+    () => api.poolsDistribution(window),
+    d => d && d.distribution && d.distribution.length > 0,
+    [window],
+  )
 
   const header = (
     <div className="flex justify-between items-center mb-4">

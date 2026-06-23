@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Line } from 'react-chartjs-2'
 import {
@@ -6,6 +6,7 @@ import {
   Tooltip, Legend, Filler,
 } from 'chart.js'
 import { api } from './api'
+import { usePolledData } from './usePolledData'
 
 Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
@@ -25,8 +26,6 @@ function fmtFull(bucket) {
 
 export default function MempoolChart() {
   const { t } = useTranslation()
-  const [data, setData] = useState(null)
-  const [status, setStatus] = useState('loading')
   const [window, setWindow] = useState('24h')
   const boxRef = useRef(null)
   const toggleFs = () => {
@@ -35,17 +34,11 @@ export default function MempoolChart() {
     else document.exitFullscreen?.()
   }
 
-  useEffect(() => {
-    let cancelled = false
-    api.networkMempool(window)
-      .then(d => {
-        if (cancelled) return
-        if (d && d.points && d.points.length > 0) { setData(d); setStatus('ok') }
-        else { setData(null); setStatus('empty') }
-      })
-      .catch(() => { if (!cancelled) { setData(null); setStatus('error') } })
-    return () => { cancelled = true }
-  }, [window])
+  const { data, status } = usePolledData(
+    () => api.networkMempool(window),
+    d => d && d.points && d.points.length > 0,
+    [window],
+  )
 
   const header = (
     <div className="flex justify-between items-start mb-4 flex-wrap gap-2">

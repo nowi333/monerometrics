@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Line } from 'react-chartjs-2'
 import {
@@ -6,6 +6,7 @@ import {
 } from 'chart.js'
 import { api } from './api'
 import InfoTooltip from './InfoTooltip'
+import { usePolledData } from './usePolledData'
 
 Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend)
 
@@ -22,8 +23,6 @@ function fmtFull(ts) {
 
 export default function BlocktimeChart() {
   const { t } = useTranslation()
-  const [data, setData] = useState(null)
-  const [status, setStatus] = useState('loading')
   const [window, setWindow] = useState('24h')
   const boxRef = useRef(null)
   const toggleFs = () => {
@@ -32,17 +31,11 @@ export default function BlocktimeChart() {
     else document.exitFullscreen?.()
   }
 
-  useEffect(() => {
-    let cancelled = false
-    api.networkBlocktime(window)
-      .then(d => {
-        if (cancelled) return
-        if (d && d.points && d.points.length > 0) { setData(d); setStatus('ok') }
-        else { setData(null); setStatus('empty') }
-      })
-      .catch(() => { if (!cancelled) { setData(null); setStatus('error') } })
-    return () => { cancelled = true }
-  }, [window])
+  const { data, status } = usePolledData(
+    () => api.networkBlocktime(window),
+    d => d && d.points && d.points.length > 0,
+    [window],
+  )
 
   const subtitle =
     status === 'ok'

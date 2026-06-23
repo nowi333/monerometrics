@@ -1,15 +1,12 @@
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from './api'
 import InfoTooltip from './InfoTooltip'
+import { usePolledData } from './usePolledData'
 
 export default function OrphansTable() {
   const { t } = useTranslation()
-  const [orphans, setOrphans] = useState(null)
-
-  useEffect(() => {
-    api.orphansRecent(20).then(d => setOrphans(d.orphans)).catch(() => setOrphans([]))
-  }, [])
+  const { data } = usePolledData(() => api.orphansRecent(20), d => Array.isArray(d && d.orphans), [])
+  const orphans = data ? data.orphans : null
 
   if (orphans === null) {
     return <div className="text-[color:var(--color-dim)] text-sm p-4">{t('state.loadingOrphans')}</div>

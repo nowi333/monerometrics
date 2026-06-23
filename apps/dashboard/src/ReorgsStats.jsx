@@ -1,15 +1,11 @@
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from './api'
 import InfoTooltip from './InfoTooltip'
+import { usePolledData } from './usePolledData'
 
 export default function ReorgsStats() {
   const { t } = useTranslation()
-  const [stats, setStats] = useState(null)
-
-  useEffect(() => {
-    api.reorgsStats().then(setStats).catch(() => setStats(null))
-  }, [])
+  const { data: stats } = usePolledData(() => api.reorgsStats(), d => !!(d && d.windows), [])
 
   if (!stats) {
     return <div className="text-[color:var(--color-dim)] text-sm p-4">{t('state.loadingReorgs')}</div>

@@ -11,8 +11,12 @@ import logging
 import sys
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query
+import time
+from collections import defaultdict, deque
+
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from db import init_pool, close_pool, get_pool, get_database_url
 import httpx
@@ -55,9 +59,51 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="monerometrics API",
     description="API publique lecture seule sur l'indexation Monero",
-    version="0.3.6",
+    version="0.3.7",
     lifespan=lifespan,
 )
+
+# === Rate limiting (sliding window par IP, en memoire) ===
+# Defense en profondeur en plus de Cloudflare. L'IP reelle est lue dans
+# X-Forwarded-For (1re entree), pose par Cloudflare/edge nginx. Enregistre
+# AVANT CORS pour que CORS reste la couche externe (en-tetes sur les 429).
+RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "120"))
+_rate_buckets: dict[str, deque] = defaultdict(deque)
+_rate_last_sweep = 0.0
+
+
+@app.middleware("http")
+async def rate_limit(request: Request, call_next):
+    global _rate_last_sweep
+    now = time.time()
+    xff = request.headers.get("x-forwarded-for", "")
+    client_ip = xff.split(",")[0].strip() if xff else (
+        request.client.host if request.client else "unknown"
+    )
+
+    bucket = _rate_buckets[client_ip]
+    while bucket and now - bucket[0] > 60:
+        bucket.popleft()
+    if len(bucket) >= RATE_LIMIT_PER_MIN:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too many requests"},
+            headers={"Retry-After": "60"},
+        )
+    bucket.append(now)
+
+    # Balayage periodique : purge les buckets vides pour borner la memoire.
+    if now - _rate_last_sweep > 300:
+        _rate_last_sweep = now
+        for ip in list(_rate_buckets.keys()):
+            b = _rate_buckets[ip]
+            while b and now - b[0] > 60:
+                b.popleft()
+            if not b:
+                del _rate_buckets[ip]
+
+    return await call_next(request)
+
 
 # CORS pour le dashboard React (monerometrics.net)
 app.add_middleware(
