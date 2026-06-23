@@ -16,7 +16,7 @@ export default defineConfig({
           if (!id.includes('node_modules')) return
           if (id.includes('/react-dom/') || /\/react\//.test(id)) return 'react'
           if (id.includes('/d3')) return 'd3'
-          if (id.includes('chart.js') || id.includes('react-chartjs-2')) return 'charts'
+          if (id.includes('chart.js') || id.includes('react-chartjs-2') || id.includes('chartjs-plugin')) return 'charts'
           if (id.includes('i18next')) return 'i18n'
         },
       },
