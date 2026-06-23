@@ -26,22 +26,29 @@ export default function ChainForkVisualizer() {
   const containerRef = useRef(null)
   const gRef = useRef(null)
   const zoomRef = useRef(null)
+  const hasInteractedRef = useRef(false)
   const [data, setData] = useState(null)
   const [status, setStatus] = useState('loading') // loading | ok | empty | error
   const [tooltip, setTooltip] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  // Fetch des donnees (aucun mock : etat explicite si vide ou erreur)
+  // Fetch des donnees en live (toutes les 30s). Le zoom/pan de l'utilisateur est
+  // preserve au refresh (cf. render). Aucun mock : etat explicite si vide/erreur.
   useEffect(() => {
     let cancelled = false
-    api.chainForkWindow(200)
-      .then(d => {
-        if (cancelled) return
-        if (d && d.blocks && d.blocks.length > 0) { setData(d); setStatus('ok') }
-        else { setData(null); setStatus('empty') }
-      })
-      .catch(() => { if (!cancelled) { setData(null); setStatus('error') } })
-    return () => { cancelled = true }
+    let hasData = false
+    const load = () => {
+      api.chainForkWindow(200)
+        .then(d => {
+          if (cancelled) return
+          if (d && d.blocks && d.blocks.length > 0) { hasData = true; setData(d); setStatus('ok') }
+          else { hasData = false; setData(null); setStatus('empty') }
+        })
+        .catch(() => { if (!cancelled && !hasData) { setData(null); setStatus('error') } })
+    }
+    load()
+    const id = setInterval(load, 30000)
+    return () => { cancelled = true; clearInterval(id) }
   }, [])
 
   // Dimensions des blocs
@@ -194,15 +201,22 @@ export default function ChainForkVisualizer() {
       .scaleExtent([0.3, 20])
       .on('zoom', (event) => {
         g.attr('transform', event.transform)
+        if (event.sourceEvent) hasInteractedRef.current = true
       })
     zoomRef.current = zoom
     svg.call(zoom)
 
-    // Vue initiale : zoom rapproche, cadre sur le bout de chaine (blocs recents, a droite).
-    const viewW = Math.max(width, 800)
-    const initialScale = 6
-    const initialX = viewW - width * initialScale - MARGIN_LEFT * initialScale
-    svg.call(zoom.transform, d3.zoomIdentity.translate(initialX, 0).scale(initialScale))
+    if (hasInteractedRef.current) {
+      // Refresh live : on conserve le zoom/pan en cours (le transform persiste
+      // sur le noeud svg meme apres recreation du groupe).
+      g.attr('transform', d3.zoomTransform(svgRef.current))
+    } else {
+      // Vue initiale : zoom rapproche, cadre sur le bout de chaine (a droite).
+      const viewW = Math.max(width, 800)
+      const initialScale = 6
+      const initialX = viewW - width * initialScale - MARGIN_LEFT * initialScale
+      svg.call(zoom.transform, d3.zoomIdentity.translate(initialX, 0).scale(initialScale))
+    }
   }, [data, t])
 
   useEffect(() => {
@@ -221,9 +235,8 @@ export default function ChainForkVisualizer() {
     }
   }
   const handleReset = () => {
-    if (zoomRef.current && svgRef.current) {
-      d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.transform, d3.zoomIdentity)
-    }
+    hasInteractedRef.current = false
+    render()
   }
   const toggleFullscreen = () => {
     if (!containerRef.current) return

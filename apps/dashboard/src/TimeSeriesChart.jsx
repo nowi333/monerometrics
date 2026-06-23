@@ -57,6 +57,8 @@ export default function TimeSeriesChart({
   const [window, setWindow] = useState(defaultWindow)
   const boxRef = useRef(null)
   const chartRef = useRef(null)
+  const readoutRef = useRef(null)
+  const timeRef = useRef(null)
 
   const { data, status } = usePolledData(
     () => fetcher(window),
@@ -85,7 +87,10 @@ export default function TimeSeriesChart({
           {title}{infoText ? <InfoTooltip text={infoText} /> : null}
         </h3>
         {status === 'ok' && current != null && (
-          <p className="text-2xl font-medium mt-1" style={{ color }}>{format(current)}</p>
+          <p className="text-2xl font-medium mt-1" style={{ color }}>
+            <span ref={readoutRef}>{format(current)}</span>
+            <span ref={timeRef} className="text-xs ml-2 font-normal align-middle" style={{ color: 'var(--color-dim)' }} />
+          </p>
         )}
       </div>
       <div className="flex items-center gap-1.5">
@@ -144,11 +149,28 @@ export default function TimeSeriesChart({
 
   const chartData = { labels: points.map(p => p.label), datasets }
 
+  const restoreReadout = () => {
+    if (readoutRef.current) readoutRef.current.textContent = format(current)
+    if (timeRef.current) timeRef.current.textContent = ''
+  }
+
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
     interaction: { mode: 'index', intersect: false },
+    // Readout au survol : met a jour l'en-tete avec le point pointe, sans
+    // re-render React (donc sans reinitialiser le zoom).
+    onHover: (evt, elements) => {
+      if (!readoutRef.current) return
+      const p = elements && elements.length ? points[elements[0].index] : null
+      if (p) {
+        readoutRef.current.textContent = format(p.y)
+        if (timeRef.current) timeRef.current.textContent = p.full
+      } else {
+        restoreReadout()
+      }
+    },
     plugins: {
       legend: { display: !!referenceY, labels: { color: '#8b9099', font: { size: 11 }, boxWidth: 12 } },
       tooltip: {
@@ -175,7 +197,7 @@ export default function TimeSeriesChart({
 
   return wrap(
     <>
-      <div style={{ height: document.fullscreenElement ? '80vh' : '240px' }}>
+      <div onMouseLeave={restoreReadout} style={{ height: document.fullscreenElement ? '80vh' : '240px' }}>
         <Line ref={chartRef} data={chartData} options={options} plugins={[crosshair]} />
       </div>
       {stats && (
