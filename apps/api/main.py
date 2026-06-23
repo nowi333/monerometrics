@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="monerometrics API",
     description="API publique lecture seule sur l'indexation Monero",
-    version="0.3.5",
+    version="0.3.6",
     lifespan=lifespan,
 )
 
@@ -106,6 +106,7 @@ async def info():
         )
 
     return InfoResponse(
+        api_version=app.version,
         latest_indexed_height=latest,
         total_blocks_indexed=total_blocks or 0,
         total_orphan_blocks=total_orphans or 0,

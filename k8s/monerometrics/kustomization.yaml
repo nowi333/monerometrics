@@ -19,8 +19,12 @@ resources:
   - 50-deployment-monerod.yaml
   - 50-deployment-worker.yaml
   - 52-podmonitor-worker.yaml
+  - 60-deployment-api.yaml
+  - 61-service-api.yaml
+  - 62-ingressroute-api.yaml
   - 70-backup-rbac.yaml
   - 71-backup-cronjob.yaml
+  - 72-retro-pools-cronjob.yaml
 
 labels:
   - pairs:

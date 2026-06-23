@@ -25,7 +25,7 @@ def load_secrets_from_openbao() -> Optional[dict]:
     return secrets
 
 
-def get_database_url() -> str:
+def get_database_url() -> tuple[str, str]:
     """Construit DATABASE_URL depuis OpenBao en priorite, env vars en fallback."""
     secrets = load_secrets_from_openbao()
     if secrets:
