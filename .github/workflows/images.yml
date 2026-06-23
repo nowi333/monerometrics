@@ -1,10 +1,14 @@
 name: images
 
-# Build et publication des images worker / api sur GHCR.
-# Declenche quand le code applicatif change (push main) ou manuellement.
-# Tags : latest + le SHA du commit. Les deploiements k8s pinnent des versions
-# semantiques (0.x.y) construites a la main ; cette CI garantit la buildabilite
-# et publie des images latest/SHA tracables.
+# Validation de build des images worker / api (linux/amd64) a chaque changement
+# du code applicatif. BUILD ONLY : on ne pousse pas vers GHCR. Les images
+# versionnees (0.x.y) sont construites et poussees a la main (le GITHUB_TOKEN
+# n'a pas de droit d'ecriture sur des packages crees hors Actions).
+#
+# Pour activer le push depuis la CI plus tard, au choix :
+#   - GitHub > Packages > <image> > Manage Actions access > ajouter ce repo en
+#     Write, puis ajouter une etape docker/login-action (GITHUB_TOKEN) + push: true ;
+#   - ou stocker un PAT (write:packages) en secret et l'utiliser au login.
 
 on:
   push:
@@ -17,12 +21,12 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         app: [worker, api]
     steps:
@@ -30,19 +34,9 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push ${{ matrix.app }}
+      - name: Build ${{ matrix.app }} image (validation, no push)
         uses: docker/build-push-action@v6
         with:
           context: apps/${{ matrix.app }}
           platforms: linux/amd64
-          push: true
-          tags: |
-            ghcr.io/nowi333/monerometrics-${{ matrix.app }}:latest
-            ghcr.io/nowi333/monerometrics-${{ matrix.app }}:sha-${{ github.sha }}
+          push: false
