@@ -4,7 +4,7 @@ Manifests deploys sur le cluster k3s single-node POC.
 
 ## Structure
 
-- `storage/` : Configuration du provisioner local-path (pointe sur le data disk Azure)
+- `storage/` : Configuration du provisioner local-path (pointe sur le volume de donnees Hetzner)
 - `monerometrics/` : Application principale (monerod + Postgres + worker)
 
 ## Deploiement
@@ -34,6 +34,6 @@ ou Bao Agent sidecar.
 est deja deploye, met a jour les ressources modifiees, cree les ressources
 manquantes.
 
-Le data disk Azure (128 Go Standard SSD) est gere par Terraform et persiste
+Le volume de donnees Hetzner (128 Go) est gere par Terraform et persiste
 entre les destroy/apply du cluster. Donc la blockchain Monero syncee n est
 pas perdue meme si on detruit tout sauf le disk.

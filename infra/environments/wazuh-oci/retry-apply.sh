@@ -7,7 +7,7 @@
 # PREREQUIS avant lancement (Keychain inaccessible sous nohup) :
 #   export TF_VAR_ssh_public_key=...
 #   export TF_VAR_tailscale_auth_key=...
-#   export ARM_CLIENT_ID=... etc. (via source scripts/azure-env.sh)
+#   export ARM_CLIENT_ID=... etc. (via source scripts/load-env.sh)
 
 set -uo pipefail
 

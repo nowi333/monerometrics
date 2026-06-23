@@ -1,6 +1,6 @@
 # versions.tf
 # Environnement wazuh-oci : VM ARM Ampere A1 sur Oracle Cloud (Always Free)
-# hebergeant le SIEM Wazuh. State isole d Azure (blast radius separe).
+# hebergeant le SIEM Wazuh. State isole (blast radius separe).
 
 terraform {
   required_version = ">= 1.15.0"

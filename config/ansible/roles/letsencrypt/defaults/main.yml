@@ -19,6 +19,12 @@ letsencrypt_cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
 letsencrypt_credentials_file: "/root/.secrets/cloudflare.ini"
 letsencrypt_cert_dir: "/etc/letsencrypt/live/{{ letsencrypt_domain }}"
 
+# === Reverse proxy API ===
+# L'edge expose api.<domaine> en HTTPS et relaie vers l'API dans le cluster k3s
+# (Traefik, entryPoint web :80, IngressRoute Host(api.<domaine>)).
+# Valeur = IP privee du noeud k3s (cf. plan d'adressage Hetzner) sur le port 80.
+letsencrypt_api_upstream: "http://10.0.0.30:80"
+
 # === HTTP/2 origin ===
 # false : nginx origin ecoute en HTTP/1.1 uniquement. Necessaire car la lib
 # ModSecurity v3 packagee Ubuntu segfault sur HTTP/2 (cf. monerometrics-tls.conf.j2).

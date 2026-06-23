@@ -82,7 +82,7 @@ variable "instance_image_ocid" {
 # ============================================================
 
 variable "vcn_cidr" {
-  description = "CIDR du VCN OCI. Distinct du VNet Azure (10.0.0.0/16) pour eviter tout chevauchement Tailscale."
+  description = "CIDR du VCN OCI. Distinct du reseau prive Hetzner (10.0.0.0/16) pour eviter tout chevauchement Tailscale."
   type        = string
   default     = "10.20.0.0/16"
 }
@@ -94,7 +94,7 @@ variable "subnet_cidr" {
 }
 
 variable "ssh_public_key" {
-  description = "Cle publique SSH (meme que bastion Azure) autorisee sur la VM."
+  description = "Cle publique SSH (meme que le bastion Hetzner) autorisee sur la VM."
   type        = string
 }
 

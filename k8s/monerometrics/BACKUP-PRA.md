@@ -1,14 +1,14 @@
 # Plan de Reprise d'Activité (PRA) — Sauvegardes
 
 Sauvegarde chiffrée et automatisée des données critiques de monerometrics
-vers **Oracle Cloud Object Storage**, séparée de la production Azure.
+vers **Oracle Cloud Object Storage**, séparée de la production Hetzner.
 
 ## Principe : séparation des périmètres de défaillance
 
-La production tourne sur **Azure** (k3s, PostgreSQL, monerod). Les sauvegardes
-sont stockées chez un **fournisseur distinct (Oracle Cloud)**, conformément à
-la règle 3-2-1. Un incident majeur sur Azure (compromission du compte,
-suppression du resource group, blocage de l'abonnement) n'affecte pas la
+La production tourne sur **Hetzner Cloud** (k3s, PostgreSQL, monerod). Les
+sauvegardes sont stockées chez un **fournisseur distinct (Oracle Cloud)**,
+conformément à la règle 3-2-1. Un incident majeur sur Hetzner (compromission
+du compte, suppression du projet, blocage de l'abonnement) n'affecte pas la
 capacité de restauration.
 
 - **Outil** : Restic (chiffrement AES-256, déduplication, snapshots)
@@ -113,7 +113,7 @@ périodiquement.
 ## Architecture cible (production)
 
 En POC, sauvegarde cross-cloud unique vers OCI. En production, double cible :
-- Azure Blob (RTO court, restauration rapide intra-cloud)
+- Hetzner Storage Box / volume snapshot (RTO court, restauration rapide intra-cloud)
 - OCI Object Storage (résilience géographique et multi-fournisseur)
 
 Avec une image de backup versionnée dédiée (au lieu de l'installation runtime)

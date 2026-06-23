@@ -2,7 +2,7 @@
 # Wazuh Manager sur Oracle Cloud Always Free.
 #
 # Compose :
-#   - 1 VCN (Virtual Cloud Network, equivalent du VNet Azure)
+#   - 1 VCN (Virtual Cloud Network, equivalent du reseau prive)
 #   - 1 Internet Gateway
 #   - 1 Route Table par defaut (sortie Internet)
 #   - 1 Subnet public hebergeant la VM
