@@ -35,7 +35,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: api
-          image: ghcr.io/nowi333/monerometrics-api:0.3.4
+          image: ghcr.io/nowi333/monerometrics-api:0.3.5
           imagePullPolicy: IfNotPresent
           # Credentials Postgres lus depuis /vault/secrets/postgres-credentials (OpenBao)
           env:

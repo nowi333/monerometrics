@@ -51,3 +51,12 @@ data:
     );
     CREATE INDEX IF NOT EXISTS idx_reorg_height ON reorgs_detected(fork_point_height);
     CREATE INDEX IF NOT EXISTS idx_reorg_time ON reorgs_detected(detected_at);
+
+    -- Instantanes du mempool (un par poll du worker) : serie temporelle du
+    -- nombre de transactions en attente, exposee par /network/mempool.
+    CREATE TABLE IF NOT EXISTS mempool_snapshots (
+        id BIGSERIAL PRIMARY KEY,
+        observed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        tx_count INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_mempool_observed ON mempool_snapshots(observed_at);

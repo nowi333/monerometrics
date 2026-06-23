@@ -26,6 +26,8 @@ export const api = {
   networkInfo: () => fetchJSON('/network/info'),
   networkHashrate: (window = '30d') => fetchJSON(`/network/hashrate?window=${window}`),
   networkBlocktime: (window = '24h') => fetchJSON(`/network/blocktime?window=${window}`),
+  networkMempool: (window = '24h') => fetchJSON(`/network/mempool?window=${window}`),
+  networkEmission: (window = '30d') => fetchJSON(`/network/emission?window=${window}`),
   chainForkWindow: (limit = 80) => fetchJSON(`/chain/fork-window?limit=${limit}`),
 }
 

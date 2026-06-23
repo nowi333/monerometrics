@@ -6,6 +6,8 @@ const ENDPOINTS = [
   { m: 'GET', p: '/network/info', k: 'networkInfo' },
   { m: 'GET', p: '/network/hashrate', k: 'networkHashrate', q: 'window=1h|24h|7d|30d|90d|1y|5y' },
   { m: 'GET', p: '/network/blocktime', k: 'networkBlocktime', q: 'window=1h|24h|7d|30d' },
+  { m: 'GET', p: '/network/mempool', k: 'networkMempool', q: 'window=1h|24h|7d|30d|90d|1y|5y' },
+  { m: 'GET', p: '/network/emission', k: 'networkEmission', q: 'window=24h|7d|30d|90d|1y|5y' },
   { m: 'GET', p: '/chain/window', k: 'chainWindow', q: 'from=INT&to=INT' },
   { m: 'GET', p: '/chain/fork-window', k: 'chainForkWindow', q: 'limit=10..500' },
   { m: 'GET', p: '/reorgs', k: 'reorgs', q: 'limit=1..1000' },

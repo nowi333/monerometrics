@@ -75,6 +75,7 @@ M_LAG = Gauge("monerometrics_indexing_lag_blocks", "Retard d'indexation (tip - d
 M_SYNCED = Gauge("monerometrics_node_synced", "1 si monerod est synchronise, sinon 0")
 M_LAST_LOOP = Gauge("monerometrics_last_loop_unixtime", "Timestamp Unix du dernier passage de boucle")
 M_POOL_INDEX = Gauge("monerometrics_pool_index_size", "Nombre de hash dans l'index pools")
+M_MEMPOOL = Gauge("monerometrics_mempool_tx_count", "Nombre de transactions dans le mempool")
 M_BLOCKS = Counter("monerometrics_blocks_indexed_total", "Total de blocs indexes depuis le demarrage")
 M_REORGS = Counter("monerometrics_reorgs_detected_total", "Total de reorgs detectees depuis le demarrage")
 
@@ -193,6 +194,32 @@ def get_last_indexed_height(conn: psycopg.Connection) -> int:
         return cur.fetchone()[0]
 
 
+def record_mempool(conn: psycopg.Connection, info: dict) -> None:
+    """
+    Historise un instantane du mempool (nb de transactions en attente), a partir
+    de tx_pool_size de /get_info. Alimente la serie temporelle /network/mempool.
+    """
+    tx_count = int(info.get("tx_pool_size", 0) or 0)
+    M_MEMPOOL.set(tx_count)
+    with conn.cursor() as cur:
+        cur.execute("INSERT INTO mempool_snapshots (tx_count) VALUES (%s)", (tx_count,))
+
+
+def _difficulty_of(header: dict) -> int:
+    """
+    Difficulte exacte : Monero expose `wide_difficulty` (hexadecimal, precision
+    complete) en plus de `difficulty` (entier JSON, qui perd en precision au-dela
+    de 2^53). On privilegie wide_difficulty et on retombe sur difficulty sinon.
+    """
+    wide = header.get("wide_difficulty")
+    if wide:
+        try:
+            return int(str(wide), 16)
+        except (ValueError, TypeError):
+            pass
+    return int(header.get("difficulty", 0) or 0)
+
+
 def _insert_canonical(conn: psycopg.Connection, header: dict, pool: str) -> None:
     """
     Insere/maj un bloc comme canonique a partir de son en-tete + son pool.
@@ -220,7 +247,7 @@ def _insert_canonical(conn: psycopg.Connection, header: dict, pool: str) -> None
                 header.get("prev_hash", ""),
                 header["timestamp"],
                 datetime.fromtimestamp(header["timestamp"], tz=timezone.utc),
-                int(header["difficulty"]),
+                _difficulty_of(header),
                 header.get("num_txes", 0),
                 header.get("block_size", 0),
                 None,  # miner_address : masque par privacy Monero (stealth address)
@@ -426,9 +453,11 @@ def index_loop() -> None:
                     continue
 
                 with psycopg.connect(DATABASE_URL, autocommit=False) as conn:
-                    # 1. Detecter d'abord les reorgs sur les blocs deja indexes
+                    # 1. Instantane du mempool (serie temporelle)
+                    record_mempool(conn, info)
+                    # 2. Detecter d'abord les reorgs sur les blocs deja indexes
                     rescan_confirmation_window(http_client, conn, top)
-                    # 2. Puis indexer les blocs nouveaux
+                    # 3. Puis indexer les blocs nouveaux
                     index_forward(http_client, conn, top)
 
                     last = get_last_indexed_height(conn)

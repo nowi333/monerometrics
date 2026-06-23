@@ -26,6 +26,8 @@ from models import (
     NetworkInfoResponse, HashratePoint, HashrateResponse,
     BlocktimePoint, BlocktimeResponse,
     ForkBlock, ForkWindowResponse,
+    MempoolPoint, MempoolResponse,
+    EmissionPoint, EmissionResponse,
 )
 
 # === Logging ===
@@ -53,7 +55,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="monerometrics API",
     description="API publique lecture seule sur l'indexation Monero",
-    version="0.3.4",
+    version="0.3.5",
     lifespan=lifespan,
 )
 
@@ -245,9 +247,29 @@ async def pools_distribution(
         for r in rows
     ]
 
+    # Indicateurs de centralisation, calcules sur les pools IDENTIFIES (hors
+    # 'unknown', qui agrege des mineurs solo et n'est pas une entite unique).
+    named = sorted(
+        [(r["pool"], r["block_count"]) for r in rows if r["pool"] != "unknown"],
+        key=lambda x: x[1], reverse=True,
+    )
+    top_pool = named[0][0] if named else None
+    top_pool_share = round(named[0][1] * 100.0 / total, 2) if (named and total) else 0.0
+    nakamoto = 0
+    if total and named:
+        cumulative = 0
+        for _name, count in named:
+            cumulative += count
+            nakamoto += 1
+            if cumulative * 100.0 / total > 50:
+                break
+
     response = PoolDistributionResponse(
         window=window,
         total_blocks=total,
+        top_pool=top_pool,
+        top_pool_share=top_pool_share,
+        nakamoto_coefficient=nakamoto,
         distribution=distribution,
     )
     _agg_cache_set(f"pools:{window}", response)
@@ -492,6 +514,80 @@ async def network_blocktime(
         points=points,
     )
     _agg_cache_set(f"blocktime:{window}", response)
+    return response
+
+
+@app.get("/network/mempool", response_model=MempoolResponse)
+async def network_mempool(window: str = Query("24h", regex=WINDOW_REGEX)):
+    """
+    Evolution du nombre de transactions en attente dans le mempool, agregee par
+    bucket temporel. Historise par le worker (un instantane par poll).
+    """
+    cached = _agg_cache_get(f"mempool:{window}", 30)
+    if cached is not None:
+        return cached
+
+    interval, grain = WINDOW_CONFIG[window]
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"""
+            SELECT date_trunc('{grain}', observed_at) AS bucket,
+                   AVG(tx_count)::int AS tx_count
+            FROM mempool_snapshots
+            WHERE observed_at >= NOW() - INTERVAL '{interval}'
+            GROUP BY bucket
+            ORDER BY bucket
+            """
+        )
+        current = await conn.fetchval(
+            "SELECT tx_count FROM mempool_snapshots ORDER BY observed_at DESC LIMIT 1"
+        )
+
+    points = [MempoolPoint(bucket=r["bucket"], tx_count=r["tx_count"] or 0) for r in rows]
+    response = MempoolResponse(
+        window=window, bucket_size=f"1 {grain}", current=current or 0, points=points
+    )
+    _agg_cache_set(f"mempool:{window}", response)
+    return response
+
+
+@app.get("/network/emission", response_model=EmissionResponse)
+async def network_emission(window: str = Query("30d", regex=WINDOW_REGEX)):
+    """
+    Recompense de bloc moyenne dans le temps. Met en evidence la tail emission
+    de Monero (~0.6 XMR/bloc depuis mai 2022), donnee structurelle du reseau.
+    """
+    cached = _agg_cache_get(f"emission:{window}", 60)
+    if cached is not None:
+        return cached
+
+    interval, grain = WINDOW_CONFIG[window]
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"""
+            SELECT date_trunc('{grain}', timestamp_human) AS bucket,
+                   AVG(reward_xmr)::numeric(20,12)::text AS avg_reward_xmr,
+                   COUNT(*) AS blocks
+            FROM blocks
+            WHERE is_canonical = true
+              AND timestamp_human >= NOW() - INTERVAL '{interval}'
+            GROUP BY bucket
+            ORDER BY bucket
+            """
+        )
+
+    points = [
+        EmissionPoint(
+            bucket=r["bucket"],
+            avg_reward_xmr=r["avg_reward_xmr"] or "0",
+            blocks=r["blocks"],
+        )
+        for r in rows
+    ]
+    response = EmissionResponse(window=window, bucket_size=f"1 {grain}", points=points)
+    _agg_cache_set(f"emission:{window}", response)
     return response
 
 

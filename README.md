@@ -30,10 +30,11 @@ community API stay free; a future freemium tier would only cover intensive comme
 
 ## What it does
 
-- **Dashboard** — React SPA: network hashrate, block-time variance, mempool, mining-pool
-  distribution, an interactive chain-fork visualizer and reorg/orphan history. Available in
-  **English, French and Spanish**, light/dark themes.
-- **Public API** — FastAPI, 11 read-only JSON endpoints grouped by theme (service, network,
+- **Dashboard** — React SPA: network hashrate, block-time variance, mempool history, block
+  reward / emission, mining-pool distribution with **centralization metrics (largest-pool share
+  and Nakamoto coefficient)**, an interactive chain-fork visualizer and reorg/orphan history.
+  Available in **English, French and Spanish**, light/dark themes.
+- **Public API** — FastAPI, 13 read-only JSON endpoints grouped by theme (service, network,
   chain/reorgs, pools). Automatically documented via OpenAPI.
 - **Reorg detection** — a Python worker reads each block from a synced node, computes the
   indicators and **detects reorganizations** by re-checking a rolling window of recent blocks

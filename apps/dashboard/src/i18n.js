@@ -25,6 +25,8 @@ i18n
           'charts.blocktime': 'Block time',
           'charts.target': 'Target (120s)',
           'charts.blocktimeStats': 'avg {{avg}}s · median {{median}}s',
+          'charts.mempoolTitle': 'Mempool',
+          'charts.emissionTitle': 'Block reward (emission)',
           // Top pools table
           'toppools.title': 'Top mining pools',
           'toppools.poolsUnit': 'pools',
@@ -33,6 +35,9 @@ i18n
           'toppools.share': 'Share',
           'toppools.distribution': 'Distribution',
           'toppools.total': 'Total: {{count}} canonical blocks',
+          'toppools.topPool': 'Largest pool',
+          'toppools.nakamoto': 'Nakamoto coefficient',
+          'toppools.nakamotoUnit': 'pools',
 
           // Fork visualizer
           'fork.title': 'Chain fork visualizer',
@@ -137,6 +142,8 @@ i18n
           'doc.ep.networkInfo': 'Current network state: sync status, mempool, difficulty and estimated hashrate (live from the node).',
           'doc.ep.networkHashrate': 'Historical network hashrate, bucketed by hour or day over the selected window.',
           'doc.ep.networkBlocktime': 'Variance of the time between consecutive canonical blocks (target is 120s).',
+          'doc.ep.networkMempool': 'Mempool size (pending transactions) over time, sampled by the worker on each poll.',
+          'doc.ep.networkEmission': 'Average block reward over time — shows Monero tail emission (~0.6 XMR per block).',
           'doc.ep.chainWindow': 'Raw block window between two heights (max 1000 blocks).',
           'doc.ep.chainForkWindow': 'Latest N blocks including orphans, with fork-point flags, for the chain visualizer.',
           'doc.ep.reorgs': 'List of the most recent detected reorganizations.',
@@ -150,6 +157,7 @@ i18n
           'info.mempool': 'Number of unconfirmed transactions waiting in the node mempool. Reflects current pending demand on the network. Limit: live snapshot from the node, not a historical average.',
           'info.blocktime': 'Time elapsed between consecutive canonical blocks. Monero targets 120s; variance reflects hashrate fluctuations. Limit: per-block measurement, short windows only (up to 30d).',
           'info.pools': 'Share of canonical blocks mined per pool over the window, a decentralization indicator. Limit: pools are identified via their public APIs, so attribution is reliable only on recent windows; unidentified blocks (solo miners, untracked pools) appear as unknown.',
+          'info.nakamoto': 'Minimum number of mining pools that together control more than 50% of recently mined blocks (identified pools only, excluding solo/unknown). Lower means more centralized — a single pool above 50% is the 51% risk.',
           'info.reorgs': 'Reorganizations are events where the chain replaces recently accepted blocks with a competing longer branch. Counted over 24h, 7d and 30d. Limit: only reorgs observed since this node started indexing are recorded.',
           'info.orphans': 'Orphan blocks are valid blocks that were replaced during a reorganization and left out of the canonical chain. Limit: shows the most recent orphans only, and depends on what this node observed.',
           'info.fork': 'Visual map of the latest blocks: the canonical chain and any orphan branches, color-coded by mining pool. Limit: shows a recent window of blocks, not the full history.',
@@ -176,6 +184,8 @@ i18n
           'charts.blocktime': 'Temps de bloc',
           'charts.target': 'Cible (120s)',
           'charts.blocktimeStats': 'moy {{avg}}s · mediane {{median}}s',
+          'charts.mempoolTitle': 'Mempool',
+          'charts.emissionTitle': 'Recompense de bloc (emission)',
           // Top pools table
           'toppools.title': 'Top mining pools',
           'toppools.pool': 'Pool',
@@ -183,6 +193,9 @@ i18n
           'toppools.share': 'Part',
           'toppools.distribution': 'Distribution',
           'toppools.total': 'Total : {{count}} blocs canoniques',
+          'toppools.topPool': 'Plus gros pool',
+          'toppools.nakamoto': 'Coefficient de Nakamoto',
+          'toppools.nakamotoUnit': 'pools',
 
           // Fork visualizer
           'fork.title': 'Visualiseur de forks',
@@ -287,6 +300,8 @@ i18n
           'doc.ep.networkInfo': 'Etat actuel du reseau : synchronisation, mempool, difficulte et hashrate estime (en direct du noeud).',
           'doc.ep.networkHashrate': 'Hashrate historique du reseau, agrege par heure ou par jour sur la fenetre choisie.',
           'doc.ep.networkBlocktime': 'Variance du temps entre blocs canoniques consecutifs (cible de 120s).',
+          'doc.ep.networkMempool': 'Taille du mempool (transactions en attente) dans le temps, echantillonnee a chaque poll du worker.',
+          'doc.ep.networkEmission': 'Recompense de bloc moyenne dans le temps — montre la tail emission de Monero (~0,6 XMR par bloc).',
           'doc.ep.chainWindow': 'Fenetre de blocs bruts entre deux hauteurs (max 1000 blocs).',
           'doc.ep.chainForkWindow': 'Les N derniers blocs avec orphelins et marqueurs de fork, pour le visualiseur de chaine.',
           'doc.ep.reorgs': 'Liste des dernieres reorganisations detectees.',
@@ -300,6 +315,7 @@ i18n
           'info.mempool': 'Nombre de transactions non confirmees en attente dans le mempool du noeud. Reflete la demande en attente sur le reseau. Limite : instantane en direct du noeud, pas une moyenne historique.',
           'info.blocktime': 'Temps ecoule entre blocs canoniques consecutifs. Monero cible 120s ; la variance reflete les fluctuations de hashrate. Limite : mesure par bloc, fenetres courtes uniquement (jusqu a 30j).',
           'info.pools': 'Part des blocs canoniques mines par pool sur la fenetre, un indicateur de decentralisation. Limite : les pools sont identifies via leurs API publiques, donc l attribution est fiable seulement sur les fenetres recentes ; les blocs non identifies (mineurs solo, pools non suivis) apparaissent en unknown.',
+          'info.nakamoto': 'Nombre minimal de pools de minage qui controlent ensemble plus de 50% des blocs recents (pools identifies seulement, hors solo/unknown). Plus il est bas, plus c est centralise — un seul pool au-dessus de 50% est le risque des 51%.',
           'info.reorgs': 'Les reorganisations sont des evenements ou la chaine remplace des blocs recemment acceptes par une branche concurrente plus longue. Comptees sur 24h, 7j et 30j. Limite : seules les reorgs observees depuis le demarrage de l indexation de ce noeud sont enregistrees.',
           'info.orphans': 'Les blocs orphelins sont des blocs valides remplaces lors d une reorganisation et exclus de la chaine canonique. Limite : affiche uniquement les orphelins les plus recents, et depend de ce que ce noeud a observe.',
           'info.fork': 'Carte visuelle des derniers blocs : la chaine canonique et les eventuelles branches orphelines, colorees par pool de minage. Limite : affiche une fenetre recente de blocs, pas tout l historique.',
@@ -326,6 +342,8 @@ i18n
           'charts.blocktime': 'Tiempo de bloque',
           'charts.target': 'Objetivo (120s)',
           'charts.blocktimeStats': 'prom {{avg}}s · mediana {{median}}s',
+          'charts.mempoolTitle': 'Mempool',
+          'charts.emissionTitle': 'Recompensa de bloque (emision)',
           // Top pools table
           'toppools.title': 'Principales pools de mineria',
           'toppools.poolsUnit': 'pools',
@@ -334,6 +352,9 @@ i18n
           'toppools.share': 'Cuota',
           'toppools.distribution': 'Distribucion',
           'toppools.total': 'Total: {{count}} bloques canonicos',
+          'toppools.topPool': 'Pool mas grande',
+          'toppools.nakamoto': 'Coeficiente de Nakamoto',
+          'toppools.nakamotoUnit': 'pools',
 
           // Fork visualizer
           'fork.title': 'Visualizador de forks',
@@ -438,6 +459,8 @@ i18n
           'doc.ep.networkInfo': 'Estado actual de la red: sincronizacion, mempool, dificultad y hashrate estimado (en vivo del nodo).',
           'doc.ep.networkHashrate': 'Hashrate historico de la red, agrupado por hora o dia en la ventana seleccionada.',
           'doc.ep.networkBlocktime': 'Varianza del tiempo entre bloques canonicos consecutivos (objetivo de 120s).',
+          'doc.ep.networkMempool': 'Tamano del mempool (transacciones pendientes) en el tiempo, muestreado en cada poll del worker.',
+          'doc.ep.networkEmission': 'Recompensa de bloque promedio en el tiempo — muestra la tail emission de Monero (~0,6 XMR por bloque).',
           'doc.ep.chainWindow': 'Ventana de bloques en bruto entre dos alturas (max 1000 bloques).',
           'doc.ep.chainForkWindow': 'Los ultimos N bloques con huerfanos y marcadores de fork, para el visualizador de cadena.',
           'doc.ep.reorgs': 'Lista de las reorganizaciones detectadas mas recientes.',
@@ -451,6 +474,7 @@ i18n
           'info.mempool': 'Numero de transacciones no confirmadas en espera en el mempool del nodo. Refleja la demanda pendiente actual en la red. Limite: instantanea en vivo del nodo, no un promedio historico.',
           'info.blocktime': 'Tiempo transcurrido entre bloques canonicos consecutivos. Monero apunta a 120s; la varianza refleja las fluctuaciones del hashrate. Limite: medicion por bloque, solo ventanas cortas (hasta 30d).',
           'info.pools': 'Cuota de bloques canonicos minados por pool en la ventana, un indicador de descentralizacion. Limite: los pools se identifican mediante sus API publicas, por lo que la atribucion es fiable solo en ventanas recientes; los bloques no identificados (mineros solo, pools no rastreados) aparecen como unknown.',
+          'info.nakamoto': 'Numero minimo de pools de mineria que juntas controlan mas del 50% de los bloques recientes (solo pools identificadas, excluyendo solo/unknown). Cuanto mas bajo, mas centralizado — una sola pool por encima del 50% es el riesgo del 51%.',
           'info.reorgs': 'Las reorganizaciones son eventos en los que la cadena reemplaza bloques aceptados recientemente por una rama competidora mas larga. Contadas en 24h, 7d y 30d. Limite: solo se registran las reorgs observadas desde que este nodo comenzo a indexar.',
           'info.orphans': 'Los bloques huerfanos son bloques validos reemplazados durante una reorganizacion y excluidos de la cadena canonica. Limite: muestra solo los huerfanos mas recientes, y depende de lo que este nodo observo.',
           'info.fork': 'Mapa visual de los ultimos bloques: la cadena canonica y las posibles ramas huerfanas, coloreadas por pool de mineria. Limite: muestra una ventana reciente de bloques, no todo el historial.',

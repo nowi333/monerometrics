@@ -7,6 +7,8 @@ import KPICards from './KPICards'
 import ChainForkVisualizer from './ChainForkVisualizer'
 import BlocktimeChart from './BlocktimeChart'
 import HashrateChart from './HashrateChart'
+import MempoolChart from './MempoolChart'
+import EmissionChart from './EmissionChart'
 import PoolsDistribution from './PoolsDistribution'
 import ReorgsStats from './ReorgsStats'
 import OrphansTable from './OrphansTable'
@@ -93,6 +95,11 @@ export default function App() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <HashrateChart />
         <BlocktimeChart />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <MempoolChart />
+        <EmissionChart />
       </div>
 
       <div className="mb-4">

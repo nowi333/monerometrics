@@ -90,10 +90,42 @@ class PoolShare(BaseModel):
 
 
 class PoolDistributionResponse(BaseModel):
-    """Reponse /pools/distribution : repartition pools."""
+    """Reponse /pools/distribution : repartition pools + indicateurs de centralisation."""
     window: str
     total_blocks: int
+    # Indicateurs de decentralisation (calcules sur les pools identifies, hors 'unknown').
+    top_pool: Optional[str] = None
+    top_pool_share: float = 0.0          # part (%) du plus gros pool identifie
+    nakamoto_coefficient: int = 0        # nb min de pools pour depasser 50% du total
     distribution: list[PoolShare]
+
+
+class MempoolPoint(BaseModel):
+    """Point de la serie mempool (moyenne sur le bucket)."""
+    bucket: datetime
+    tx_count: int
+
+
+class MempoolResponse(BaseModel):
+    """Reponse /network/mempool : evolution du nombre de tx en attente."""
+    window: str
+    bucket_size: str
+    current: int
+    points: list[MempoolPoint]
+
+
+class EmissionPoint(BaseModel):
+    """Point de la serie emission (recompense moyenne par bloc sur le bucket)."""
+    bucket: datetime
+    avg_reward_xmr: str  # numeric -> str
+    blocks: int
+
+
+class EmissionResponse(BaseModel):
+    """Reponse /network/emission : recompense de bloc dans le temps (tail emission)."""
+    window: str
+    bucket_size: str
+    points: list[EmissionPoint]
 
 
 class OrphanBlock(BaseModel):
