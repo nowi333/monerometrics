@@ -185,6 +185,50 @@ read-only from the API's point of view:
 The orphan/canonical split is what powers the dashboard's chain-fork visualizer and the
 `/orphans/recent` and `/reorgs/stats` endpoints.
 
+## API reference
+
+The API ([`apps/api/`](apps/api/)) is **read-only** and returns JSON. It is built with FastAPI,
+so an interactive OpenAPI schema is served at
+[`api.monerometrics.net/docs`](https://api.monerometrics.net/docs) (raw schema at `/openapi.json`).
+Responses for the heavy aggregations are cached (~60 s) and every IP is rate-limited
+(120 requests/minute by default); CORS is open for `GET` so the API can be consumed from
+anywhere. No key, no account, no tracking.
+
+`window` accepts `1h`, `24h`, `7d`, `30d`, `90d`, `1y`, `5y` unless noted otherwise.
+
+**Service**
+
+| Endpoint | Description |
+|---|---|
+| `GET /health` | Liveness + database connectivity check. |
+| `GET /info` | Global metadata: API version, latest indexed height, total blocks, orphans, reorgs. |
+
+**Network**
+
+| Endpoint | Description |
+|---|---|
+| `GET /network/info` | Current state: sync status, mempool size, difficulty, estimated hashrate (live from the node). |
+| `GET /network/hashrate?window=` | Historical network hashrate (difficulty / 120 s), bucketed by the window. |
+| `GET /network/blocktime?window=` | Variance of the time between consecutive canonical blocks (target 120 s). `window` = `1h\|24h\|7d\|30d`. |
+| `GET /network/mempool?window=` | Mempool size (pending transactions) over time, sampled each worker poll. |
+| `GET /network/emission?window=` | Average block reward over time — Monero tail emission (~0.6 XMR/block). `window` excludes `1h`. |
+
+**Chain & reorgs**
+
+| Endpoint | Description |
+|---|---|
+| `GET /chain/window?from=&to=` | Raw block window between two heights (max 1000 blocks). |
+| `GET /chain/fork-window?limit=` | Latest N blocks including orphans, with fork-point flags (powers the chain visualizer). `limit` = 10..500. |
+| `GET /reorgs?limit=` | Most recent detected reorganizations. `limit` = 1..1000. |
+| `GET /reorgs/stats` | Reorg statistics aggregated over 24h / 7d / 30d (count, avg/max depth, affected tx). |
+| `GET /orphans/recent?limit=` | Recent orphan blocks with their competing canonical block. `limit` = 1..500. |
+
+**Mining pools**
+
+| Endpoint | Description |
+|---|---|
+| `GET /pools/distribution?window=` | Block share per pool over the window, plus decentralization metrics: largest-pool share and **Nakamoto coefficient**. `window` = `1h\|6h\|24h\|48h\|7d`. |
+
 ## Repository layout
 
 ```
