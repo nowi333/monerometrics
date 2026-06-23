@@ -58,6 +58,11 @@ POOL_FETCH_LIMIT = int(os.getenv("POOL_FETCH_LIMIT", "10000"))
 METRICS_PORT = int(os.getenv("METRICS_PORT", "9100"))
 HEARTBEAT_FILE = os.getenv("HEARTBEAT_FILE", "/tmp/worker-heartbeat")
 
+# Retention des instantanes mempool (un par poll). Purge periodique pour borner
+# la croissance de la table.
+MEMPOOL_RETENTION_DAYS = int(os.getenv("MEMPOOL_RETENTION_DAYS", "90"))
+MEMPOOL_PRUNE_INTERVAL = int(os.getenv("MEMPOOL_PRUNE_INTERVAL", "3600"))  # 1h
+
 ATOMIC_UNITS = Decimal(10) ** 12  # 1 XMR = 1e12 unites atomiques
 
 # === Logging stdout pour kubectl logs ===
@@ -203,6 +208,25 @@ def record_mempool(conn: psycopg.Connection, info: dict) -> None:
     M_MEMPOOL.set(tx_count)
     with conn.cursor() as cur:
         cur.execute("INSERT INTO mempool_snapshots (tx_count) VALUES (%s)", (tx_count,))
+
+
+_mempool_last_prune = 0.0
+
+
+def maybe_prune_mempool(conn: psycopg.Connection) -> None:
+    """Purge les instantanes mempool plus vieux que la retention (au plus 1x/heure)."""
+    global _mempool_last_prune
+    if time.time() - _mempool_last_prune < MEMPOOL_PRUNE_INTERVAL:
+        return
+    with conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM mempool_snapshots "
+            "WHERE observed_at < NOW() - make_interval(days => %s)",
+            (MEMPOOL_RETENTION_DAYS,),
+        )
+        if cur.rowcount:
+            log.info(f"Pruned {cur.rowcount} mempool snapshots (> {MEMPOOL_RETENTION_DAYS}d)")
+    _mempool_last_prune = time.time()
 
 
 def _difficulty_of(header: dict) -> int:
@@ -453,8 +477,9 @@ def index_loop() -> None:
                     continue
 
                 with psycopg.connect(DATABASE_URL, autocommit=False) as conn:
-                    # 1. Instantane du mempool (serie temporelle)
+                    # 1. Instantane du mempool (serie temporelle) + purge periodique
                     record_mempool(conn, info)
+                    maybe_prune_mempool(conn)
                     # 2. Detecter d'abord les reorgs sur les blocs deja indexes
                     rescan_confirmation_window(http_client, conn, top)
                     # 3. Puis indexer les blocs nouveaux

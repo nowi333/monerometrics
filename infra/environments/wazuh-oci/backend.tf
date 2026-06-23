@@ -1,13 +1,6 @@
 # backend.tf
-# State distant sur Azure Blob (meme storage account que l infra Azure,
-# cle dediee wazuh-oci.tfstate). Coherence : tous les states au meme endroit,
-# chiffres et versionnes. Le state OCI reste logiquement isole par sa cle.
+# State local pour cet environnement (le backend Azure Blob historique a ete
+# retire lors de la migration hors d'Azure). Le fichier terraform.tfstate est
+# gitignore. Cible production : backend distant chiffre (ex. S3-compatible OCI).
 
-terraform {
-  backend "azurerm" {
-    resource_group_name  = "rg-monerometrics-tfstate"
-    storage_account_name = "stmonerometricstfdezfto"
-    container_name       = "tfstate"
-    key                  = "wazuh-oci.tfstate"
-  }
-}
+# (Aucun bloc backend => Terraform utilise le state local par defaut.)
