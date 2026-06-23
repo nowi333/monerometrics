@@ -19,6 +19,14 @@ spec:
     metadata:
       labels:
         app: postgres
+      annotations:
+        # Mot de passe injecte par OpenBao (source unique de verite des secrets).
+        # Le template ecrit UNIQUEMENT le mot de passe brut, lu via POSTGRES_PASSWORD_FILE.
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "monerometrics-postgres"
+        vault.hashicorp.com/agent-inject-secret-pg-password: "secret/data/postgres/credentials"
+        vault.hashicorp.com/agent-inject-template-pg-password: |
+          {{- with secret "secret/data/postgres/credentials" -}}{{ .Data.data.POSTGRES_PASSWORD }}{{- end }}
     spec:
       containers:
         - name: postgres
@@ -26,10 +34,14 @@ spec:
           ports:
             - containerPort: 5432
               name: postgres
-          envFrom:
-            - secretRef:
-                name: postgres-credentials
           env:
+            # USER/DB ne sont pas des secrets -> env simple. Le password vient d'OpenBao.
+            - name: POSTGRES_USER
+              value: monerometrics
+            - name: POSTGRES_DB
+              value: monerometrics
+            - name: POSTGRES_PASSWORD_FILE
+              value: /vault/secrets/pg-password
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           volumeMounts:

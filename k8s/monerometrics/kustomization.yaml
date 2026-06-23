@@ -8,7 +8,6 @@ namespace: monerometrics
 
 resources:
   - 00-namespace.yaml
-  - 10-secret-postgres.yaml
   - 20-configmap-postgres-init.yaml
   - 20-configmap-monerod.yaml
   - 30-pvc-postgres.yaml

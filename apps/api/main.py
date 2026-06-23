@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="monerometrics API",
     description="API publique lecture seule sur l'indexation Monero",
-    version="0.3.7",
+    version="0.3.8",
     lifespan=lifespan,
 )
 
@@ -441,8 +441,14 @@ async def network_info():
     # Mempool count : tx_pool_size depuis get_info (RPC get_transaction_pool_stats indispo sur ce noeud)
     mempool_count = int(info.get("tx_pool_size", 0) or 0)
 
-    # Calcul hashrate : difficulty / target_block_time (120s pour Monero)
-    difficulty = int(info.get("difficulty", 0))
+    # Difficulte exacte via wide_difficulty (hex), comme le worker : evite la
+    # perte de precision de l'entier JSON `difficulty` au-dela de 2^53.
+    wide = info.get("wide_difficulty")
+    try:
+        difficulty = int(str(wide), 16) if wide else int(info.get("difficulty", 0) or 0)
+    except (ValueError, TypeError):
+        difficulty = int(info.get("difficulty", 0) or 0)
+    # Hashrate estime : difficulty / target_block_time (120s pour Monero)
     hashrate = difficulty // 120 if difficulty else None
 
     height = info.get("height", 0)

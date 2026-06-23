@@ -36,6 +36,18 @@ spec:
           labels:
             app: monerometrics-backup
             component: pra
+          annotations:
+            # Creds PostgreSQL injectees par OpenBao (source unique), sourcees
+            # dans le script ci-dessous (format export KEY="value").
+            vault.hashicorp.com/agent-inject: "true"
+            vault.hashicorp.com/role: "monerometrics-backup"
+            vault.hashicorp.com/agent-inject-secret-postgres-credentials: "secret/data/postgres/credentials"
+            vault.hashicorp.com/agent-inject-template-postgres-credentials: |
+              {{- with secret "secret/data/postgres/credentials" -}}
+              export POSTGRES_USER="{{ .Data.data.POSTGRES_USER }}"
+              export POSTGRES_PASSWORD="{{ .Data.data.POSTGRES_PASSWORD }}"
+              export POSTGRES_DB="{{ .Data.data.POSTGRES_DB }}"
+              {{- end }}
         spec:
           serviceAccountName: backup-operator
           restartPolicy: Never
@@ -43,22 +55,6 @@ spec:
             - name: backup
               image: debian:stable-slim
               env:
-                # Creds PostgreSQL (depuis le Secret existant)
-                - name: POSTGRES_USER
-                  valueFrom:
-                    secretKeyRef:
-                      name: postgres-credentials
-                      key: POSTGRES_USER
-                - name: POSTGRES_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: postgres-credentials
-                      key: POSTGRES_PASSWORD
-                - name: POSTGRES_DB
-                  valueFrom:
-                    secretKeyRef:
-                      name: postgres-credentials
-                      key: POSTGRES_DB
                 # Creds Restic / OCI S3 (depuis le Secret restic-backup-creds)
                 - name: RESTIC_REPOSITORY
                   valueFrom:
@@ -90,6 +86,8 @@ spec:
                 - -c
                 - |
                   set -euo pipefail
+                  # Charge les creds PostgreSQL injectees par OpenBao
+                  source /vault/secrets/postgres-credentials
                   echo "[$(date -u +%H:%M:%S)] Installation des outils..."
                   export DEBIAN_FRONTEND=noninteractive
                   apt-get update -qq

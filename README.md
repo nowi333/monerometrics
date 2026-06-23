@@ -267,6 +267,18 @@ kubectl apply -k k8s/monerometrics/
 Server sizing, datacenter and the data-volume size are Terraform variables
 (see [`infra/environments/poc/terraform.tfvars.example`](infra/environments/poc/terraform.tfvars.example)).
 
+**Secrets are managed by OpenBao only** — there is no plaintext credential in the cluster
+manifests. Seed the database credentials once, and every consumer (PostgreSQL, worker, API,
+backup) reads them from there:
+
+```bash
+bao kv put secret/postgres/credentials \
+  POSTGRES_USER=monerometrics POSTGRES_DB=monerometrics POSTGRES_PASSWORD='<strong-password>'
+```
+
+The OpenBao Kubernetes auth roles `monerometrics-postgres`, `monerometrics-worker`,
+`monerometrics-api` and `monerometrics-backup` must each be allowed to read that path.
+
 ## Local development (dashboard)
 
 ```bash
