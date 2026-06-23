@@ -125,7 +125,7 @@ i18n
 
           // Footer
           'footer.apiLink': 'Public API',
-          'footer.refresh': 'Data refreshed every 30 seconds',
+          'footer.refresh': 'Live · data refreshed every 30s',
           'footer.xSoon': 'X — coming soon',
 
           // Documentation
@@ -289,7 +289,7 @@ i18n
 
           // Footer
           'footer.apiLink': 'API publique',
-          'footer.refresh': 'Donnees mises a jour toutes les 30 secondes',
+          'footer.refresh': 'En direct · donnees mises a jour toutes les 30 s',
           'footer.xSoon': 'X — bientot',
 
           // Documentation
@@ -454,7 +454,7 @@ i18n
 
           // Footer
           'footer.apiLink': 'API publica',
-          'footer.refresh': 'Datos actualizados cada 30 segundos',
+          'footer.refresh': 'En vivo · datos actualizados cada 30 s',
           'footer.xSoon': 'X — proximamente',
 
           // Documentation
