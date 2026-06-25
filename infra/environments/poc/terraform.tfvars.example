@@ -16,7 +16,7 @@ bastion_ssh_public_key = "ssh-ed25519 AAAA... admin@monerometrics"
 # location = "nbg1"
 
 # Types de serveurs (optionnel — gamme x86 cx*/cpx*).
-# bastion_server_type  = "cx22"
-# edge_server_type     = "cx22"
-# k3s_server_type      = "cx32"
+# bastion_server_type  = "cx23"
+# edge_server_type     = "cx23"
+# k3s_server_type      = "cx33"
 # k3s_data_volume_size = 128

@@ -28,19 +28,19 @@ variable "network_zone" {
 variable "bastion_server_type" {
   description = "Type du bastion (faible charge)."
   type        = string
-  default     = "cx22" # 2 vCPU / 4 Go
+  default     = "cx23" # 2 vCPU / 4 Go
 }
 
 variable "edge_server_type" {
   description = "Type de l'edge (nginx + WAF + dashboard statique)."
   type        = string
-  default     = "cx22" # 2 vCPU / 4 Go
+  default     = "cx23" # 2 vCPU / 4 Go
 }
 
 variable "k3s_server_type" {
   description = "Type du noeud k3s (monerod + worker + PostgreSQL + API). 4 vCPU / 8 Go conseilles."
   type        = string
-  default     = "cx32" # 4 vCPU / 8 Go (equivalent x86 du dimensionnement cible)
+  default     = "cx33" # 4 vCPU / 8 Go (equivalent x86 du dimensionnement cible)
 }
 
 variable "k3s_data_volume_size" {

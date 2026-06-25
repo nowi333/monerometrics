@@ -24,7 +24,7 @@ variable "location" {
 variable "server_type" {
   description = "Type de serveur Hetzner. Rester sur une gamme x86 (cx*, cpx*) pour la compatibilite des images Docker amd64."
   type        = string
-  default     = "cx22"
+  default     = "cx23"
 }
 
 variable "image" {
