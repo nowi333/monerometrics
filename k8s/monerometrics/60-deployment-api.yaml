@@ -20,7 +20,7 @@ spec:
       annotations:
         # OpenBao injector : sidecar vault-agent qui ecrit /vault/secrets/*
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "monerometrics-worker"
+        vault.hashicorp.com/role: "monerometrics-api"
         vault.hashicorp.com/agent-inject-secret-postgres-credentials: "secret/data/postgres/credentials"
         vault.hashicorp.com/agent-inject-template-postgres-credentials: |
           {{- with secret "secret/data/postgres/credentials" -}}
