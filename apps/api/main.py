@@ -59,27 +59,38 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="monerometrics API",
     description="API publique lecture seule sur l'indexation Monero",
-    version="0.3.8",
+    version="0.3.9",
     lifespan=lifespan,
 )
 
 # === Rate limiting (sliding window par IP, en memoire) ===
-# Defense en profondeur en plus de Cloudflare. L'IP reelle est lue dans
-# X-Forwarded-For (1re entree), pose par Cloudflare/edge nginx. Enregistre
-# AVANT CORS pour que CORS reste la couche externe (en-tetes sur les 429).
+# Defense en profondeur en plus de Cloudflare. Enregistre AVANT CORS pour que
+# CORS reste la couche externe (en-tetes sur les 429).
+#
+# Identification du client : on ne lit JAMAIS la premiere entree de
+# X-Forwarded-For (forgeable par le client, ce qui permettrait de changer de
+# bucket a chaque requete et de contourner la limite). Ordre de confiance :
+#   1. CF-Connecting-IP : pose par Cloudflare (IP client reelle) ;
+#   2. X-Real-IP        : ecrase par notre edge nginx ($remote_addr) ;
+#   3. IP de la socket  : dernier recours.
 RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "120"))
 _rate_buckets: dict[str, deque] = defaultdict(deque)
 _rate_last_sweep = 0.0
+
+
+def _client_ip(request: Request) -> str:
+    for header in ("cf-connecting-ip", "x-real-ip"):
+        value = request.headers.get(header, "").strip()
+        if value:
+            return value
+    return request.client.host if request.client else "unknown"
 
 
 @app.middleware("http")
 async def rate_limit(request: Request, call_next):
     global _rate_last_sweep
     now = time.time()
-    xff = request.headers.get("x-forwarded-for", "")
-    client_ip = xff.split(",")[0].strip() if xff else (
-        request.client.host if request.client else "unknown"
-    )
+    client_ip = _client_ip(request)
 
     bucket = _rate_buckets[client_ip]
     while bucket and now - bucket[0] > 60:

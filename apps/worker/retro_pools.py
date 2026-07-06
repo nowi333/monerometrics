@@ -70,11 +70,7 @@ def main():
                 print(f"  {pool}: {n}")
 
 
+# Note : plus de sidecar vault-agent a arreter ici. Le CronJob utilise
+# l'annotation agent-pre-populate-only (agent en init-container uniquement).
 if __name__ == "__main__":
     main()
-
-    # Arret du sidecar vault-agent (sinon le Job ne se termine jamais).
-    try:
-        httpx.post("http://127.0.0.1:8200/agent/v1/quit", timeout=5)
-    except Exception:
-        pass
