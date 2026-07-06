@@ -21,6 +21,9 @@ spec:
         metadata:
           annotations:
             vault.hashicorp.com/agent-inject: "true"
+            # Job : agent vault en init-container uniquement (voir 71-backup-cronjob).
+            # Remplace le hack "quit du sidecar" en fin de retro_pools.py.
+            vault.hashicorp.com/agent-pre-populate-only: "true"
             vault.hashicorp.com/role: "monerometrics-worker"
             vault.hashicorp.com/agent-inject-secret-postgres-credentials: "secret/data/postgres/credentials"
             vault.hashicorp.com/agent-inject-template-postgres-credentials: |
