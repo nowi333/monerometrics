@@ -37,6 +37,9 @@ spec:
         - name: api
           image: ghcr.io/nowi333/monerometrics-api:0.3.9
           imagePullPolicy: IfNotPresent
+          # Process uvicorn unique : sur un seul vCPU limite, le mode multi-worker
+          # sature le quota CPU en boucle de spawn. Un worker suffit pour ce trafic.
+          command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
           # Credentials Postgres lus depuis /vault/secrets/postgres-credentials (OpenBao)
           env:
             - name: POSTGRES_HOST
@@ -52,7 +55,7 @@ spec:
               cpu: 100m
               memory: 256Mi
             limits:
-              cpu: 200m
+              cpu: 500m
               memory: 512Mi
           livenessProbe:
             httpGet:
