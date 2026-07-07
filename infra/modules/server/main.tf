@@ -22,6 +22,12 @@ resource "hcloud_server" "this" {
   ssh_keys    = var.ssh_keys
   labels      = local.labels
 
+  # cloud-init : cree l'utilisateur admin non-root (cible Ansible).
+  user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
+    admin_username       = var.admin_username
+    admin_ssh_public_key = var.admin_ssh_public_key
+  })
+
   public_net {
     ipv4_enabled = var.public_ipv4_enabled
     ipv6_enabled = var.public_ipv6_enabled

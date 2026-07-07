@@ -34,8 +34,19 @@ variable "image" {
 }
 
 variable "ssh_keys" {
-  description = "Liste des noms (ou IDs) de cles SSH Hetzner a injecter au boot."
+  description = "Liste des noms (ou IDs) de cles SSH Hetzner a injecter au boot (sur root)."
   type        = list(string)
+}
+
+variable "admin_username" {
+  description = "Utilisateur d'administration non-root cree par cloud-init (cible Ansible)."
+  type        = string
+  default     = "noe"
+}
+
+variable "admin_ssh_public_key" {
+  description = "Cle publique SSH (contenu OpenSSH) autorisee pour l'utilisateur admin."
+  type        = string
 }
 
 variable "network_id" {

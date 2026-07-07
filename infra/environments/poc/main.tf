@@ -48,15 +48,16 @@ module "network" {
 module "bastion" {
   source = "../../modules/server"
 
-  project     = local.project
-  environment = local.environment
-  role        = "bastion"
-  location    = var.location
-  server_type = var.bastion_server_type
-  ssh_keys    = [hcloud_ssh_key.admin.name]
-  network_id  = module.network.network_id
-  private_ip  = local.bastion_private_ip
-  labels      = local.labels
+  project              = local.project
+  environment          = local.environment
+  role                 = "bastion"
+  location             = var.location
+  server_type          = var.bastion_server_type
+  ssh_keys             = [hcloud_ssh_key.admin.name]
+  admin_ssh_public_key = var.bastion_ssh_public_key
+  network_id           = module.network.network_id
+  private_ip           = local.bastion_private_ip
+  labels               = local.labels
 }
 
 # ============================================================
@@ -65,15 +66,16 @@ module "bastion" {
 module "edge" {
   source = "../../modules/server"
 
-  project     = local.project
-  environment = local.environment
-  role        = "edge"
-  location    = var.location
-  server_type = var.edge_server_type
-  ssh_keys    = [hcloud_ssh_key.admin.name]
-  network_id  = module.network.network_id
-  private_ip  = local.edge_private_ip
-  labels      = local.labels
+  project              = local.project
+  environment          = local.environment
+  role                 = "edge"
+  location             = var.location
+  server_type          = var.edge_server_type
+  ssh_keys             = [hcloud_ssh_key.admin.name]
+  admin_ssh_public_key = var.bastion_ssh_public_key
+  network_id           = module.network.network_id
+  private_ip           = local.edge_private_ip
+  labels               = local.labels
 }
 
 # ============================================================
@@ -83,16 +85,17 @@ module "edge" {
 module "k3s" {
   source = "../../modules/server"
 
-  project          = local.project
-  environment      = local.environment
-  role             = "k3s"
-  location         = var.location
-  server_type      = var.k3s_server_type
-  ssh_keys         = [hcloud_ssh_key.admin.name]
-  network_id       = module.network.network_id
-  private_ip       = local.k3s_private_ip
-  data_volume_size = var.k3s_data_volume_size
-  labels           = local.labels
+  project              = local.project
+  environment          = local.environment
+  role                 = "k3s"
+  location             = var.location
+  server_type          = var.k3s_server_type
+  ssh_keys             = [hcloud_ssh_key.admin.name]
+  admin_ssh_public_key = var.bastion_ssh_public_key
+  network_id           = module.network.network_id
+  private_ip           = local.k3s_private_ip
+  data_volume_size     = var.k3s_data_volume_size
+  labels               = local.labels
 }
 
 # ============================================================

@@ -1,0 +1,11 @@
+#cloud-config
+# Cree l'utilisateur d'administration (sudo sans mot de passe pour Ansible),
+# avec la cle SSH admin. Hetzner injecte deja la cle sur root ; cet utilisateur
+# non-root est la cible d'Ansible (ansible_user).
+users:
+  - name: ${admin_username}
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    ssh_authorized_keys:
+      - ${admin_ssh_public_key}
