@@ -13,6 +13,7 @@ import PoolsDistribution from './PoolsDistribution'
 import ReorgsStats from './ReorgsStats'
 import OrphansTable from './OrphansTable'
 import Donation from './Donation'
+import BuildNotice from './BuildNotice'
 
 // La page Documentation n'est affichee qu'a la demande : on la charge
 // en lazy pour la sortir du bundle initial du dashboard.
@@ -40,6 +41,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen p-3 sm:p-6 max-w-6xl mx-auto">
+      <BuildNotice />
       <header
         className="mb-8 flex flex-wrap items-center justify-between pb-4 border-b gap-3"
         style={{ borderColor: 'var(--color-border)' }}

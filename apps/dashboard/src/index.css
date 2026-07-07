@@ -91,3 +91,13 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-dim);
 }
+
+/* === Animations popup "site en construction" === */
+@keyframes mmFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes mmPop {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
