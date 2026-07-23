@@ -1,0 +1,12 @@
+---
+
+k3s_version: "v1.34.8+k3s1"
+
+k3s_role: "server"
+
+k3s_server_args:
+  - "--write-kubeconfig-mode=644"
+  - "--tls-san={{ ansible_default_ipv4.address }}"
+  - "--node-name={{ inventory_hostname }}"
+
+k3s_token_file: "/var/lib/rancher/k3s/server/node-token"

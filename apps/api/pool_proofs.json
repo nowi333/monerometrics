@@ -1,0 +1,22 @@
+{
+  "hashvault.pro": {
+    "address": "43MadZ2x3FNiaCAMMrWkHLcSjC5v2QGcs5oZJDqXwyA6VQ454AASYihRbAtznDXS9C1eDhvmAu6u6WCdjxXKY4QUL8H5tYD",
+    "viewkey": "9fefce4d3f4a91b90f78aadb608fec20b01ca6f303cdc44f837c86ec60ff220e"
+  },
+  "ownblock.xyz": {
+    "address": "42n8gMGBrgc5UzcDTvtXBtYFfxkUfBGzKN5cMLCPzNJPgLdtbXhDBr3NJCxK9NMHF3BwHfJERS6NsStdyPypxMms2SCPGqo",
+    "viewkey": "940d3bbd1f111924209a7e7ce85b37b4b66bf40afa86e8940e19b25a87aaa709"
+  },
+  "xmrpool.eu": {
+    "address": "42j5RuCKprvdFuttzfoowP39GnVud3rAY8K5n1F4rzpwNugfuMqbi6VgFMmpCgsuX7EZ3NVKDPPXwWidiqNJDVs6J7TuA3g",
+    "viewkey": "b92a108ec4c62027a41d0a1a134465f174aec5edb96ddcfce1d2ba149b1ecf0f"
+  },
+  "moneroocean.stream": {
+    "address": "48VGGDaFWeedcSGkJ1Ww3eUnMxzGCgoMwV6ZS5enen9u1PjoWduKxszcy81zLCvoDEUmeBoGXu2adEqWV1Z6aGGHECnymR6",
+    "viewkey": "2f7c00584635ec0b51f0b40b92f1f4bdbc35c88ac5cfe8a4de86b40a56949f08"
+  },
+  "supportxmr.com": {
+    "address": "467Z6kX12fcVDh3SxW32jF9f144Mh5pKE8ccedhTFSSXDHxWR7HxBnxaVzMbPwwv5fNF5LzWNmoSRVVdij4qukNFPyWbxbR",
+    "viewkey": "a07967443dd18cdf991cafd8d6dfb0d5f35cd7da7d31d577f778ed3b2b2e9d08"
+  }
+}

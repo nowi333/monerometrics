@@ -1,0 +1,37 @@
+# monerometrics
+
+> A free, reorg-aware observatory of the Monero (XMR) network. It measures chain
+> reorganizations, orphan blocks, network hashrate, block time, mempool state and
+> mining-pool centralization, and serves everything through a public read-only API.
+
+monerometrics runs its own Monero node, indexes every block as it arrives, and
+detects chain reorganizations by re-checking a rolling window of recent blocks
+against the node. Mining-pool attribution is verified on-chain by block-hash match
+against the pools' own public block lists, never inferred from a pool's
+self-reported hashrate. Blocks matching no known pool are reported as `unknown`
+rather than guessed.
+
+No account, no API key, no rate-limit tiers, no tracking, no ads.
+
+## API
+
+- [OpenAPI schema](https://api.monerometrics.net/openapi.json): full machine-readable API description
+- [Health](https://api.monerometrics.net/health): service liveness
+- [Network info](https://api.monerometrics.net/network/info): height, difficulty, hashrate, mempool
+- [Network hashrate](https://api.monerometrics.net/network/hashrate): time series, window=1h|24h|7d|30d|90d|1y|5y
+- [Block time](https://api.monerometrics.net/network/blocktime): block-time variance time series
+- [Mempool](https://api.monerometrics.net/network/mempool): mempool size time series
+- [Emission](https://api.monerometrics.net/network/emission): block reward time series
+- [Reorgs](https://api.monerometrics.net/reorgs): detected chain reorganizations
+- [Reorg stats](https://api.monerometrics.net/reorgs/stats): reorg counts, depth, affected transactions
+- [Recent orphans](https://api.monerometrics.net/orphans/recent): recent orphan blocks
+- [Chain window](https://api.monerometrics.net/chain/window): canonical blocks in a height range
+- [Fork window](https://api.monerometrics.net/chain/fork-window): canonical chain plus competing orphan blocks
+- [Pool distribution](https://api.monerometrics.net/pools/distribution): mining-pool shares, largest-pool share, Nakamoto coefficient
+- [Pool sources](https://api.monerometrics.net/pools/sources): reachability of each pool API used for attribution
+
+## More
+
+- [Dashboard](https://monerometrics.net/): charts, chain fork visualizer, documentation
+- [Source code](https://github.com/nowi333/monerometrics): infrastructure and application code
+- Tor hidden service: 6wbhchvavey26lbtscl6w6qg76balycixtsklcggrsslyk4xah6sbbad.onion

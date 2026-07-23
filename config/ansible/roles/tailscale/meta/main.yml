@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  role_name: tailscale
+  author: nowi333
+  description: Install Tailscale and join tailnet on Ubuntu 24.04
+  license: MIT
+  min_ansible_version: "2.18"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+
+dependencies: []

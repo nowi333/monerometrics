@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: k3s
+  author: nowi333
+  description: Install k3s single-node Kubernetes cluster on Ubuntu 24.04
+  license: MIT
+  min_ansible_version: "2.18"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+
+dependencies:
+  - role: common

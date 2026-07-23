@@ -1,0 +1,14 @@
+
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1 10.0.0.0/16 100.64.0.0/10
+backend = systemd
+banaction = ufw
+banaction_allports = ufw
+
+[sshd]
+enabled = true
+port = {{ common_ssh_port }}
+filter = sshd
+maxretry = {{ common_fail2ban_ssh_maxretry }}
+findtime = {{ common_fail2ban_ssh_findtime }}
+bantime = {{ common_fail2ban_ssh_bantime }}

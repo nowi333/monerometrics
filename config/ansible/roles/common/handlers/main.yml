@@ -1,0 +1,29 @@
+---
+
+- name: Restart sshd
+  ansible.builtin.systemd:
+    name: ssh
+    state: restarted
+  become: true
+
+- name: Restart fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: restarted
+  become: true
+
+- name: Restart auditd
+  ansible.builtin.systemd:
+    name: auditd
+    state: restarted
+  become: true
+
+- name: Apply sysctl
+  ansible.builtin.command:
+    cmd: sysctl --system
+  become: true
+  changed_when: true
+
+- name: Apply sysctl --system
+  ansible.builtin.command: sysctl --system
+  become: true

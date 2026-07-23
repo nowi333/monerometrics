@@ -1,0 +1,20 @@
+---
+
+letsencrypt_domain: "monerometrics.net"
+letsencrypt_email: "{{ lookup('env', 'LETSENCRYPT_EMAIL') | default('hostmaster@monerometrics.net', true) }}"
+letsencrypt_use_staging: false
+
+letsencrypt_san_domains:
+  - "monerometrics.net"
+  - "*.monerometrics.net"
+
+letsencrypt_cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
+
+letsencrypt_credentials_file: "/root/.secrets/cloudflare.ini"
+letsencrypt_cert_dir: "/etc/letsencrypt/live/{{ letsencrypt_domain }}"
+
+letsencrypt_api_upstream: "http://10.0.0.30:80"
+
+letsencrypt_http2_enabled: true
+
+letsencrypt_cloudflare_only: true

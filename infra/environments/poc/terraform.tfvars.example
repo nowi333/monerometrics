@@ -1,0 +1,4 @@
+
+admin_source_ip = "X.X.X.X/32"
+
+bastion_ssh_public_key = "ssh-ed25519 AAAA... admin@monerometrics"

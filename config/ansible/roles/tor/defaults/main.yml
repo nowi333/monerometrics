@@ -1,0 +1,9 @@
+---
+
+tor_enabled: true
+
+tor_hidden_service_dir: "/var/lib/tor/monerometrics"
+
+tor_onion_backend_port: 8080
+
+tor_nginx_site: "monerometrics-onion.conf"

@@ -1,0 +1,77 @@
+
+global:
+  enabled: true
+  tlsDisable: true
+
+server:
+  image:
+    repository: "openbao/openbao"
+    tag: "2.5.0"
+
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        tls_disable = 1
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+      }
+
+      storage "raft" {
+        path = "/openbao/data"
+      }
+
+      service_registration "kubernetes" {}
+
+      audit "file" "to-stdout" {
+        options {
+          file_path = "/dev/stdout"
+        }
+      }
+
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 8200
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    storageClass: local-path
+    accessMode: ReadWriteOnce
+
+  serviceAccount:
+    create: true
+    name: openbao
+
+  readinessProbe:
+    enabled: true
+    path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
+
+ui:
+  enabled: true
+  serviceType: ClusterIP
+
+injector:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 30m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  agentImage:
+    repository: "openbao/openbao"
+    tag: "2.5.0"

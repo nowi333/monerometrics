@@ -1,0 +1,8 @@
+---
+
+profile: min
+
+exclude_paths:
+  - .cache/
+  - .github/
+  - infra/

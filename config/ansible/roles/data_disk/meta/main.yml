@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  role_name: data_disk
+  author: nowi333
+  description: Format and mount the Hetzner data volume for applicative data
+  license: MIT
+  min_ansible_version: "2.18"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+
+dependencies: []

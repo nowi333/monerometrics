@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monerometrics
+  labels:
+    app.kubernetes.io/managed-by: monerometrics
+    environment: poc

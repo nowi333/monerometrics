@@ -1,0 +1,31 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monerometrics
+
+resources:
+  - 00-namespace.yaml
+  - 20-configmap-postgres-init.yaml
+  - 20-configmap-monerod.yaml
+  - 30-pvc-postgres.yaml
+  - 30-pvc-monerod.yaml
+  - 40-service-postgres.yaml
+  - 40-service-monerod.yaml
+  - 45-networkpolicy-postgres.yaml
+  - 50-deployment-postgres.yaml
+  - 50-deployment-monerod.yaml
+  - 50-deployment-worker.yaml
+  - 52-podmonitor-worker.yaml
+  - 60-deployment-api.yaml
+  - 61-service-api.yaml
+  - 62-ingressroute-api.yaml
+  - 70-backup-rbac.yaml
+  - 71-backup-cronjob.yaml
+  - 72-retro-pools-cronjob.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: monerometrics
+      environment: poc
+    includeSelectors: false

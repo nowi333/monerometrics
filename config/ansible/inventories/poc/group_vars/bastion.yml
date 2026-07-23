@@ -1,0 +1,4 @@
+---
+
+tailscale_hostname: "monerometrics-bastion-poc"
+tailscale_tags: "tag:bastion,tag:poc"

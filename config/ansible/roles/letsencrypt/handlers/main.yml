@@ -1,0 +1,7 @@
+---
+
+- name: Reload nginx for cert update
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+  become: true

@@ -1,0 +1,25 @@
+#cloud-config
+
+hostname: ${hostname}
+preserve_hostname: false
+
+package_update: true
+
+packages:
+  - curl
+  - ca-certificates
+
+runcmd:
+  - useradd -m -s /bin/bash -G sudo nowi333
+  - echo "nowi333 ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-nowi333
+  - chmod 440 /etc/sudoers.d/90-nowi333
+  - mkdir -p /home/nowi333/.ssh
+  - cp /home/ubuntu/.ssh/authorized_keys /home/nowi333/.ssh/authorized_keys
+  - chown -R nowi333:nowi333 /home/nowi333/.ssh
+  - chmod 700 /home/nowi333/.ssh
+  - chmod 600 /home/nowi333/.ssh/authorized_keys
+  - curl -fsSL https://tailscale.com/install.sh | sh
+  - tailscale up --authkey=${tailscale_auth_key} --hostname=${hostname} --ssh
+  - echo "Cloud-init OK $$(date)" >> /var/log/cloud-init-monerometrics.log
+
+final_message: "monerometrics wazuh-oci : cloud-init OK"
