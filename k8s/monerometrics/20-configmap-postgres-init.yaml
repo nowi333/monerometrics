@@ -1,0 +1,60 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-sql
+  namespace: monerometrics
+data:
+  01-schema.sql: |
+    -- La cle primaire est le HASH (pas la hauteur) : c'est ce qui permet de
+    -- conserver plusieurs blocs a une meme hauteur (le canonique + ses orphelins
+    -- issus d'une reorganisation). Un index unique partiel garantit qu'il n'y a
+    -- qu'un seul bloc canonique par hauteur a tout instant.
+    CREATE TABLE IF NOT EXISTS blocks (
+        hash CHAR(64) PRIMARY KEY,
+        height BIGINT NOT NULL,
+        prev_hash CHAR(64) NOT NULL,
+        timestamp_unix BIGINT NOT NULL,
+        timestamp_human TIMESTAMP WITH TIME ZONE NOT NULL,
+        difficulty NUMERIC(40, 0) NOT NULL,
+        tx_count INTEGER NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        miner_address TEXT,
+        miner_pool TEXT,
+        reward_xmr NUMERIC(20, 12),
+        is_canonical BOOLEAN NOT NULL DEFAULT TRUE,
+        indexed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_blocks_height ON blocks(height);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_blocks_one_canonical_per_height
+        ON blocks(height) WHERE is_canonical;
+    CREATE INDEX IF NOT EXISTS idx_blocks_timestamp ON blocks(timestamp_unix);
+    -- Index partiel sur timestamp_human : sert les agregations de l'API filtrees
+    -- par fenetre temporelle sur les blocs canoniques (hashrate, temps de bloc,
+    -- distribution des pools). Indispensable avec un historique de plusieurs
+    -- millions de blocs (evite un parcours complet a chaque graphe).
+    CREATE INDEX IF NOT EXISTS idx_blocks_canonical_time
+        ON blocks(timestamp_human) WHERE is_canonical;
+    CREATE INDEX IF NOT EXISTS idx_blocks_orphans ON blocks(height) WHERE NOT is_canonical;
+
+    CREATE TABLE IF NOT EXISTS reorgs_detected (
+        id SERIAL PRIMARY KEY,
+        detected_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        fork_point_height BIGINT NOT NULL,
+        depth INTEGER NOT NULL,
+        old_chain_tip_hash CHAR(64) NOT NULL,
+        new_chain_tip_hash CHAR(64) NOT NULL,
+        affected_tx_count INTEGER,
+        notes TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_reorg_height ON reorgs_detected(fork_point_height);
+    CREATE INDEX IF NOT EXISTS idx_reorg_time ON reorgs_detected(detected_at);
+
+    -- Instantanes du mempool (un par poll du worker) : serie temporelle du
+    -- nombre de transactions en attente, exposee par /network/mempool.
+    CREATE TABLE IF NOT EXISTS mempool_snapshots (
+        id BIGSERIAL PRIMARY KEY,
+        observed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        tx_count INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_mempool_observed ON mempool_snapshots(observed_at);

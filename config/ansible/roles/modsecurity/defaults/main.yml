@@ -1,0 +1,18 @@
+---
+
+modsecurity_engine: "On"
+
+modsecurity_paranoia_level: 1
+
+modsecurity_inbound_anomaly_threshold: 5
+modsecurity_outbound_anomaly_threshold: 4
+
+modsecurity_crs_version: "v4.25.0"
+modsecurity_crs_repo: "https://github.com/coreruleset/coreruleset.git"
+modsecurity_crs_install_dir: "/etc/nginx/modsec/crs"
+
+modsecurity_audit_log_parts: "ABCFHZ"
+modsecurity_audit_log_type: "Serial"
+modsecurity_audit_log_file: "/var/log/modsec_audit.log"
+
+modsecurity_exclusions: []

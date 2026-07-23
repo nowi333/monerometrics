@@ -1,0 +1,281 @@
+@import "tailwindcss";
+
+/* ============================================================ */
+/* DESIGN SYSTEM monerometrics                                  */
+/* Theme dark par defaut + light via [data-theme="light"]       */
+/* ============================================================ */
+
+@theme {
+  --color-accent: #ff6600;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+
+/* === DARK THEME (par defaut) === */
+:root {
+  --color-bg: #0b0d12;
+  --color-bg-elevated: #161922;
+  --color-card: #11141b;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+  --color-text: #e6e8eb;
+  --color-text-secondary: #b4b8bf;
+  --color-dim: #8b9099;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-warn: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+  --color-purple: #a78bfa;
+  --color-cyan: #06b6d4;
+
+  /* Status pill colors */
+  --color-success-bg: rgba(34, 197, 94, 0.1);
+  --color-success-border: rgba(34, 197, 94, 0.3);
+  --color-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-warning-border: rgba(245, 158, 11, 0.3);
+  --color-danger-bg: rgba(239, 68, 68, 0.1);
+  --color-danger-border: rgba(239, 68, 68, 0.3);
+}
+
+/* === LIGHT THEME === */
+:root[data-theme="light"] {
+  --color-bg: #e8eaf0;
+  --color-bg-elevated: #f2f4f8;
+  --color-card: #ffffff;
+  --color-border: rgba(0, 0, 0, 0.14);
+  --color-border-strong: rgba(0, 0, 0, 0.26);
+  --color-text: #0a0c11;
+  --color-text-secondary: #23272f;
+  --color-dim: #525863;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-warn: #d97706;
+  --color-danger: #dc2626;
+  --color-info: #2563eb;
+  --color-purple: #7c3aed;
+  --color-cyan: #0891b2;
+
+  --color-success-bg: rgba(22, 163, 74, 0.1);
+  --color-success-border: rgba(22, 163, 74, 0.3);
+  --color-warning-bg: rgba(217, 119, 6, 0.1);
+  --color-warning-border: rgba(217, 119, 6, 0.3);
+  --color-danger-bg: rgba(220, 38, 38, 0.1);
+  --color-danger-border: rgba(220, 38, 38, 0.3);
+}
+
+/* === Base styles === */
+html, body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+/* Retire le chrome natif des boutons (iOS Safari dessinait son propre style
+   par-dessus nos boutons custom, d'ou un rendu incoherent sur iPhone). */
+button {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-dim);
+}
+
+/* === Animations popup "site en construction" === */
+@keyframes mmFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes mmPop {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* === Iridescence orange (bloc de don + bouton de don) === */
+@keyframes mmIridescent {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Halo orange qui respire autour de l'element (effet flashy). */
+@keyframes mmGlowPulse {
+  0%, 100% { box-shadow: 0 0 7px -2px color-mix(in srgb, var(--color-accent) 30%, transparent); }
+  50%      { box-shadow: 0 0 20px 1px color-mix(in srgb, var(--color-accent) 60%, transparent); }
+}
+
+/* Bordure iridescente animee : un anneau de degrade masque sur la seule
+   bordure (ne recouvre donc jamais le contenu) + halo pulse. */
+.mm-iridescent {
+  position: relative;
+  animation: mmGlowPulse 3.2s ease-in-out infinite;
+}
+.mm-iridescent::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    115deg,
+    #ff6600,
+    #ffc061,
+    #ff8c1a,
+    #ffe0a3,
+    #ff7a1a,
+    #ff6600
+  );
+  background-size: 300% 300%;
+  animation: mmIridescent 4.5s ease-in-out infinite;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 1;
+}
+
+/* Nappe de lumiere iridescente qui traverse la surface (a poser sur un
+   conteneur relative + overflow-hidden dont le contenu est au-dessus). */
+.mm-iridescent-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 26%,
+    color-mix(in srgb, var(--color-accent) 18%, transparent) 43%,
+    color-mix(in srgb, #ffd27a 26%, transparent) 52%,
+    color-mix(in srgb, var(--color-accent) 18%, transparent) 61%,
+    transparent 76%
+  );
+  background-size: 250% 250%;
+  animation: mmIridescent 6.5s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 1;
+}
+
+/* Respect de prefers-reduced-motion : on fige toutes les animations. */
+@media (prefers-reduced-motion: reduce) {
+  .mm-iridescent,
+  .mm-iridescent::after,
+  .mm-iridescent-glow::before {
+    animation: none;
+  }
+}
+
+/* === Skeletons (etats de chargement) === */
+@keyframes mmShimmer {
+  0%   { background-position: -160% 0; }
+  100% { background-position: 160% 0; }
+}
+.mm-skeleton {
+  border-radius: 6px;
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--color-text) 6%, transparent) 30%,
+    color-mix(in srgb, var(--color-text) 13%, transparent) 50%,
+    color-mix(in srgb, var(--color-text) 6%, transparent) 70%
+  );
+  background-size: 200% 100%;
+  animation: mmShimmer 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mm-skeleton { animation: none; }
+}
+
+/* === Indicateurs "live" === */
+/* Point qui respire : signale que les donnees sont fraiches (poll en cours). */
+@keyframes mmLivePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.82); }
+}
+.mm-live-dot { animation: mmLivePulse 1.8s ease-in-out infinite; }
+
+/* Halo qui s'estompe autour du point (anneau qui s'ouvre a chaque battement). */
+.mm-live-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  opacity: 0;
+  animation: mmLiveRing 1.8s ease-out infinite;
+}
+@keyframes mmLiveRing {
+  0%   { opacity: 0.5; transform: scale(0.6); }
+  70%  { opacity: 0; transform: scale(1.8); }
+  100% { opacity: 0; transform: scale(1.8); }
+}
+
+/* Flash bref quand une VRAIE valeur change (nouveau bloc, mempool...) : la
+   valeur monte en luminosite puis retombe. Declenche via un remount React
+   (key = valeur) -> l'animation rejoue a chaque changement, sans etat. */
+@keyframes mmValueFlash {
+  0%   { color: var(--color-accent); text-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 55%, transparent); }
+  100% { color: var(--color-text); text-shadow: none; }
+}
+.mm-flash { animation: mmValueFlash 0.9s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-live-dot, .mm-live-dot::after, .mm-flash { animation: none; }
+}
+
+/* Noeuds du schema infra : glow accent au survol (toutes les bulles). */
+.mm-node {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+.mm-node:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-border));
+  box-shadow: 0 0 22px -6px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  transform: translateY(-2px);
+}
+.mm-node-icon {
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  color: var(--color-text-secondary);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.mm-node:hover .mm-node-icon {
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  color: var(--color-accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mm-node, .mm-node-icon { transition: none; }
+  .mm-node:hover { transform: none; }
+}
+
+/* Curseur "main" sur tous les elements interactifs (les <button> HTML gardent
+   sinon le curseur fleche par defaut). */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+/* Options du selecteur de langue (survol + actif) */
+.mm-lang-opt { transition: background 0.15s ease; }
+.mm-lang-opt:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.mm-lang-opt.is-active { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }

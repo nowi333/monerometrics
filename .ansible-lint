@@ -1,0 +1,9 @@
+---
+# Configuration ansible-lint pour monerometrics
+
+profile: min
+
+exclude_paths:
+  - .cache/
+  - .github/
+  - infra/

@@ -1,0 +1,13 @@
+---
+
+- name: Restart tor
+  ansible.builtin.systemd:
+    name: tor@default
+    state: restarted
+  become: true
+
+- name: Reload nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+  become: true

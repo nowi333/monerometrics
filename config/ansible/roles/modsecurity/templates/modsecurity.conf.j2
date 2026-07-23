@@ -1,0 +1,30 @@
+
+SecRuleEngine {{ modsecurity_engine }}
+
+SecRequestBodyAccess On
+SecRequestBodyLimit 13107200
+SecRequestBodyNoFilesLimit 131072
+SecRequestBodyLimitAction Reject
+
+SecResponseBodyAccess On
+SecResponseBodyMimeType text/plain text/html text/xml application/json
+SecResponseBodyLimit 524288
+SecResponseBodyLimitAction ProcessPartial
+
+SecTmpDir /tmp/
+SecDataDir /tmp/
+SecTmpSaveUploadedFiles Off
+
+SecAuditEngine RelevantOnly
+SecAuditLogRelevantStatus "^(?:5|4(?!04))"
+SecAuditLogParts {{ modsecurity_audit_log_parts }}
+SecAuditLogType {{ modsecurity_audit_log_type }}
+SecAuditLog {{ modsecurity_audit_log_file }}
+
+SecDebugLog /var/log/modsec_debug.log
+SecDebugLogLevel 0
+
+SecUnicodeMapFile unicode.mapping 20127
+
+SecDefaultAction "phase:1,log,auditlog,pass"
+SecDefaultAction "phase:2,log,auditlog,pass"

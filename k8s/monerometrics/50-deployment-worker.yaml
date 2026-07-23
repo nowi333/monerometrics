@@ -1,0 +1,81 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: monerometrics
+  labels:
+    app: worker
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "monerometrics-worker"
+        vault.hashicorp.com/agent-inject-secret-postgres-credentials: "secret/data/postgres/credentials"
+        vault.hashicorp.com/agent-inject-template-postgres-credentials: |
+          {{- with secret "secret/data/postgres/credentials" -}}
+          export POSTGRES_USER="{{ .Data.data.POSTGRES_USER }}"
+          export POSTGRES_PASSWORD="{{ .Data.data.POSTGRES_PASSWORD }}"
+          export POSTGRES_DB="{{ .Data.data.POSTGRES_DB }}"
+          {{- end }}
+      labels:
+        app: worker
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: worker
+          image: ghcr.io/nowi333/monerometrics-worker:0.5.1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: MONEROD_URL
+              value: "http://monerod:18081"
+            - name: POLL_INTERVAL
+              value: "30"
+            - name: POOL_INDEX_REFRESH_INTERVAL
+              value: "120"
+            - name: MAX_BLOCKS_PER_BATCH
+              value: "100"
+            - name: CONFIRMATION_WINDOW
+              value: "60"
+            - name: LIVE_BLOCKS
+              value: "1000"
+            - name: BACKFILL_CHUNKS_PER_POLL
+              value: "20"
+            - name: METRICS_PORT
+              value: "9100"
+          ports:
+            - name: metrics
+              containerPort: 9100
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - 'test $(( $(date +%s) - $(cat /tmp/worker-heartbeat 2>/dev/null || echo 0) )) -lt 180'
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi

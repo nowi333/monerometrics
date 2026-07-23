@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>monerometrics — Monero metrics: reorgs, orphan blocks & mining-pool centralization</title>
+    <meta name="description" content="Reorg-aware Monero (XMR) network metrics: live chain reorganizations, orphan blocks, network hashrate, block time, mempool, mining-pool distribution and Nakamoto coefficient. Interactive chain fork visualizer and free public API." />
+    <meta name="keywords" content="monero metrics, xmr metrics, monero reorg, xmr reorg, monero orphan blocks, monero chain visualizer, monero mining pool distribution, nakamoto coefficient monero, monero network hashrate, metrique monero" />
+
+    <link rel="canonical" href="https://monerometrics.net/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+
+    <meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="monerometrics" />
+    <meta property="og:title" content="monerometrics — reorg-aware Monero network metrics" />
+    <meta property="og:description" content="Live Monero metrics: chain reorganizations, orphan blocks, hashrate, block time, mempool, mining-pool centralization (Nakamoto coefficient) and a chain fork visualizer. Public dashboard + API." />
+    <meta property="og:url" content="https://monerometrics.net/" />
+    <meta property="og:image" content="https://monerometrics.net/logo-mark.svg" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="monerometrics — reorg-aware Monero network metrics" />
+    <meta name="twitter:description" content="Monero network health: reorgs, orphan blocks, mining-pool centralization, chain fork visualizer, public API." />
+    <meta name="twitter:image" content="https://monerometrics.net/logo-mark.svg" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "monerometrics",
+      "url": "https://monerometrics.net/",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "description": "Reorg-aware observatory of the Monero (XMR) network: chain reorganizations, orphan blocks, network hashrate, block time, mempool, mining-pool distribution and Nakamoto coefficient, with an interactive chain fork visualizer and a free public API.",
+      "featureList": [
+        "Monero chain reorganization (reorg) detection",
+        "Orphan block history",
+        "Mining-pool distribution and centralization metrics",
+        "Nakamoto coefficient",
+        "Network hashrate, block time and mempool charts",
+        "Interactive chain fork visualizer",
+        "Free public read-only API"
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root">
+      <main>
+        <h1>monerometrics — Monero network metrics</h1>
+        <p>
+          monerometrics is a free, reorg-aware observatory of the Monero (XMR) network.
+          It measures and historizes chain reorganizations (reorgs), orphan blocks,
+          network hashrate, block time, mempool state, and mining-pool distribution,
+          including centralization metrics such as the largest-pool share and the
+          Nakamoto coefficient. An interactive chain fork visualizer shows the canonical
+          chain and competing orphan blocks in real time, and every metric is also
+          available through a free public API.
+        </p>
+        <p>
+          Observatoire libre du réseau Monero : métriques en temps réel, détection des
+          réorganisations de chaîne (reorg), blocs orphelins, hashrate du réseau, temps
+          de bloc, mempool, distribution des pools de minage et coefficient de Nakamoto,
+          avec un visualiseur de forks de la chaîne et une API publique.
+        </p>
+        <ul>
+          <li><a href="https://monerometrics.net/">Monero metrics dashboard</a></li>
+          <li><a href="https://api.monerometrics.net/">Public Monero metrics API</a></li>
+        </ul>
+      </main>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
