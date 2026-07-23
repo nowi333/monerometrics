@@ -1,0 +1,8 @@
+---
+data_disk_device: ""
+data_disk_device_glob: "/dev/disk/by-id/scsi-0HC_Volume_*"
+data_disk_mountpoint: "/var/lib/monerometrics-data"
+data_disk_fstype: "ext4"
+data_disk_owner: "root"
+data_disk_group: "root"
+data_disk_mode: "0755"

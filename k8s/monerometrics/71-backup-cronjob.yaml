@@ -1,0 +1,92 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: monerometrics-backup
+  namespace: monerometrics
+  labels:
+    app: monerometrics-backup
+    component: pra
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: monerometrics-backup
+            component: pra
+          annotations:
+            vault.hashicorp.com/agent-inject: "true"
+            vault.hashicorp.com/agent-pre-populate-only: "true"
+            vault.hashicorp.com/role: "monerometrics-backup"
+            vault.hashicorp.com/agent-inject-secret-postgres-credentials: "secret/data/postgres/credentials"
+            vault.hashicorp.com/agent-inject-template-postgres-credentials: |
+              {{- with secret "secret/data/postgres/credentials" -}}
+              export POSTGRES_USER="{{ .Data.data.POSTGRES_USER }}"
+              export POSTGRES_PASSWORD="{{ .Data.data.POSTGRES_PASSWORD }}"
+              export POSTGRES_DB="{{ .Data.data.POSTGRES_DB }}"
+              {{- end }}
+            vault.hashicorp.com/agent-inject-secret-restic-credentials: "secret/data/restic/credentials"
+            vault.hashicorp.com/agent-inject-template-restic-credentials: |
+              {{- with secret "secret/data/restic/credentials" -}}
+              export RESTIC_REPOSITORY="{{ .Data.data.RESTIC_REPOSITORY }}"
+              export RESTIC_PASSWORD="{{ .Data.data.RESTIC_PASSWORD }}"
+              export AWS_ACCESS_KEY_ID="{{ .Data.data.AWS_ACCESS_KEY_ID }}"
+              export AWS_SECRET_ACCESS_KEY="{{ .Data.data.AWS_SECRET_ACCESS_KEY }}"
+              export AWS_DEFAULT_REGION="{{ .Data.data.AWS_DEFAULT_REGION }}"
+              {{- end }}
+        spec:
+          serviceAccountName: backup-operator
+          restartPolicy: Never
+          containers:
+            - name: backup
+              image: debian:stable-slim
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+                  source /vault/secrets/postgres-credentials
+                  source /vault/secrets/restic-credentials
+                  echo "[$(date -u +%H:%M:%S)] Installation des outils..."
+                  export DEBIAN_FRONTEND=noninteractive
+                  apt-get update -qq
+                  apt-get install -y -qq curl ca-certificates postgresql-client restic >/dev/null
+                  KV=$(curl -sL https://dl.k8s.io/release/stable.txt)
+                  curl -sLO "https://dl.k8s.io/release/${KV}/bin/linux/amd64/kubectl"
+                  install -m 0755 kubectl /usr/local/bin/kubectl
+
+                  WORK=/tmp/backup
+                  mkdir -p "$WORK"
+
+                  echo "[$(date -u +%H:%M:%S)] Dump PostgreSQL..."
+                  PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h postgres -U "$POSTGRES_USER" "$POSTGRES_DB" > "$WORK/postgres-dump.sql"
+                  echo "  dump: $(wc -l < "$WORK/postgres-dump.sql") lignes"
+
+                  echo "[$(date -u +%H:%M:%S)] Export des manifests k8s..."
+                  kubectl get deployments,statefulsets,replicasets,services,configmaps,secrets,persistentvolumeclaims -n monerometrics -o yaml > "$WORK/manifests-monerometrics.yaml"
+                  echo "  manifests: $(wc -l < "$WORK/manifests-monerometrics.yaml") lignes"
+
+                  echo "[$(date -u +%H:%M:%S)] Backup Restic vers OCI..."
+                  restic backup "$WORK/postgres-dump.sql" "$WORK/manifests-monerometrics.yaml" \
+                    --tag cronjob --host monerometrics-k3s
+
+                  echo "[$(date -u +%H:%M:%S)] Application de la retention..."
+                  restic forget --keep-daily 7 --keep-weekly 4 --prune
+
+                  echo "[$(date -u +%H:%M:%S)] Verification du repo..."
+                  restic snapshots --compact | tail -5
+
+                  echo "[$(date -u +%H:%M:%S)] Backup termine avec succes."
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi

@@ -1,0 +1,73 @@
+---
+
+- name: Install nginx package
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Ensure nginx is enabled and started
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+    state: started
+  become: true
+
+- name: Create webroot directory
+  ansible.builtin.file:
+    path: /var/www/monerometrics
+    state: directory
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+    mode: '0755'
+  become: true
+
+- name: Create letsencrypt webroot directory (for ACME HTTP-01 fallback)
+  ansible.builtin.file:
+    path: /var/www/letsencrypt
+    state: directory
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+    mode: '0755'
+  become: true
+
+- name: Deploy index.html placeholder
+  ansible.builtin.copy:
+    src: index.html
+    dest: /var/www/monerometrics/index.html
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+    mode: '0644'
+  become: true
+
+- name: Disable nginx default site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: true
+  notify: Reload nginx
+
+- name: Set server_tokens off in nginx.conf
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: '^\s*#?\s*server_tokens'
+    line: "\tserver_tokens {{ nginx_server_tokens }};"
+    insertafter: 'http \{'
+  become: true
+  notify: Reload nginx
+
+- name: Allow HTTP through ufw
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+  become: true
+
+- name: Allow HTTPS through ufw
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+  become: true

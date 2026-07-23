@@ -1,0 +1,88 @@
+---
+
+- name: Discover Hetzner data volume device (if not set explicitly)
+  ansible.builtin.shell: "set -o pipefail; ls -1 {{ data_disk_device_glob }} 2>/dev/null | head -n1"
+  args:
+    executable: /bin/bash
+  register: data_disk_discovered
+  changed_when: false
+  failed_when: false
+  when: data_disk_device | length == 0
+
+- name: Resolve data disk device path
+  ansible.builtin.set_fact:
+    data_disk_device: "{{ data_disk_device if (data_disk_device | length > 0) else (data_disk_discovered.stdout | default('') | trim) }}"
+
+- name: Fail if no data disk device resolved
+  ansible.builtin.fail:
+    msg: "No data volume found (glob {{ data_disk_device_glob }}). Verify the Hetzner volume is attached to this server."
+  when: data_disk_device | length == 0
+
+- name: Get filesystem info on data disk
+  ansible.builtin.command: "blkid -o value -s TYPE {{ data_disk_device }}"
+  register: blkid_result
+  changed_when: false
+  failed_when: false
+
+- name: Format data disk to ext4 (only if no filesystem)
+  community.general.filesystem:
+    fstype: "{{ data_disk_fstype }}"
+    dev: "{{ data_disk_device }}"
+  become: true
+  when: blkid_result.stdout != data_disk_fstype
+  register: format_result
+
+- name: Force udev to re-scan after format (else blkid returns empty)
+  ansible.builtin.command: udevadm trigger --subsystem-match=block
+  become: true
+  changed_when: false
+  when: format_result.changed | default(false)
+
+- name: Wait for blkid to return UUID (after format, kernel needs a moment)
+  ansible.builtin.command: "blkid -o value -s UUID {{ data_disk_device }}"
+  become: true
+  register: data_disk_uuid
+  changed_when: false
+  retries: 10
+  delay: 2
+  until: data_disk_uuid.stdout | length > 0
+
+- name: Create mount point
+  ansible.builtin.file:
+    path: "{{ data_disk_mountpoint }}"
+    state: directory
+    owner: "{{ data_disk_owner }}"
+    group: "{{ data_disk_group }}"
+    mode: "{{ data_disk_mode }}"
+  become: true
+
+- name: Mount data disk and add to fstab (UUID-based, robust to reboot)
+  ansible.posix.mount:
+    path: "{{ data_disk_mountpoint }}"
+    src: "UUID={{ data_disk_uuid.stdout }}"
+    fstype: "{{ data_disk_fstype }}"
+    opts: "defaults,nofail,x-systemd.device-timeout=5"
+    state: mounted
+  become: true
+
+- name: Create subdirectories for applicative data
+  ansible.builtin.file:
+    path: "{{ data_disk_mountpoint }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+  loop:
+    - monerod
+    - postgres
+    - worker
+
+- name: Display data disk usage
+  ansible.builtin.command: "df -h {{ data_disk_mountpoint }}"
+  register: data_disk_df
+  changed_when: false
+
+- name: Show data disk status
+  ansible.builtin.debug:
+    var: data_disk_df.stdout_lines

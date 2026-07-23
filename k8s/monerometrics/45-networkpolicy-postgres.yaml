@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-ingress
+  namespace: monerometrics
+  labels:
+    app.kubernetes.io/part-of: monerometrics
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - api
+                  - worker
+                  - monerometrics-backup
+                  - monerometrics-retro-pools
+      ports:
+        - protocol: TCP
+          port: 5432

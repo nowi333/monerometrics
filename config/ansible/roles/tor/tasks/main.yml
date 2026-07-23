@@ -1,0 +1,83 @@
+---
+
+- name: Tor hidden service block
+  when: tor_enabled | bool
+  block:
+
+    - name: Install tor package
+      ansible.builtin.apt:
+        name: tor
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+      become: true
+
+    - name: Deploy torrc
+      ansible.builtin.template:
+        src: torrc.j2
+        dest: /etc/tor/torrc
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+      notify: Restart tor
+
+    - name: Flush handlers to apply tor config now
+      ansible.builtin.meta: flush_handlers
+
+    - name: Ensure tor is enabled and started
+      ansible.builtin.systemd:
+        name: tor@default
+        enabled: true
+        state: started
+      become: true
+
+    - name: Wait for the hidden service hostname to be generated
+      ansible.builtin.wait_for:
+        path: "{{ tor_hidden_service_dir }}/hostname"
+        timeout: 60
+      become: true
+
+    - name: Read the .onion hostname
+      ansible.builtin.slurp:
+        src: "{{ tor_hidden_service_dir }}/hostname"
+      register: tor_onion_hostname_raw
+      become: true
+
+    - name: Register the .onion hostname as a fact
+      ansible.builtin.set_fact:
+        tor_onion_hostname: "{{ (tor_onion_hostname_raw.content | b64decode).strip() }}"
+
+    - name: Show the .onion address
+      ansible.builtin.debug:
+        msg: >-
+          Service cache disponible : http://{{ tor_onion_hostname }}
+          — a epingler dans ALLOWED_HOSTS (apps/dashboard/src/main.jsx) puis
+          rebuild + redeploiement du dashboard.
+
+    - name: Deploy the .onion nginx vhost
+      ansible.builtin.template:
+        src: onion-site.conf.j2
+        dest: "/etc/nginx/sites-available/{{ tor_nginx_site }}"
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+      notify: Reload nginx
+
+    - name: Enable the .onion nginx vhost
+      ansible.builtin.file:
+        src: "/etc/nginx/sites-available/{{ tor_nginx_site }}"
+        dest: "/etc/nginx/sites-enabled/{{ tor_nginx_site }}"
+        state: link
+      become: true
+      notify: Reload nginx
+
+    - name: Ensure the hidden service directory is private (0700, tor only)
+      ansible.builtin.file:
+        path: "{{ tor_hidden_service_dir }}"
+        state: directory
+        owner: debian-tor
+        group: debian-tor
+        mode: '0700'
+      become: true

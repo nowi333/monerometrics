@@ -1,0 +1,57 @@
+import { useTranslation } from 'react-i18next'
+import { api } from './api'
+import InfoTooltip from './InfoTooltip'
+import PanelState from './PanelState'
+import { usePolledData } from './usePolledData'
+
+export default function OrphansTable() {
+  const { t } = useTranslation()
+  const { data, status } = usePolledData(() => api.orphansRecent(20), d => Array.isArray(d && d.orphans), [])
+
+  if (status !== 'ok') {
+    return (
+      <div className="bg-[color:var(--color-card)] border border-[color:var(--color-border)] rounded-lg p-6">
+        <h3 className="text-base font-medium mb-4 flex items-center gap-2">{t('orphans.title')}<InfoTooltip text={t('info.orphans')} /></h3>
+        <PanelState status={status} variant="table" height={140} />
+      </div>
+    )
+  }
+
+  const orphans = data.orphans
+
+  return (
+    <div className="bg-[color:var(--color-card)] border border-[color:var(--color-border)] rounded-lg p-6">
+      <h3 className="text-base font-medium mb-4 flex items-center gap-2">{t('orphans.title')}<InfoTooltip text={t('info.orphans')} /></h3>
+      {orphans.length === 0 ? (
+        <div className="text-center text-[color:var(--color-dim)] py-8">
+          {t('state.noOrphans')}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px] text-sm">
+            <thead>
+              <tr className="text-left text-[color:var(--color-dim)] border-b border-[color:var(--color-border)]">
+                <th className="py-2 px-2 whitespace-nowrap">{t('orphans.column.height')}</th>
+                <th className="py-2 px-2 whitespace-nowrap">{t('orphans.column.orphanHash')}</th>
+                <th className="py-2 px-2 whitespace-nowrap">{t('orphans.column.canonicalHash')}</th>
+                <th className="py-2 px-2 whitespace-nowrap">{t('orphans.column.pool')}</th>
+                <th className="py-2 px-2 text-right whitespace-nowrap">{t('orphans.column.tx')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orphans.map(o => (
+                <tr key={o.orphan_hash} className="border-b border-[color:var(--color-border)]">
+                  <td className="py-2 px-2 font-mono">{o.height}</td>
+                  <td className="py-2 px-2 font-mono text-orange-400 text-xs whitespace-nowrap">{o.orphan_hash.slice(0, 12)}...</td>
+                  <td className="py-2 px-2 font-mono text-green-400 text-xs whitespace-nowrap">{o.canonical_hash?.slice(0, 12)}...</td>
+                  <td className="py-2 px-2 text-xs">{o.miner_pool ?? 'unknown'}</td>
+                  <td className="py-2 px-2 text-right font-mono">{o.tx_count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}

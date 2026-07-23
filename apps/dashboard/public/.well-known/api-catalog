@@ -1,0 +1,19 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://api.monerometrics.net",
+      "service-desc": [
+        { "href": "https://api.monerometrics.net/openapi.json", "type": "application/json" }
+      ],
+      "service-doc": [
+        { "href": "https://monerometrics.net/", "type": "text/html" }
+      ],
+      "status": [
+        { "href": "https://api.monerometrics.net/health", "type": "application/json" }
+      ],
+      "describedby": [
+        { "href": "https://github.com/nowi333/monerometrics", "type": "text/html" }
+      ]
+    }
+  ]
+}

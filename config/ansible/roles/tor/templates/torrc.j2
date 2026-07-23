@@ -1,0 +1,8 @@
+
+SocksPort 0
+
+HiddenServiceDir {{ tor_hidden_service_dir }}/
+HiddenServiceVersion 3
+HiddenServicePort 80 127.0.0.1:{{ tor_onion_backend_port }}
+
+Log notice syslog

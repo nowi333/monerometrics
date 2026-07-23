@@ -1,0 +1,4 @@
+---
+
+tailscale_hostname: "monerometrics-bastion"
+tailscale_auth_key: "{{ lookup('env', 'TAILSCALE_AUTH_KEY') }}"

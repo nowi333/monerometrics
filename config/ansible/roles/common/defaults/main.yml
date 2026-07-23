@@ -1,0 +1,17 @@
+---
+
+common_ssh_port: 22
+common_ssh_permit_root_login: "no"
+common_ssh_password_authentication: "no"
+common_ssh_max_auth_tries: 4
+common_ssh_client_alive_interval: 600
+common_ssh_client_alive_count_max: 3
+common_ssh_login_grace_time: 60
+
+common_packages: []
+
+common_fail2ban_ssh_maxretry: 5
+common_fail2ban_ssh_findtime: 600
+common_fail2ban_ssh_bantime: 600
+
+common_sysctl_hardening: []

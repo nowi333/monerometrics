@@ -1,0 +1,36 @@
+
+server {
+    listen {{ nginx_listen_port }} default_server;
+    listen [::]:{{ nginx_listen_port }} default_server;
+
+    server_name {{ nginx_server_name }} www.{{ nginx_server_name }};
+
+    root /var/www/monerometrics;
+    index index.html;
+
+{% for header in nginx_security_headers %}
+    add_header {{ header }};
+{% endfor %}
+
+    client_max_body_size {{ nginx_client_max_body_size }};
+    client_body_timeout {{ nginx_client_body_timeout }};
+    client_header_timeout {{ nginx_client_header_timeout }};
+    keepalive_timeout {{ nginx_keepalive_timeout }};
+    send_timeout {{ nginx_send_timeout }};
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type "text/plain";
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location = /healthz {
+        access_log off;
+        return 200 "ok\n";
+        add_header Content-Type text/plain;
+    }
+}

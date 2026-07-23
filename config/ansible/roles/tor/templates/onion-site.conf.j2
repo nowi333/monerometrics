@@ -1,0 +1,40 @@
+server {
+    listen 127.0.0.1:{{ tor_onion_backend_port }};
+    server_name {{ tor_onion_hostname }};
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Content-Security-Policy "frame-ancestors 'none'" always;
+    add_header Referrer-Policy "no-referrer" always;
+
+    access_log off;
+
+    root /var/www/monerometrics;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location = /healthz {
+        access_log off;
+        return 200 "ok\n";
+        add_header Content-Type text/plain;
+    }
+
+    location /api/ {
+        proxy_pass {{ letsencrypt_api_upstream }}/;
+        proxy_http_version 1.1;
+        proxy_set_header Host api.{{ letsencrypt_domain }};
+
+        proxy_set_header X-MM-Onion "1";
+
+        proxy_set_header X-Real-IP "";
+        proxy_set_header X-Forwarded-For "";
+        proxy_set_header CF-Connecting-IP "";
+        proxy_set_header X-Forwarded-Proto "http";
+
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+    }
+}
