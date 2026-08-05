@@ -175,12 +175,18 @@ export default function ChainForkVisualizer() {
       }
     }
 
+    const MAX_SPAN = MAX_VISIBLE + 2 * BUFFER
     const drawCulled = (transform) => {
       const k = transform.k
       const visMinX = (0 - transform.x) / k
       const visMaxX = (W - transform.x) / k
-      const drawMin = anchor + Math.floor(visMinX / STEP) - BUFFER
-      const drawMax = anchor + Math.ceil(visMaxX / STEP) + BUFFER
+      let drawMin = anchor + Math.floor(visMinX / STEP) - BUFFER
+      let drawMax = anchor + Math.ceil(visMaxX / STEP) + BUFFER
+      if (drawMax - drawMin > MAX_SPAN) {
+        const c = Math.round((drawMin + drawMax) / 2)
+        drawMin = c - Math.floor(MAX_SPAN / 2)
+        drawMax = c + Math.floor(MAX_SPAN / 2)
+      }
 
       const r = rangeRef.current
       if (r.min != null && drawMin < r.min && r.min > 0) {
@@ -270,7 +276,6 @@ export default function ChainForkVisualizer() {
       T = focusTransform(h, kInit)
       svg.call(zoom.transform, T)
       drawCulled(T)
-      svg.transition().duration(500).call(zoom.transform, T)
       return
     } else if (hasInteractedRef.current && prevT && prevT.k !== 1) {
       T = prevT
@@ -288,7 +293,7 @@ export default function ChainForkVisualizer() {
 
   const handleZoomIn = () => { if (zoomRef.current && svgRef.current) d3.select(svgRef.current).transition().duration(200).call(zoomRef.current.scaleBy, 1.4) }
   const handleZoomOut = () => { if (zoomRef.current && svgRef.current) d3.select(svgRef.current).transition().duration(200).call(zoomRef.current.scaleBy, 0.7) }
-  const handleReset = () => { hasInteractedRef.current = false; highlightRef.current = null; bump() }
+  const handleReset = () => { hasInteractedRef.current = false; highlightRef.current = null; anchorRef.current = tipRef.current; bump() }
   const toggleFullscreen = () => {
     if (!containerRef.current) return
     if (!isFullscreen) containerRef.current.requestFullscreen?.()
@@ -297,6 +302,7 @@ export default function ChainForkVisualizer() {
 
   const focusHeight = useCallback((h) => {
     hasInteractedRef.current = true
+    anchorRef.current = h
     highlightRef.current = h
     pendingFocusRef.current = h
     setInteracted(true)
