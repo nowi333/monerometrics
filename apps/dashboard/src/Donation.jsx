@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { QRCodeSVG } from 'qrcode.react'
 
@@ -14,6 +14,19 @@ const HEART = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c
 export default function Donation() {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
+  const [payOpen, setPayOpen] = useState(false)
+
+  useEffect(() => {
+    if (!payOpen) return
+    const onKey = (e) => { if (e.key === 'Escape') setPayOpen(false) }
+    document.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [payOpen])
 
   if (!ADDRESS_CONFIGURED) return null
 
@@ -112,24 +125,59 @@ export default function Donation() {
                 )}
                 {copied ? t('donate.copied') : t('donate.copy')}
               </button>
-              <a
-                href={ANONPAY_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => setPayOpen(true)}
                 className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg border transition-all hover:brightness-110 active:scale-[0.98]"
                 style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 45%, var(--color-border))', color: 'var(--color-accent)' }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                  <path d="M15 3h6v6M10 14 21 3" />
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-1.5h1a2 2 0 0 1 0 4h-1a2 2 0 0 0 0 4h1a2.5 2.5 0 0 0 2.5-1.5" />
                 </svg>
                 {t('donate.anyCoin')}
-              </a>
+              </button>
             </div>
             <p className="text-[11px] mt-2" style={{ color: 'var(--color-dim)' }}>{t('donate.anyCoinNote')}</p>
           </div>
         </div>
       </div>
+
+      {payOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('donate.anyCoin')}
+          onClick={() => setPayOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)', animation: 'mmFade 0.2s ease-out' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md rounded-2xl border overflow-hidden shadow-2xl"
+            style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', animation: 'mmPop 0.25s cubic-bezier(0.34,1.56,0.64,1)' }}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+              <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{t('donate.anyCoin')}</span>
+              <button
+                onClick={() => setPayOpen(false)}
+                aria-label={t('donate.close')}
+                className="p-1 rounded transition-colors hover:brightness-125"
+                style={{ color: 'var(--color-dim)' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <iframe
+              src={ANONPAY_URL}
+              title="Trocador AnonPay"
+              className="w-full block"
+              style={{ height: 'min(340px, 80vh)', border: 0, colorScheme: 'normal' }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
