@@ -217,9 +217,12 @@ export default function ChainForkVisualizer() {
       for (const b of canon) {
         if (b.height % step === 0) {
           const x = worldX(b.height) + BLOCK_W / 2
+          const iso = new Date(b.timestamp_unix * 1000).toISOString()
           content.append('line').attr('x1', x).attr('y1', CANONICAL_Y + BLOCK_H + 8).attr('x2', x).attr('y2', CANONICAL_Y + BLOCK_H + 14).attr('stroke', 'var(--color-dim)').attr('stroke-width', 1)
-          content.append('text').attr('x', x).attr('y', CANONICAL_Y + BLOCK_H + 28).attr('text-anchor', 'middle').attr('fill', 'var(--color-dim)').attr('font-size', '10px').attr('font-family', 'var(--font-mono)')
-            .text(new Date(b.timestamp_unix * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+          content.append('text').attr('x', x).attr('y', CANONICAL_Y + BLOCK_H + 26).attr('text-anchor', 'middle').attr('fill', 'var(--color-text-secondary)').attr('font-size', '9.5px').attr('font-family', 'var(--font-mono)')
+            .text(iso.slice(0, 10))
+          content.append('text').attr('x', x).attr('y', CANONICAL_Y + BLOCK_H + 37).attr('text-anchor', 'middle').attr('fill', 'var(--color-dim)').attr('font-size', '9px').attr('font-family', 'var(--font-mono)')
+            .text(iso.slice(11, 16) + ' UTC')
         }
       }
       for (let i = 0; i < canon.length - 1; i++) {
