@@ -96,35 +96,24 @@ export default function Donation() {
             <div className="text-[11px] font-medium uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-dim)' }}>
               {t('donate.address')}
             </div>
-            <code
-              className="block text-xs break-all p-3 rounded-lg mb-3 leading-relaxed"
+            <button
+              type="button"
+              onClick={copy}
+              title={t('donate.copy')}
+              className="w-full rounded-lg border p-3 mb-3 flex items-center justify-between gap-3 text-left transition-all hover:brightness-110 active:scale-[0.99]"
               style={{
                 background: 'color-mix(in srgb, var(--color-accent) 7%, var(--color-bg))',
-                color: 'var(--color-text-secondary)',
-                fontFamily: 'var(--font-mono)',
-                border: '1px solid color-mix(in srgb, var(--color-accent) 22%, var(--color-border))',
+                borderColor: 'color-mix(in srgb, var(--color-accent) 22%, var(--color-border))',
               }}
             >
-              {XMR_DONATION_ADDRESS}
-            </code>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={copy}
-                className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-all hover:brightness-110 active:scale-[0.98]"
-                style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
-              >
-                {copied ? (
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                ) : (
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <rect x="9" y="9" width="13" height="13" rx="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                )}
+              <code className="text-xs break-all leading-relaxed" style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                {XMR_DONATION_ADDRESS}
+              </code>
+              <span className="text-xs font-mono shrink-0" style={{ color: copied ? 'var(--color-success)' : 'var(--color-accent)' }}>
                 {copied ? t('donate.copied') : t('donate.copy')}
-              </button>
+              </span>
+            </button>
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setPayOpen(true)}
                 className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg border transition-all hover:brightness-110 active:scale-[0.98]"
