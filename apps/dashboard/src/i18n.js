@@ -282,8 +282,9 @@ i18n
           'donate.costLink': 'Full breakdown on GitHub.',
           'donate.address': 'Monero address',
           'donate.copy': 'Copy address',
-          'donate.anyCoin': 'Pay with any crypto',
+          'donate.anyCoin': 'Donate with any crypto',
           'donate.anyCoinNote': 'Prefer another coin? Pay in any cryptocurrency, auto-converted to XMR via Trocador AnonPay. No account, no KYC.',
+          'donate.close': 'Close',
           'donate.copied': 'Copied!',
           'donate.scan': 'Scan to donate',
 
@@ -556,8 +557,9 @@ i18n
           'donate.costLink': 'Détail complet sur GitHub.',
           'donate.address': 'Adresse Monero',
           'donate.copy': 'Copier l’adresse',
-          'donate.anyCoin': 'Payer en n’importe quelle crypto',
+          'donate.anyCoin': 'Donner en n’importe quelle crypto',
           'donate.anyCoinNote': 'Une autre crypto ? Paye dans n’importe quelle cryptomonnaie, convertie automatiquement en XMR via Trocador AnonPay. Sans compte, sans KYC.',
+          'donate.close': 'Fermer',
           'donate.copied': 'Copié !',
           'donate.scan': 'Scanner pour faire un don',
 
@@ -831,8 +833,9 @@ i18n
           'donate.costLink': 'Desglose completo en GitHub.',
           'donate.address': 'Dirección Monero',
           'donate.copy': 'Copiar dirección',
-          'donate.anyCoin': 'Pagar con cualquier cripto',
+          'donate.anyCoin': 'Donar con cualquier cripto',
           'donate.anyCoinNote': '¿Otra moneda? Paga en cualquier criptomoneda, convertida automáticamente a XMR vía Trocador AnonPay. Sin cuenta, sin KYC.',
+          'donate.close': 'Cerrar',
           'donate.copied': '¡Copiado!',
           'donate.scan': 'Escanea para donar',
 
