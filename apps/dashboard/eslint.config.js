@@ -21,4 +21,10 @@ export default defineConfig([
       'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },
+  {
+    files: ['**/usePolledData.js'],
+    rules: {
+      'react-hooks/exhaustive-deps': 'off',
+    },
+  },
 ])

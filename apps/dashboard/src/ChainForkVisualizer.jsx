@@ -63,11 +63,9 @@ export default function ChainForkVisualizer() {
   const FORK_Y = 180
   const MARGIN_LEFT = 40
 
-  const sourceWord = (src) => t('fork.evi.' + (src || 'none'), { defaultValue: '' })
-
-
   const render = useCallback(() => {
     if (!data || !svgRef.current) return
+    const sourceWord = (src) => t('fork.evi.' + (src || 'none'), { defaultValue: '' })
 
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()

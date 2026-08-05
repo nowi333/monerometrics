@@ -47,7 +47,7 @@ export function usePolledData(fetcher, ready, deps = [], interval = 30000) {
       document.removeEventListener('visibilitychange', onVisibility)
     }
 
-  }, deps)
+  }, [interval, ...deps])
 
   return { data, status }
 }
