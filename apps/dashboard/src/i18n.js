@@ -77,8 +77,8 @@ i18n
           'prov.mergeMined': '{{count}} of these blocks were merge-mined: a single proof-of-work claimed both a Monero block and one on an auxiliary chain. An auxiliary chain can subsidise miners and pull hashrate toward one pool — the mechanism behind the August 2025 Qubic episode.',
           'fork.canonicalBlock': 'Canonical block',
           'fork.orphanBlock': 'Orphan block',
-          'fork.stats': '{{blocks}} blocks loaded · {{reorgs}} reorgs detected — pan with the mouse or jump to a block via search',
-          'fork.historical': 'history (header only)',
+          'fork.stats': '{{blocks}} blocks loaded — pan with the mouse or jump to a block via search',
+          'fork.historical': 'history',
           'fork.coverageBoundary': 'Live indexing from here',
           'fork.zoomIn': 'Zoom in',
           'fork.zoomOut': 'Zoom out',
@@ -280,7 +280,7 @@ i18n
           'info.nakamoto': 'Minimum number of mining pools that together control more than 50% of recently mined blocks (identified pools only, excluding solo/unknown). Lower means more centralized: a single pool above 50% is the 51% risk.',
           'info.reorgs': 'Reorganizations are events where the chain replaces recently accepted blocks with a competing longer branch. Counted over 24h, 7d and 30d. Limit: only reorgs observed since this node started indexing are recorded.',
           'info.orphans': 'Orphan blocks are valid blocks that were replaced during a reorganization and left out of the canonical chain. Limit: shows the most recent orphans only, and depends on what this node observed.',
-          'info.fork': 'Visual map of the chain: canonical blocks and orphan branches, color-coded by mining pool. The whole chain is browsable — pan to load more on demand, or search a height or block hash to jump anywhere down to genesis. Pool attribution and reorg detection only exist from where live indexing began; older blocks are shown as history (header only), so they appear unattributed and without past forks.',
+          'info.fork': 'Visual map of the chain: canonical blocks and orphan branches, color-coded by mining pool. The whole chain is browsable — pan to load more on demand, or search a height or block hash to jump anywhere down to genesis. Pool attribution and reorg detection only exist from where live indexing began; older blocks are shown as history, so they appear unattributed and without past forks.',
 
 
           'donate.nav': 'Donate',
@@ -361,8 +361,8 @@ i18n
           'prov.mergeMined': '{{count}} de ces blocs ont été minés conjointement : un seul calcul a servi à trouver un bloc Monero et un bloc sur une chaîne auxiliaire. Une chaîne auxiliaire peut subventionner les mineurs et attirer du hashrate vers un seul pool  le mécanisme à lorigine de lépisode Qubic daoût 2025.',
           'fork.canonicalBlock': 'Bloc canonique',
           'fork.orphanBlock': 'Bloc orphelin',
-          'fork.stats': '{{blocks}} blocs chargés · {{reorgs}} reorgs détectés — naviguez à la souris ou recherchez un bloc',
-          'fork.historical': 'historique (en-tête seul)',
+          'fork.stats': '{{blocks}} blocs chargés — naviguez à la souris ou recherchez un bloc',
+          'fork.historical': 'historique',
           'fork.coverageBoundary': 'Indexation live à partir d’ici',
           'fork.zoomIn': 'Zoom avant',
           'fork.zoomOut': 'Zoom arrière',
@@ -564,7 +564,7 @@ i18n
           'info.nakamoto': 'Nombre minimal de pools de minage qui contrôlent ensemble plus de 50 % des blocs récents (pools identifiés seulement, hors solo/unknown). Plus il est bas, plus c’est centralisé : un seul pool au-dessus de 50 % est le risque des 51 %.',
           'info.reorgs': 'Les réorganisations sont des événements où la chaîne remplace des blocs récemment acceptés par une branche concurrente plus longue. Comptées sur 24h, 7j et 30j. Limite : seules les reorgs observées depuis le démarrage de l’indexation de ce nœud sont enregistrées.',
           'info.orphans': 'Les blocs orphelins sont des blocs valides remplacés lors d’une réorganisation et exclus de la chaîne canonique. Limite : affiche uniquement les orphelins les plus récents, et dépend de ce que ce nœud a observé.',
-          'info.fork': 'Carte visuelle de la chaîne : blocs canoniques et branches orphelines, colorés par pool de minage. Toute la chaîne est navigable — pannez pour charger plus à la demande, ou cherchez une hauteur ou un hash de bloc pour aller n’importe où jusqu’au genesis. L’attribution de pool et la détection de reorgs n’existent qu’à partir du début de l’indexation live ; les blocs plus anciens sont affichés comme historique (en-tête seul), donc sans pool ni forks passés.',
+          'info.fork': 'Carte visuelle de la chaîne : blocs canoniques et branches orphelines, colorés par pool de minage. Toute la chaîne est navigable — pannez pour charger plus à la demande, ou cherchez une hauteur ou un hash de bloc pour aller n’importe où jusqu’au genesis. L’attribution de pool et la détection de reorgs n’existent qu’à partir du début de l’indexation live ; les blocs plus anciens sont affichés comme historique, donc sans pool ni forks passés.',
 
 
           'donate.nav': 'Faire un don',
@@ -646,8 +646,8 @@ i18n
           'prov.mergeMined': '{{count}} de estos bloques se minaron conjuntamente: un solo cálculo sirvió para un bloque Monero y otro en una cadena auxiliar. Una cadena auxiliar puede subvencionar a los mineros y atraer hashrate hacia una sola pool — el mecanismo detrás del episodio Qubic de agosto de 2025.',
           'fork.canonicalBlock': 'Bloque canónico',
           'fork.orphanBlock': 'Bloque huérfano',
-          'fork.stats': '{{blocks}} bloques cargados · {{reorgs}} reorgs detectadas — navega con el ratón o busca un bloque',
-          'fork.historical': 'historial (solo cabecera)',
+          'fork.stats': '{{blocks}} bloques cargados — navega con el ratón o busca un bloque',
+          'fork.historical': 'historial',
           'fork.coverageBoundary': 'Indexación en vivo desde aquí',
           'fork.zoomIn': 'Acercar',
           'fork.zoomOut': 'Alejar',
@@ -849,7 +849,7 @@ i18n
           'info.nakamoto': 'Número mínimo de pools de minería que juntas controlan más del 50 % de los bloques recientes (solo pools identificadas, excluyendo solo/unknown). Cuanto más bajo, más centralizado: una sola pool por encima del 50 % es el riesgo del 51 %.',
           'info.reorgs': 'Las reorganizaciones son eventos en los que la cadena reemplaza bloques aceptados recientemente por una rama competidora más larga. Contadas en 24h, 7d y 30d. Límite: solo se registran las reorgs observadas desde que este nodo comenzó a indexar.',
           'info.orphans': 'Los bloques huérfanos son bloques válidos reemplazados durante una reorganización y excluidos de la cadena canónica. Límite: muestra solo los huérfanos más recientes, y depende de lo que este nodo observó.',
-          'info.fork': 'Mapa visual de la cadena: bloques canónicos y ramas huérfanas, coloreados por pool de minería. Toda la cadena es navegable — desplázate para cargar más bajo demanda, o busca una altura o un hash de bloque para ir a cualquier punto hasta el génesis. La atribución de pool y la detección de reorgs solo existen desde el inicio de la indexación en vivo; los bloques más antiguos se muestran como historial (solo cabecera), por lo que aparecen sin pool ni forks pasados.',
+          'info.fork': 'Mapa visual de la cadena: bloques canónicos y ramas huérfanas, coloreados por pool de minería. Toda la cadena es navegable — desplázate para cargar más bajo demanda, o busca una altura o un hash de bloque para ir a cualquier punto hasta el génesis. La atribución de pool y la detección de reorgs solo existen desde el inicio de la indexación en vivo; los bloques más antiguos se muestran como historial, por lo que aparecen sin pool ni forks pasados.',
 
 
           'donate.nav': 'Donar',
