@@ -27,6 +27,7 @@ const FORK_Y = 180
 const CHUNK = 250
 const BUFFER = 45
 const MAX_VISIBLE = 280
+const COVERAGE_START = 3690000
 
 const chunkToFor = (h, tip) => {
   const to = (Math.floor(h / CHUNK) + 1) * CHUNK - 1
@@ -153,7 +154,8 @@ export default function ChainForkVisualizer() {
         })
 
       const pool = block.miner_pool
-      const accent = isOrphan ? 'var(--color-danger)' : poolColor(pool)
+      const historical = !isOrphan && block.height < COVERAGE_START
+      const accent = isOrphan ? 'var(--color-danger)' : (historical ? 'var(--color-dim)' : poolColor(pool))
       const evi = sourceStroke(block.pool_source)
       const cardStroke = isOrphan ? 'var(--color-danger)' : (block.is_fork_point ? 'var(--color-warn)' : 'var(--color-border-strong)')
       const cardStrokeW = isOrphan || block.is_fork_point ? 1.5 : 1
@@ -167,14 +169,16 @@ export default function ChainForkVisualizer() {
       }
 
       blockG.append('rect').attr('x', x).attr('y', y).attr('width', BLOCK_W).attr('height', BLOCK_H).attr('rx', 5)
-        .attr('fill', 'var(--color-card)').attr('fill-opacity', isOrphan ? 0.55 : 1)
+        .attr('fill', 'var(--color-card)').attr('fill-opacity', isOrphan ? 0.55 : (historical ? 0.5 : 1))
         .attr('stroke', cardStroke).attr('stroke-width', cardStrokeW)
       blockG.append('rect').attr('x', x + 2.5).attr('y', y + 3).attr('width', 3.5).attr('height', BLOCK_H - 6).attr('rx', 1.75).attr('fill', accent)
-      blockG.append('text').attr('x', X0).attr('y', y + 13).attr('fill', accent).attr('font-size', '7.5px').attr('font-weight', '500').text(poolShortName(pool))
-      blockG.append('text').attr('x', X0).attr('y', y + 30).attr('fill', isOrphan ? 'var(--color-danger)' : 'var(--color-text)').attr('font-size', '14px').attr('font-weight', '600').attr('font-family', 'var(--font-mono)').text(block.height.toString().slice(-4))
+      blockG.append('text').attr('x', X0).attr('y', y + 13).attr('fill', accent).attr('font-size', '7.5px').attr('font-weight', '500').text(historical && (!pool || pool === 'unknown') ? t('fork.historical') : poolShortName(pool))
+      blockG.append('text').attr('x', X0).attr('y', y + 30).attr('fill', isOrphan ? 'var(--color-danger)' : (historical ? 'var(--color-text-secondary)' : 'var(--color-text)')).attr('font-size', '14px').attr('font-weight', '600').attr('font-family', 'var(--font-mono)').text(block.height.toString().slice(-4))
       blockG.append('text').attr('x', X0).attr('y', y + 40).attr('fill', 'var(--color-dim)').attr('font-size', '7.5px').attr('font-family', 'var(--font-mono)').text(block.hash.slice(0, 6))
-      blockG.append('rect').attr('x', X0).attr('y', y + BLOCK_H - 8.5).attr('width', 5).attr('height', 5).attr('rx', 1.5).attr('fill', evi)
-      blockG.append('text').attr('x', X0 + 8).attr('y', y + BLOCK_H - 4.5).attr('fill', 'var(--color-text-secondary)').attr('font-size', '7px').text(sourceWord(block.pool_source))
+      if (!historical) {
+        blockG.append('rect').attr('x', X0).attr('y', y + BLOCK_H - 8.5).attr('width', 5).attr('height', 5).attr('rx', 1.5).attr('fill', evi)
+        blockG.append('text').attr('x', X0 + 8).attr('y', y + BLOCK_H - 4.5).attr('fill', 'var(--color-text-secondary)').attr('font-size', '7px').text(sourceWord(block.pool_source))
+      }
       if (block.merge_mining > 0) {
         blockG.append('text').attr('x', x + BLOCK_W - 6).attr('y', y + 13).attr('text-anchor', 'end').attr('fill', 'var(--color-accent)').attr('font-size', '7px').attr('font-weight', '700').text('MM')
       }
@@ -234,6 +238,17 @@ export default function ChainForkVisualizer() {
           content.append('path').attr('d', `M ${x + BLOCK_W / 2} ${CANONICAL_Y + BLOCK_H} L ${x + BLOCK_W / 2} ${FORK_Y}`).attr('stroke', 'var(--color-danger)').attr('stroke-width', 2).attr('stroke-dasharray', '4 3').attr('fill', 'none')
         }
       }
+      if (COVERAGE_START > lo && COVERAGE_START <= hi + 1) {
+        const bx = worldX(COVERAGE_START) - GAP_X / 2
+        content.append('line')
+          .attr('x1', bx).attr('y1', CANONICAL_Y - 34).attr('x2', bx).attr('y2', FORK_Y + BLOCK_H + 8)
+          .attr('stroke', 'var(--color-accent)').attr('stroke-width', 1.5).attr('stroke-dasharray', '5 4').attr('opacity', 0.75)
+        content.append('text')
+          .attr('x', bx + 6).attr('y', CANONICAL_Y - 24)
+          .attr('fill', 'var(--color-accent)').attr('font-size', '10px').attr('font-weight', '600')
+          .text('← ' + t('fork.historical') + '  ·  ' + t('fork.coverageBoundary') + ' →')
+      }
+
       for (const b of canon) drawBlock(b, CANONICAL_Y, false)
       for (let h = lo; h <= hi; h++) {
         const e = map.get(h)
