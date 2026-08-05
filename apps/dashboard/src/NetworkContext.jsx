@@ -1,7 +1,6 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from './api'
-
-const NetworkContext = createContext({ info: null, status: 'loading', lastUpdated: null })
+import { NetworkContext } from './networkStore'
 
 export function NetworkProvider({ children, interval = 30000 }) {
   const [info, setInfo] = useState(null)
@@ -46,8 +45,4 @@ export function NetworkProvider({ children, interval = 30000 }) {
       {children}
     </NetworkContext.Provider>
   )
-}
-
-export function useNetworkInfo() {
-  return useContext(NetworkContext)
 }
