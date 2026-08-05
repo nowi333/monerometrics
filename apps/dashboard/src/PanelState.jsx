@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { useNetworkInfo } from './NetworkContext'
+import { useNetworkInfo } from './networkStore'
 
 export default function PanelState({ status, variant = 'block', height = 240 }) {
   const { t } = useTranslation()

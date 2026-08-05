@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { api, formatHashrate } from './api'
-import { useNetworkInfo } from './NetworkContext'
+import { useNetworkInfo } from './networkStore'
 import { usePolledData } from './usePolledData'
 import InfoTooltip from './InfoTooltip'
 import TradingViewMini from './TradingViewMini'
