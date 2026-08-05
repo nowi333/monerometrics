@@ -28,6 +28,11 @@ const CHUNK = 250
 const BUFFER = 45
 const MAX_VISIBLE = 280
 
+const chunkToFor = (h, tip) => {
+  const to = (Math.floor(h / CHUNK) + 1) * CHUNK - 1
+  return tip && to > tip ? tip : to
+}
+
 export default function ChainForkVisualizer() {
   const { t } = useTranslation()
   const svgRef = useRef(null)
@@ -188,14 +193,9 @@ export default function ChainForkVisualizer() {
         drawMax = c + Math.floor(MAX_SPAN / 2)
       }
 
-      const r = rangeRef.current
-      if (r.min != null && drawMin < r.min && r.min > 0) {
-        const anchor = r.min - 1
-        if (!attemptedRef.current.has(anchor)) fetchChunk(anchor)
-      }
-      if (r.max != null && drawMax > r.max && r.max < tipRef.current) {
-        const anchor = Math.min(tipRef.current, r.max + CHUNK)
-        if (!attemptedRef.current.has(anchor)) fetchChunk(anchor)
+      for (let h = Math.max(0, drawMin); h <= drawMax + CHUNK; h += CHUNK) {
+        const to = chunkToFor(h, tipRef.current)
+        if (to >= 0 && !attemptedRef.current.has(to)) fetchChunk(to)
       }
 
       content.selectAll('*').remove()
@@ -325,9 +325,8 @@ export default function ChainForkVisualizer() {
     }
     if (height == null || Number.isNaN(height)) { setSearchError(t('fork.searchInvalid')); return }
     if (tipRef.current && height > tipRef.current) { setSearchError(t('fork.searchNotFound')); return }
-    const r = rangeRef.current
-    if (r.min == null || height < r.min || height > r.max) {
-      await fetchChunk(Math.min(tipRef.current || height + 30, height + 30))
+    if (!blocksRef.current.get(height)?.canonical) {
+      await fetchChunk(chunkToFor(height, tipRef.current))
     }
     const e2 = blocksRef.current.get(height)
     if (!e2 || !e2.canonical) { setSearchError(t('fork.searchNotFound')); return }
