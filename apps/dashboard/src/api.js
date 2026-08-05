@@ -34,7 +34,7 @@ export const api = {
   networkBlocktime: (window = '24h') => fetchJSON(`/network/blocktime?window=${window}`),
   networkMempool: (window = '24h') => fetchJSON(`/network/mempool?window=${window}`),
   networkEmission: (window = '30d') => fetchJSON(`/network/emission?window=${window}`),
-  chainForkWindow: (limit = 80) => fetchJSON(`/chain/fork-window?limit=${limit}`),
+  chainForkWindow: (limit = 250, to = null) => fetchJSON(`/chain/fork-window?limit=${limit}${to != null ? `&to=${to}` : ''}`),
   chainWindow: (from, to) => fetchJSON(`/chain/window?from=${from}&to=${to}`),
   blockDetail: (hash) => fetchJSON(`/chain/block/${hash}`),
   chainProvenance: (window = '24h') => fetchJSON(`/chain/provenance?window=${window}`),

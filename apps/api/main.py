@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
     yield
     log.info('Shutting down...')
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.7.3', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.7.4', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -555,16 +555,17 @@ async def network_emission(window: str=Query('30d', regex=WINDOW_REGEX)):
     return response
 
 @app.get('/chain/fork-window', response_model=ForkWindowResponse)
-async def chain_fork_window(limit: int=Query(80, ge=10, le=500)):
+async def chain_fork_window(limit: int=Query(250, ge=10, le=1000), to: int | None=Query(None, ge=0)):
     pool = get_pool()
     async with pool.acquire() as conn:
         tip = await conn.fetchval('SELECT MAX(height) FROM blocks WHERE is_canonical = true')
         if not tip:
             return ForkWindowResponse(tip_height=0, blocks_count=0, reorgs_count=0, blocks=[])
-        fork_heights = set()
-        reorg_rows = await conn.fetch('\n            SELECT fork_point_height FROM reorgs_detected\n            WHERE fork_point_height >= $1\n            ', tip - limit)
+        top = tip if to is None else min(to, tip)
+        bottom = max(0, top - limit)
+        reorg_rows = await conn.fetch('\n            SELECT fork_point_height FROM reorgs_detected\n            WHERE fork_point_height BETWEEN $1 AND $2\n            ', bottom, top)
         fork_heights = {r['fork_point_height'] for r in reorg_rows}
-        rows = await conn.fetch('\n            SELECT height, hash, prev_hash, is_canonical,\n                   miner_pool, pool_source, merge_mining, timestamp_unix, tx_count\n            FROM blocks\n            WHERE height BETWEEN $1 AND $2\n            ORDER BY height DESC, is_canonical DESC\n            ', tip - limit, tip)
+        rows = await conn.fetch('\n            SELECT height, hash, prev_hash, is_canonical,\n                   miner_pool, pool_source, merge_mining, timestamp_unix, tx_count\n            FROM blocks\n            WHERE height BETWEEN $1 AND $2\n            ORDER BY height DESC, is_canonical DESC\n            ', bottom, top)
     blocks = []
     for r in rows:
         d = dict(r)
