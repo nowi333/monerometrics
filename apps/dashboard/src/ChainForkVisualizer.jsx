@@ -226,7 +226,7 @@ export default function ChainForkVisualizer() {
         }
       }
       for (let i = 0; i < canon.length - 1; i++) {
-        if (canon[i + 1].height === canon[i].height + 1 && canon[i + 1].height !== COVERAGE_START) {
+        if (canon[i + 1].height === canon[i].height + 1) {
           content.append('line')
             .attr('x1', worldX(canon[i].height) + BLOCK_W).attr('y1', CANONICAL_Y + BLOCK_H / 2)
             .attr('x2', worldX(canon[i + 1].height)).attr('y2', CANONICAL_Y + BLOCK_H / 2)
@@ -247,9 +247,13 @@ export default function ChainForkVisualizer() {
           .attr('x1', bx).attr('y1', CANONICAL_Y - 34).attr('x2', bx).attr('y2', FORK_Y + BLOCK_H + 8)
           .attr('stroke', 'var(--color-accent)').attr('stroke-width', 1.5).attr('stroke-dasharray', '5 4').attr('opacity', 0.75)
         content.append('text')
-          .attr('x', bx + 6).attr('y', CANONICAL_Y - 24)
+          .attr('x', bx - 8).attr('y', CANONICAL_Y - 24).attr('text-anchor', 'end')
           .attr('fill', 'var(--color-accent)').attr('font-size', '10px').attr('font-weight', '600')
-          .text('← ' + t('fork.historical') + '  ·  ' + t('fork.coverageBoundary') + ' →')
+          .text('← ' + t('fork.historical'))
+        content.append('text')
+          .attr('x', bx + 8).attr('y', CANONICAL_Y - 24).attr('text-anchor', 'start')
+          .attr('fill', 'var(--color-accent)').attr('font-size', '10px').attr('font-weight', '600')
+          .text(t('fork.coverageBoundary') + ' →')
       }
 
       for (const b of canon) drawBlock(b, CANONICAL_Y, false)
