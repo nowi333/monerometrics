@@ -173,7 +173,7 @@ export default function ChainForkVisualizer() {
         .attr('stroke', cardStroke).attr('stroke-width', cardStrokeW)
       blockG.append('rect').attr('x', x + 2.5).attr('y', y + 3).attr('width', 3.5).attr('height', BLOCK_H - 6).attr('rx', 1.75).attr('fill', accent)
       blockG.append('text').attr('x', X0).attr('y', y + 13).attr('fill', accent).attr('font-size', '7.5px').attr('font-weight', '500').text(historical && (!pool || pool === 'unknown') ? t('fork.historical') : poolShortName(pool))
-      blockG.append('text').attr('x', X0).attr('y', y + 30).attr('fill', isOrphan ? 'var(--color-danger)' : (historical ? 'var(--color-text-secondary)' : 'var(--color-text)')).attr('font-size', '14px').attr('font-weight', '600').attr('font-family', 'var(--font-mono)').text(block.height.toString().slice(-4))
+      blockG.append('text').attr('x', X0).attr('y', y + 30).attr('fill', isOrphan ? 'var(--color-danger)' : (historical ? 'var(--color-text-secondary)' : 'var(--color-text)')).attr('font-size', '12.5px').attr('font-weight', '600').attr('font-family', 'var(--font-mono)').text(block.height)
       blockG.append('text').attr('x', X0).attr('y', y + 40).attr('fill', 'var(--color-dim)').attr('font-size', '7.5px').attr('font-family', 'var(--font-mono)').text(block.hash.slice(0, 6))
       if (!historical) {
         blockG.append('rect').attr('x', X0).attr('y', y + BLOCK_H - 8.5).attr('width', 5).attr('height', 5).attr('rx', 1.5).attr('fill', evi)
@@ -226,7 +226,7 @@ export default function ChainForkVisualizer() {
         }
       }
       for (let i = 0; i < canon.length - 1; i++) {
-        if (canon[i + 1].height === canon[i].height + 1) {
+        if (canon[i + 1].height === canon[i].height + 1 && canon[i + 1].height !== COVERAGE_START) {
           content.append('line')
             .attr('x1', worldX(canon[i].height) + BLOCK_W).attr('y1', CANONICAL_Y + BLOCK_H / 2)
             .attr('x2', worldX(canon[i + 1].height)).attr('y2', CANONICAL_Y + BLOCK_H / 2)
@@ -368,7 +368,7 @@ export default function ChainForkVisualizer() {
 
   const subtitle =
     status === 'ok'
-      ? t('fork.stats', { blocks: stats.blocks, reorgs: stats.reorgs })
+      ? ''
       : status === 'error'
         ? t('state.apiError')
         : status === 'empty'
@@ -386,9 +386,11 @@ export default function ChainForkVisualizer() {
           <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
             {t('fork.title')}<InfoTooltip text={t('info.fork')} />
           </h3>
-          <p className="text-xs mt-1" style={{ color: status === 'error' ? 'var(--color-warn)' : 'var(--color-dim)' }}>
-            {subtitle}{loadingMore ? ` · ${t('fork.loadingMore')}` : ''}
-          </p>
+          {(subtitle || loadingMore) && (
+            <p className="text-xs mt-1" style={{ color: status === 'error' ? 'var(--color-warn)' : 'var(--color-dim)' }}>
+              {subtitle}{loadingMore ? (subtitle ? ` · ${t('fork.loadingMore')}` : t('fork.loadingMore')) : ''}
+            </p>
+          )}
         </div>
 
         {status === 'ok' && (
