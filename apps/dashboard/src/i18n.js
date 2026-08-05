@@ -185,6 +185,8 @@ i18n
           'orphans.column.canonicalHash': 'Canonical hash',
           'orphans.column.pool': 'Pool',
           'orphans.column.tx': 'Tx',
+          'orphans.viewOrphan': 'View orphan block details',
+          'orphans.viewCanonical': 'View canonical block details',
 
 
           'footer.apiLink': 'Public API',
@@ -460,6 +462,8 @@ i18n
           'orphans.column.canonicalHash': 'Hash canonique',
           'orphans.column.pool': 'Pool',
           'orphans.column.tx': 'Tx',
+          'orphans.viewOrphan': 'Voir le détail du bloc orphelin',
+          'orphans.viewCanonical': 'Voir le détail du bloc canonique',
 
 
           'footer.apiLink': 'API publique',
@@ -736,6 +740,8 @@ i18n
           'orphans.column.canonicalHash': 'Hash canónico',
           'orphans.column.pool': 'Pool',
           'orphans.column.tx': 'Tx',
+          'orphans.viewOrphan': 'Ver detalles del bloque huérfano',
+          'orphans.viewCanonical': 'Ver detalles del bloque canónico',
 
 
           'footer.apiLink': 'API pública',
