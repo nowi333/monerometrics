@@ -1,12 +1,35 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from './api'
+import BlockDetailModal from './BlockDetailModal'
 import InfoTooltip from './InfoTooltip'
 import PanelState from './PanelState'
 import { usePolledData } from './usePolledData'
 
+const toUnix = (s) => (s ? Math.floor(Date.parse(s) / 1000) || null : null)
+
 export default function OrphansTable() {
   const { t } = useTranslation()
+  const [selected, setSelected] = useState(null)
   const { data, status } = usePolledData(() => api.orphansRecent(20), d => Array.isArray(d && d.orphans), [])
+
+  const openOrphan = (o) => setSelected({
+    block: {
+      hash: o.orphan_hash,
+      height: o.height,
+      miner_pool: o.miner_pool,
+      pool_source: o.pool_source,
+      tx_count: o.tx_count,
+      timestamp_unix: toUnix(o.timestamp_human),
+    },
+    isOrphan: true,
+    agoSeconds: (() => { const u = toUnix(o.timestamp_human); return u ? Math.floor(Date.now() / 1000) - u : 0 })(),
+  })
+  const openCanonical = (o) => setSelected({
+    block: { hash: o.canonical_hash, height: o.height },
+    isOrphan: false,
+    agoSeconds: 0,
+  })
 
   if (status !== 'ok') {
     return (
@@ -42,8 +65,30 @@ export default function OrphansTable() {
               {orphans.map(o => (
                 <tr key={o.orphan_hash} className="border-b border-[color:var(--color-border)]">
                   <td className="py-2 px-2 font-mono">{o.height}</td>
-                  <td className="py-2 px-2 font-mono text-orange-400 text-xs whitespace-nowrap">{o.orphan_hash.slice(0, 12)}...</td>
-                  <td className="py-2 px-2 font-mono text-green-400 text-xs whitespace-nowrap">{o.canonical_hash?.slice(0, 12)}...</td>
+                  <td className="py-2 px-2 text-xs whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => openOrphan(o)}
+                      title={t('orphans.viewOrphan')}
+                      className="font-mono text-orange-400 rounded hover:underline underline-offset-2 inline-flex items-center gap-1 transition-opacity hover:opacity-80"
+                    >
+                      {o.orphan_hash.slice(0, 12)}...
+                    </button>
+                  </td>
+                  <td className="py-2 px-2 text-xs whitespace-nowrap">
+                    {o.canonical_hash ? (
+                      <button
+                        type="button"
+                        onClick={() => openCanonical(o)}
+                        title={t('orphans.viewCanonical')}
+                        className="font-mono text-green-400 rounded hover:underline underline-offset-2 inline-flex items-center gap-1 transition-opacity hover:opacity-80"
+                      >
+                        {o.canonical_hash.slice(0, 12)}...
+                      </button>
+                    ) : (
+                      <span className="font-mono text-[color:var(--color-dim)]">—</span>
+                    )}
+                  </td>
                   <td className="py-2 px-2 text-xs">{o.miner_pool ?? 'unknown'}</td>
                   <td className="py-2 px-2 text-right font-mono">{o.tx_count}</td>
                 </tr>
@@ -52,6 +97,7 @@ export default function OrphansTable() {
           </table>
         </div>
       )}
+      <BlockDetailModal selected={selected} onClose={() => setSelected(null)} />
     </div>
   )
 }

@@ -37,8 +37,13 @@ export default function BlockDetailModal({ selected, onClose }) {
 
 
     api.blockDetail(block.hash)
-      .then(d => { if (alive) setRich({ hash: block.hash, data: d }) })
-      .catch(() => { if (alive) setRich({ hash: block.hash, data: null }) })
+      .then(d => {
+        if (!alive) return
+        const ts = block.timestamp_unix ?? d?.timestamp_unix ?? null
+        const ago = ts ? Math.floor(Date.now() / 1000) - ts : null
+        setRich({ hash: block.hash, data: d, ts, ago })
+      })
+      .catch(() => { if (alive) setRich({ hash: block.hash, data: null, ts: block.timestamp_unix ?? null, ago: null }) })
     return () => { alive = false }
   }, [block])
 
@@ -46,7 +51,8 @@ export default function BlockDetailModal({ selected, onClose }) {
 
   const isOrphan = selected.isOrphan
 
-  const ext = rich && rich.hash === block.hash ? rich.data : null
+  const richRow = rich && rich.hash === block.hash ? rich : null
+  const ext = richRow?.data ?? null
   const src = block.pool_source || ext?.pool_source || null
   const copyHash = async () => {
     try { await navigator.clipboard.writeText(block.hash); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { }
@@ -102,7 +108,7 @@ export default function BlockDetailModal({ selected, onClose }) {
               </button>
             </span>
           </Row>
-          {block.prev_hash && <Row label={t('block.prevHash')} mono>{block.prev_hash}</Row>}
+          {(block.prev_hash || ext?.prev_hash) && <Row label={t('block.prevHash')} mono>{block.prev_hash || ext.prev_hash}</Row>}
           <Row label={t('fork.tipPool')} tip={t('block.tip.pool')}>
             <span className="inline-flex items-center gap-2 flex-wrap">
               <span className="w-2.5 h-2.5 rounded-sm" style={{ background: poolColor(block.miner_pool) }} />
@@ -122,12 +128,17 @@ export default function BlockDetailModal({ selected, onClose }) {
               )}
             </span>
           </Row>
-          <Row label={t('fork.tipTx')} tip={t('block.tip.txCount')} mono>{block.tx_count}</Row>
+          <Row label={t('fork.tipTx')} tip={t('block.tip.txCount')} mono>{block.tx_count ?? ext?.tx_count ?? '—'}</Row>
           {ext?.size_bytes != null && <Row label={t('block.size')} tip={t('block.tip.size')} mono>{ext.size_bytes.toLocaleString()} B</Row>}
           {ext?.difficulty != null && <Row label={t('block.difficulty')} tip={t('block.tip.difficulty')} mono>{Number(ext.difficulty).toLocaleString()}</Row>}
           {ext?.reward_xmr != null && <Row label={t('block.reward')} mono>{Number(ext.reward_xmr).toFixed(6)} XMR</Row>}
           <Row label={t('fork.tipTime')} mono>
-            {block.timestamp_unix ? `${new Date(block.timestamp_unix * 1000).toISOString().replace('T', ' ').slice(0, 19)} UTC · ${timeAgo(selected.agoSeconds)}` : '—'}
+            {(() => {
+              const ts = block.timestamp_unix ?? richRow?.ts ?? null
+              if (!ts) return '—'
+              const ago = block.timestamp_unix ? selected.agoSeconds : richRow?.ago
+              return `${new Date(ts * 1000).toISOString().replace('T', ' ').slice(0, 19)} UTC · ${ago != null ? timeAgo(ago) : ''}`.trim()
+            })()}
           </Row>
           {ext?.weight != null && (
             <Row label={t('block.weight')} tip={t('block.tip.weight')} mono>
