@@ -18,294 +18,315 @@ const SOURCE_LEGEND = ['viewkey_proof', 'pool_api', 'pool_api_unproven', 'coinba
 
 const poolShortName = (pool) => (pool || 'unknown').replace(/\.(com|org|net|pro|eu|xyz|stream|io)$/, '')
 
+const BLOCK_W = 82
+const BLOCK_H = 52
+const GAP_X = 30
+const STEP = BLOCK_W + GAP_X
+const CANONICAL_Y = 80
+const FORK_Y = 180
+const CHUNK = 250
+const BUFFER = 45
+const MAX_VISIBLE = 280
+
 export default function ChainForkVisualizer() {
   const { t } = useTranslation()
   const svgRef = useRef(null)
   const containerRef = useRef(null)
-  const gRef = useRef(null)
+  const contentRef = useRef(null)
   const zoomRef = useRef(null)
+  const rafRef = useRef(null)
   const hasInteractedRef = useRef(false)
-  const [data, setData] = useState(null)
+  const pendingFocusRef = useRef(null)
+  const highlightRef = useRef(null)
+
+  const blocksRef = useRef(new Map())
+  const rangeRef = useRef({ min: null, max: null })
+  const tipRef = useRef(0)
+  const anchorRef = useRef(null)
+  const reorgsRef = useRef(new Set())
+  const inflightRef = useRef(new Set())
+  const attemptedRef = useRef(new Set())
+
   const [status, setStatus] = useState('loading')
+  const [version, setVersion] = useState(0)
+  const [stats, setStats] = useState({ blocks: 0, reorgs: 0, hasOrphans: false })
   const [tooltip, setTooltip] = useState(null)
   const [selected, setSelected] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [interacted, setInteracted] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [query, setQuery] = useState('')
+  const [searchError, setSearchError] = useState('')
 
+  const bump = () => setVersion(v => v + 1)
 
-
-  const hasOrphans = !!data && data.blocks.some(b => !b.is_canonical)
-
-
-
-  useEffect(() => {
-    let cancelled = false
-    let hasData = false
-    const load = () => {
-      api.chainForkWindow(200)
-        .then(d => {
-          if (cancelled) return
-          if (d && d.blocks && d.blocks.length > 0) { hasData = true; setData(d); setStatus('ok') }
-          else { hasData = false; setData(null); setStatus('empty') }
-        })
-        .catch(() => { if (!cancelled && !hasData) { setData(null); setStatus('error') } })
+  const mergeBlocks = useCallback((list) => {
+    const map = blocksRef.current
+    for (const b of list) {
+      let entry = map.get(b.height)
+      if (!entry) { entry = { canonical: null, orphans: [] }; map.set(b.height, entry) }
+      if (b.is_canonical) entry.canonical = b
+      else if (!entry.orphans.some(o => o.hash === b.hash)) entry.orphans.push(b)
+      if (b.is_fork_point) reorgsRef.current.add(b.height)
+      const r = rangeRef.current
+      if (r.min === null || b.height < r.min) r.min = b.height
+      if (r.max === null || b.height > r.max) r.max = b.height
     }
-    load()
-    const id = setInterval(load, 30000)
-    return () => { cancelled = true; clearInterval(id) }
   }, [])
 
+  const fetchChunk = useCallback((to) => {
+    const key = to == null ? 'tip' : to
+    if (inflightRef.current.has(key)) return Promise.resolve()
+    inflightRef.current.add(key)
+    attemptedRef.current.add(key)
+    if (to != null) queueMicrotask(() => setLoadingMore(true))
+    return api.chainForkWindow(CHUNK, to)
+      .then(d => {
+        tipRef.current = d.tip_height || tipRef.current
+        if (anchorRef.current == null && d.tip_height) anchorRef.current = d.tip_height
+        if (d && d.blocks && d.blocks.length > 0) {
+          mergeBlocks(d.blocks)
+          let orphans = false
+          for (const e of blocksRef.current.values()) { if (e.orphans.length) { orphans = true; break } }
+          setStats({ blocks: blocksRef.current.size, reorgs: reorgsRef.current.size, hasOrphans: orphans })
+          setStatus('ok')
+          bump()
+        } else if (blocksRef.current.size === 0) {
+          setStatus('empty')
+        }
+      })
+      .catch(() => { if (blocksRef.current.size === 0) setStatus('error') })
+      .finally(() => { inflightRef.current.delete(key); if (to != null) setLoadingMore(false) })
+  }, [mergeBlocks])
 
-  const BLOCK_W = 82
-  const BLOCK_H = 52
-  const GAP_X = 30
-  const CANONICAL_Y = 80
-  const FORK_Y = 180
-  const MARGIN_LEFT = 40
+  useEffect(() => {
+    fetchChunk(null)
+    const id = setInterval(() => { attemptedRef.current.delete('tip'); fetchChunk(null) }, 30000)
+    return () => clearInterval(id)
+  }, [fetchChunk])
+
+  const hasOrphans = stats.hasOrphans
 
   const render = useCallback(() => {
-    if (!data || !svgRef.current) return
+    const node = svgRef.current
+    if (!node || blocksRef.current.size === 0) return
+    const W = Math.round(node.getBoundingClientRect().width) || 900
+    const H = isFullscreen ? Math.round(window.innerHeight * 0.8) : (hasOrphans ? 600 : 340)
+
     const sourceWord = (src) => t('fork.evi.' + (src || 'none'), { defaultValue: '' })
+    const anchor = anchorRef.current ?? tipRef.current ?? 0
+    const worldX = (h) => (h - anchor) * STEP
 
-    const svg = d3.select(svgRef.current)
+    const svg = d3.select(node)
+    const prevT = d3.zoomTransform(node)
     svg.selectAll('*').remove()
+    svg.attr('viewBox', `0 0 ${W} ${H}`)
 
-    const canonical = data.blocks
-      .filter(b => b.is_canonical)
-      .sort((a, b) => a.height - b.height)
-    const orphans = data.blocks.filter(b => !b.is_canonical)
+    const g = svg.append('g')
+    const labels = g.append('g')
+    const content = g.append('g')
+    contentRef.current = content
 
-    if (canonical.length === 0) return
-
-    const minHeight = canonical[0].height
-    const width = MARGIN_LEFT * 2 + canonical.length * (BLOCK_W + GAP_X)
-
-
-    const height = orphans.length > 0 ? 280 : 150
-
-    svg.attr('viewBox', `0 0 ${Math.max(width, 800)} ${height}`)
-
-
-    const g = svg.append('g').attr('class', 'zoom-group')
-    gRef.current = g
-
-    const xPos = (h) => MARGIN_LEFT + (h - minHeight) * (BLOCK_W + GAP_X)
-
-
-    const timeAxis = g.append('g').attr('class', 'time-axis')
-    const tickEvery = Math.max(1, Math.floor(canonical.length / 8))
-    canonical.forEach((b, i) => {
-      if (i % tickEvery === 0) {
-        const x = xPos(b.height) + BLOCK_W / 2
-        timeAxis.append('line')
-          .attr('x1', x).attr('y1', CANONICAL_Y + BLOCK_H + 8)
-          .attr('x2', x).attr('y2', CANONICAL_Y + BLOCK_H + 14)
-          .attr('stroke', 'var(--color-dim)').attr('stroke-width', 1)
-        const d = new Date(b.timestamp_unix * 1000)
-        timeAxis.append('text')
-          .attr('x', x).attr('y', CANONICAL_Y + BLOCK_H + 28)
-          .attr('text-anchor', 'middle')
-          .attr('fill', 'var(--color-dim)')
-          .attr('font-size', '10px')
-          .attr('font-family', 'var(--font-mono)')
-          .text(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
-      }
-    })
-
-
-    for (let i = 0; i < canonical.length - 1; i++) {
-      const x1 = xPos(canonical[i].height) + BLOCK_W
-      const x2 = xPos(canonical[i + 1].height)
-      g.append('line')
-        .attr('x1', x1).attr('y1', CANONICAL_Y + BLOCK_H / 2)
-        .attr('x2', x2).attr('y2', CANONICAL_Y + BLOCK_H / 2)
-        .attr('stroke', 'var(--color-success)')
-        .attr('stroke-width', 2)
-    }
-
-
-    orphans.forEach(orphan => {
-      const x = xPos(orphan.height)
-      g.append('path')
-        .attr('d', `M ${x + BLOCK_W / 2} ${CANONICAL_Y + BLOCK_H} L ${x + BLOCK_W / 2} ${FORK_Y}`)
-        .attr('stroke', 'var(--color-danger)')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', '4 3')
-        .attr('fill', 'none')
-    })
-
+    labels.append('text').attr('class', 'row-label-c')
+      .attr('fill', 'var(--color-success)').attr('font-size', '11px').attr('font-weight', '600')
+      .text(t('fork.canonical'))
+    labels.append('text').attr('class', 'row-label-o')
+      .attr('fill', 'var(--color-danger)').attr('font-size', '11px').attr('font-weight', '600')
+      .text(t('fork.orphans'))
 
     const drawBlock = (block, y, isOrphan) => {
-      const x = xPos(block.height)
-      const blockG = g.append('g')
-        .attr('class', 'block')
-        .style('cursor', 'pointer')
-        .on('mouseenter', (event) => {
-          setTooltip({
-            x: event.clientX,
-            y: event.clientY,
-            block,
-            isOrphan,
-
-            agoSeconds: Math.floor(Date.now() / 1000) - block.timestamp_unix,
-          })
-        })
-        .on('mousemove', (event) => {
-          setTooltip(prev => prev ? { ...prev, x: event.clientX, y: event.clientY } : null)
-        })
+      const x = worldX(block.height)
+      const blockG = content.append('g').style('cursor', 'pointer')
+        .on('mouseenter', (event) => setTooltip({ x: event.clientX, y: event.clientY, block, isOrphan, agoSeconds: Math.floor(Date.now() / 1000) - block.timestamp_unix }))
+        .on('mousemove', (event) => setTooltip(prev => prev ? { ...prev, x: event.clientX, y: event.clientY } : null))
         .on('mouseleave', () => setTooltip(null))
         .on('click', (event) => {
           event.stopPropagation()
           setTooltip(null)
           setInteracted(true)
-          setSelected({
-            block,
-            isOrphan,
-            agoSeconds: Math.floor(Date.now() / 1000) - block.timestamp_unix,
-          })
+          setSelected({ block, isOrphan, agoSeconds: Math.floor(Date.now() / 1000) - block.timestamp_unix })
         })
 
       const pool = block.miner_pool
       const accent = isOrphan ? 'var(--color-danger)' : poolColor(pool)
       const evi = sourceStroke(block.pool_source)
-      const cardStroke = isOrphan ? 'var(--color-danger)'
-        : (block.is_fork_point ? 'var(--color-warn)' : 'var(--color-border-strong)')
+      const cardStroke = isOrphan ? 'var(--color-danger)' : (block.is_fork_point ? 'var(--color-warn)' : 'var(--color-border-strong)')
       const cardStrokeW = isOrphan || block.is_fork_point ? 1.5 : 1
       const X0 = x + 10
 
-      blockG.append('rect')
-        .attr('x', x).attr('y', y)
-        .attr('width', BLOCK_W).attr('height', BLOCK_H)
-        .attr('rx', 5)
-        .attr('fill', 'var(--color-card)')
-        .attr('fill-opacity', isOrphan ? 0.55 : 1)
-        .attr('stroke', cardStroke)
-        .attr('stroke-width', cardStrokeW)
+      if (highlightRef.current === block.height && !isOrphan) {
+        const ring = blockG.append('rect')
+          .attr('x', x - 4).attr('y', y - 4).attr('width', BLOCK_W + 8).attr('height', BLOCK_H + 8).attr('rx', 8)
+          .attr('fill', 'none').attr('stroke', 'var(--color-accent)').attr('stroke-width', 2.5)
+        ring.append('animate').attr('attributeName', 'opacity').attr('values', '1;0.25;1').attr('dur', '1.1s').attr('repeatCount', 'indefinite')
+      }
 
-      blockG.append('rect')
-        .attr('x', x + 2.5).attr('y', y + 3)
-        .attr('width', 3.5).attr('height', BLOCK_H - 6)
-        .attr('rx', 1.75)
-        .attr('fill', accent)
-
-      blockG.append('text')
-        .attr('x', X0).attr('y', y + 13)
-        .attr('fill', accent)
-        .attr('font-size', '7.5px')
-        .attr('font-weight', '500')
-        .text(poolShortName(pool))
-
-      blockG.append('text')
-        .attr('x', X0).attr('y', y + 30)
-        .attr('fill', isOrphan ? 'var(--color-danger)' : 'var(--color-text)')
-        .attr('font-size', '14px')
-        .attr('font-weight', '600')
-        .attr('font-family', 'var(--font-mono)')
-        .text(block.height.toString().slice(-4))
-
-      blockG.append('text')
-        .attr('x', X0).attr('y', y + 40)
-        .attr('fill', 'var(--color-dim)')
-        .attr('font-size', '7.5px')
-        .attr('font-family', 'var(--font-mono)')
-        .text(block.hash.slice(0, 6))
-
-      blockG.append('rect')
-        .attr('x', X0).attr('y', y + BLOCK_H - 8.5)
-        .attr('width', 5).attr('height', 5).attr('rx', 1.5)
-        .attr('fill', evi)
-      blockG.append('text')
-        .attr('x', X0 + 8).attr('y', y + BLOCK_H - 4.5)
-        .attr('fill', 'var(--color-text-secondary)')
-        .attr('font-size', '7px')
-        .text(sourceWord(block.pool_source))
-
+      blockG.append('rect').attr('x', x).attr('y', y).attr('width', BLOCK_W).attr('height', BLOCK_H).attr('rx', 5)
+        .attr('fill', 'var(--color-card)').attr('fill-opacity', isOrphan ? 0.55 : 1)
+        .attr('stroke', cardStroke).attr('stroke-width', cardStrokeW)
+      blockG.append('rect').attr('x', x + 2.5).attr('y', y + 3).attr('width', 3.5).attr('height', BLOCK_H - 6).attr('rx', 1.75).attr('fill', accent)
+      blockG.append('text').attr('x', X0).attr('y', y + 13).attr('fill', accent).attr('font-size', '7.5px').attr('font-weight', '500').text(poolShortName(pool))
+      blockG.append('text').attr('x', X0).attr('y', y + 30).attr('fill', isOrphan ? 'var(--color-danger)' : 'var(--color-text)').attr('font-size', '14px').attr('font-weight', '600').attr('font-family', 'var(--font-mono)').text(block.height.toString().slice(-4))
+      blockG.append('text').attr('x', X0).attr('y', y + 40).attr('fill', 'var(--color-dim)').attr('font-size', '7.5px').attr('font-family', 'var(--font-mono)').text(block.hash.slice(0, 6))
+      blockG.append('rect').attr('x', X0).attr('y', y + BLOCK_H - 8.5).attr('width', 5).attr('height', 5).attr('rx', 1.5).attr('fill', evi)
+      blockG.append('text').attr('x', X0 + 8).attr('y', y + BLOCK_H - 4.5).attr('fill', 'var(--color-text-secondary)').attr('font-size', '7px').text(sourceWord(block.pool_source))
       if (block.merge_mining > 0) {
-        blockG.append('text')
-          .attr('x', x + BLOCK_W - 6).attr('y', y + 13)
-          .attr('text-anchor', 'end')
-          .attr('fill', 'var(--color-accent)')
-          .attr('font-size', '7px')
-          .attr('font-weight', '700')
-          .text('MM')
+        blockG.append('text').attr('x', x + BLOCK_W - 6).attr('y', y + 13).attr('text-anchor', 'end').attr('fill', 'var(--color-accent)').attr('font-size', '7px').attr('font-weight', '700').text('MM')
       }
     }
 
-    canonical.forEach(b => drawBlock(b, CANONICAL_Y, false))
-    orphans.forEach(b => drawBlock(b, FORK_Y, true))
+    const drawCulled = (transform) => {
+      const k = transform.k
+      const visMinX = (0 - transform.x) / k
+      const visMaxX = (W - transform.x) / k
+      const drawMin = anchor + Math.floor(visMinX / STEP) - BUFFER
+      const drawMax = anchor + Math.ceil(visMaxX / STEP) + BUFFER
 
+      const r = rangeRef.current
+      if (r.min != null && drawMin < r.min && r.min > 0) {
+        const anchor = r.min - 1
+        if (!attemptedRef.current.has(anchor)) fetchChunk(anchor)
+      }
+      if (r.max != null && drawMax > r.max && r.max < tipRef.current) {
+        const anchor = Math.min(tipRef.current, r.max + CHUNK)
+        if (!attemptedRef.current.has(anchor)) fetchChunk(anchor)
+      }
 
-    g.append('text')
-      .attr('x', 4).attr('y', CANONICAL_Y - 8)
-      .attr('fill', 'var(--color-success)')
-      .attr('font-size', '11px')
-      .attr('font-weight', '600')
-      .text(t('fork.canonical'))
+      content.selectAll('*').remove()
 
-    if (orphans.length > 0) {
-      g.append('text')
-        .attr('x', 4).attr('y', FORK_Y - 8)
-        .attr('fill', 'var(--color-danger)')
-        .attr('font-size', '11px')
-        .attr('font-weight', '600')
-        .text(t('fork.orphans'))
+      const lo = Math.max(0, drawMin)
+      const hi = drawMax
+      const map = blocksRef.current
+
+      const canon = []
+      for (let h = lo; h <= hi; h++) {
+        const e = map.get(h)
+        if (e && e.canonical) canon.push(e.canonical)
+      }
+      const step = Math.max(1, Math.floor((hi - lo) / 10))
+      for (const b of canon) {
+        if (b.height % step === 0) {
+          const x = worldX(b.height) + BLOCK_W / 2
+          content.append('line').attr('x1', x).attr('y1', CANONICAL_Y + BLOCK_H + 8).attr('x2', x).attr('y2', CANONICAL_Y + BLOCK_H + 14).attr('stroke', 'var(--color-dim)').attr('stroke-width', 1)
+          content.append('text').attr('x', x).attr('y', CANONICAL_Y + BLOCK_H + 28).attr('text-anchor', 'middle').attr('fill', 'var(--color-dim)').attr('font-size', '10px').attr('font-family', 'var(--font-mono)')
+            .text(new Date(b.timestamp_unix * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+        }
+      }
+      for (let i = 0; i < canon.length - 1; i++) {
+        if (canon[i + 1].height === canon[i].height + 1) {
+          content.append('line')
+            .attr('x1', worldX(canon[i].height) + BLOCK_W).attr('y1', CANONICAL_Y + BLOCK_H / 2)
+            .attr('x2', worldX(canon[i + 1].height)).attr('y2', CANONICAL_Y + BLOCK_H / 2)
+            .attr('stroke', 'var(--color-success)').attr('stroke-width', 2)
+        }
+      }
+      for (let h = lo; h <= hi; h++) {
+        const e = map.get(h)
+        if (!e) continue
+        for (const orphan of e.orphans) {
+          const x = worldX(orphan.height)
+          content.append('path').attr('d', `M ${x + BLOCK_W / 2} ${CANONICAL_Y + BLOCK_H} L ${x + BLOCK_W / 2} ${FORK_Y}`).attr('stroke', 'var(--color-danger)').attr('stroke-width', 2).attr('stroke-dasharray', '4 3').attr('fill', 'none')
+        }
+      }
+      for (const b of canon) drawBlock(b, CANONICAL_Y, false)
+      for (let h = lo; h <= hi; h++) {
+        const e = map.get(h)
+        if (!e) continue
+        for (const orphan of e.orphans) drawBlock(orphan, FORK_Y, true)
+      }
+
+      const labelX = Math.max(worldX(lo) + 4, visMinX + 6)
+      labels.select('.row-label-c').attr('x', labelX).attr('y', CANONICAL_Y - 8)
+      labels.select('.row-label-o').attr('x', labelX).attr('y', FORK_Y - 8).attr('opacity', hasOrphans ? 1 : 0)
     }
 
-
-    const zoom = d3.zoom()
-      .scaleExtent([0.2, 2000])
+    const kMin = W / (MAX_VISIBLE * STEP)
+    const kInit = W / (9 * STEP)
+    const zoom = d3.zoom().scaleExtent([Math.min(kMin, kInit), 8])
       .on('zoom', (event) => {
         g.attr('transform', event.transform)
-        if (event.sourceEvent) hasInteractedRef.current = true
+        if (event.sourceEvent) { hasInteractedRef.current = true }
+        if (!rafRef.current) {
+          rafRef.current = requestAnimationFrame(() => {
+            rafRef.current = null
+            drawCulled(d3.zoomTransform(node))
+          })
+        }
       })
     zoomRef.current = zoom
     svg.call(zoom)
 
-    if (hasInteractedRef.current) {
+    const focusTransform = (h, k) => {
+      const cx = worldX(h) + BLOCK_W / 2
+      const tx = W / 2 - cx * k
+      const ty = H * 0.42 - (CANONICAL_Y + BLOCK_H / 2) * k
+      return d3.zoomIdentity.translate(tx, ty).scale(k)
+    }
 
-
-      g.attr('transform', d3.zoomTransform(svgRef.current))
+    let T
+    if (pendingFocusRef.current != null) {
+      const h = pendingFocusRef.current
+      pendingFocusRef.current = null
+      T = focusTransform(h, kInit)
+      svg.call(zoom.transform, T)
+      drawCulled(T)
+      svg.transition().duration(500).call(zoom.transform, T)
+      return
+    } else if (hasInteractedRef.current && prevT && prevT.k !== 1) {
+      T = prevT
     } else {
-
-      const viewW = Math.max(width, 800)
-      const initialScale = 26
-      const initialX = viewW - width * initialScale - MARGIN_LEFT * initialScale
-
-
-
-      const rowCenterY = CANONICAL_Y + BLOCK_H / 2
-      const initialY = height / 2 - initialScale * rowCenterY
-      svg.call(zoom.transform, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale))
+      const tip = tipRef.current
+      const tx = W - 24 - (worldX(tip) + BLOCK_W) * kInit
+      const ty = H * 0.32 - CANONICAL_Y * kInit
+      T = d3.zoomIdentity.translate(tx, ty).scale(kInit)
     }
-  }, [data, t])
+    svg.call(zoom.transform, T)
+    drawCulled(T)
+  }, [t, isFullscreen, hasOrphans, fetchChunk])
 
-  useEffect(() => {
-    render()
-  }, [render])
+  useEffect(() => { render() }, [render, version])
 
-
-  const handleZoomIn = () => {
-    if (zoomRef.current && svgRef.current) {
-      d3.select(svgRef.current).transition().duration(200).call(zoomRef.current.scaleBy, 1.4)
-    }
-  }
-  const handleZoomOut = () => {
-    if (zoomRef.current && svgRef.current) {
-      d3.select(svgRef.current).transition().duration(200).call(zoomRef.current.scaleBy, 0.7)
-    }
-  }
-  const handleReset = () => {
-    hasInteractedRef.current = false
-    render()
-  }
+  const handleZoomIn = () => { if (zoomRef.current && svgRef.current) d3.select(svgRef.current).transition().duration(200).call(zoomRef.current.scaleBy, 1.4) }
+  const handleZoomOut = () => { if (zoomRef.current && svgRef.current) d3.select(svgRef.current).transition().duration(200).call(zoomRef.current.scaleBy, 0.7) }
+  const handleReset = () => { hasInteractedRef.current = false; highlightRef.current = null; bump() }
   const toggleFullscreen = () => {
     if (!containerRef.current) return
-    if (!isFullscreen) {
-      containerRef.current.requestFullscreen?.()
-    } else {
-      document.exitFullscreen?.()
-    }
+    if (!isFullscreen) containerRef.current.requestFullscreen?.()
+    else document.exitFullscreen?.()
   }
+
+  const focusHeight = useCallback((h) => {
+    hasInteractedRef.current = true
+    highlightRef.current = h
+    pendingFocusRef.current = h
+    setInteracted(true)
+    bump()
+    setTimeout(() => { highlightRef.current = null; bump() }, 4500)
+  }, [])
+
+  const handleSearch = useCallback(async (e) => {
+    e.preventDefault()
+    const q = query.trim()
+    if (!q) return
+    setSearchError('')
+    let height
+    if (/^\d+$/.test(q)) {
+      height = parseInt(q, 10)
+    } else if (/^[0-9a-fA-F]{64}$/.test(q)) {
+      try { const d = await api.blockDetail(q); height = d.height } catch { setSearchError(t('fork.searchNotFound')); return }
+    } else {
+      setSearchError(t('fork.searchInvalid')); return
+    }
+    if (height == null || Number.isNaN(height)) { setSearchError(t('fork.searchInvalid')); return }
+    if (tipRef.current && height > tipRef.current) { setSearchError(t('fork.searchNotFound')); return }
+    const r = rangeRef.current
+    if (r.min == null || height < r.min || height > r.max) {
+      await fetchChunk(Math.min(tipRef.current || height + 30, height + 30))
+    }
+    const e2 = blocksRef.current.get(height)
+    if (!e2 || !e2.canonical) { setSearchError(t('fork.searchNotFound')); return }
+    focusHeight(height)
+  }, [query, t, fetchChunk, focusHeight])
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement)
@@ -313,9 +334,18 @@ export default function ChainForkVisualizer() {
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [])
 
+  useEffect(() => {
+    const node = svgRef.current
+    if (!node) return
+    let raf = null
+    const ro = new ResizeObserver(() => { if (!raf) raf = requestAnimationFrame(() => { raf = null; bump() }) })
+    ro.observe(node)
+    return () => { ro.disconnect(); if (raf) cancelAnimationFrame(raf) }
+  }, [])
+
   const subtitle =
     status === 'ok'
-      ? t('fork.stats', { blocks: data.blocks_count, reorgs: data.reorgs_count })
+      ? t('fork.stats', { blocks: stats.blocks, reorgs: stats.reorgs })
       : status === 'error'
         ? t('state.apiError')
         : status === 'empty'
@@ -334,27 +364,48 @@ export default function ChainForkVisualizer() {
             {t('fork.title')}<InfoTooltip text={t('info.fork')} />
           </h3>
           <p className="text-xs mt-1" style={{ color: status === 'error' ? 'var(--color-warn)' : 'var(--color-dim)' }}>
-            {subtitle}
+            {subtitle}{loadingMore ? ` · ${t('fork.loadingMore')}` : ''}
           </p>
         </div>
 
         {status === 'ok' && (
-          <div className="flex items-center gap-1">
-            <button onClick={handleZoomOut} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.zoomOut')}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </button>
-            <button onClick={handleZoomIn} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.zoomIn')}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </button>
-            <button onClick={handleReset} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.reset')}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-            </button>
-            <button onClick={toggleFullscreen} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.fullscreen')}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-            </button>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <form onSubmit={handleSearch} className="flex items-center gap-1">
+              <div className="relative">
+                <input
+                  value={query}
+                  onChange={e => { setQuery(e.target.value); if (searchError) setSearchError('') }}
+                  placeholder={t('fork.searchPlaceholder')}
+                  spellCheck={false}
+                  className="text-xs rounded border pl-2 pr-2 py-1.5 w-40 sm:w-52 outline-none focus:ring-1"
+                  style={{ background: 'var(--color-bg)', borderColor: searchError ? 'var(--color-danger)' : 'var(--color-border)', color: 'var(--color-text)', fontFamily: 'var(--font-mono)' }}
+                />
+              </div>
+              <button type="submit" className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.search')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </button>
+            </form>
+            <div className="flex items-center gap-1">
+              <button onClick={handleZoomOut} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.zoomOut')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </button>
+              <button onClick={handleZoomIn} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.zoomIn')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </button>
+              <button onClick={handleReset} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.reset')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              </button>
+              <button onClick={toggleFullscreen} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.fullscreen')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+              </button>
+            </div>
           </div>
         )}
       </div>
+
+      {searchError && (
+        <p className="text-xs mb-2" style={{ color: 'var(--color-danger)' }}>{searchError}</p>
+      )}
 
       {status === 'ok' ? (
         <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '8px', background: 'var(--color-bg)' }}>
