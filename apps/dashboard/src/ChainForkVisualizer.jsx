@@ -175,7 +175,7 @@ export default function ChainForkVisualizer() {
       blockG.append('text').attr('x', X0).attr('y', y + 13).attr('fill', accent).attr('font-size', '7.5px').attr('font-weight', '500').text(historical && (!pool || pool === 'unknown') ? t('fork.historical') : poolShortName(pool))
       blockG.append('text').attr('x', X0).attr('y', y + 30).attr('fill', isOrphan ? 'var(--color-danger)' : (historical ? 'var(--color-text-secondary)' : 'var(--color-text)')).attr('font-size', '12.5px').attr('font-weight', '600').attr('font-family', 'var(--font-mono)').text(block.height)
       blockG.append('text').attr('x', X0).attr('y', y + 40).attr('fill', 'var(--color-dim)').attr('font-size', '7.5px').attr('font-family', 'var(--font-mono)').text(block.hash.slice(0, 6))
-      if (!historical) {
+      if (block.pool_source) {
         blockG.append('rect').attr('x', X0).attr('y', y + BLOCK_H - 8.5).attr('width', 5).attr('height', 5).attr('rx', 1.5).attr('fill', evi)
         blockG.append('text').attr('x', X0 + 8).attr('y', y + BLOCK_H - 4.5).attr('fill', 'var(--color-text-secondary)').attr('font-size', '7px').text(sourceWord(block.pool_source))
       }
