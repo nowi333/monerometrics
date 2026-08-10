@@ -27,7 +27,7 @@ const FORK_Y = 180
 const CHUNK = 250
 const BUFFER = 45
 const MAX_VISIBLE = 280
-const COVERAGE_START = 3690000
+const COVERAGE_START = 3490000
 
 const chunkToFor = (h, tip) => {
   const to = (Math.floor(h / CHUNK) + 1) * CHUNK - 1
@@ -154,7 +154,7 @@ export default function ChainForkVisualizer() {
         })
 
       const pool = block.miner_pool
-      const historical = !isOrphan && block.height < COVERAGE_START
+      const historical = !isOrphan && block.height < COVERAGE_START && !block.pool_source && (!pool || pool === 'unknown')
       const accent = isOrphan ? 'var(--color-danger)' : (historical ? 'var(--color-dim)' : poolColor(pool))
       const evi = sourceStroke(block.pool_source)
       const cardStroke = isOrphan ? 'var(--color-danger)' : (block.is_fork_point ? 'var(--color-warn)' : 'var(--color-border-strong)')
