@@ -194,6 +194,7 @@ i18n
           'orphans.column.tx': 'Tx',
           'orphans.viewOrphan': 'View orphan block details',
           'orphans.viewCanonical': 'View canonical block details',
+          'orphans.viewOnChain': 'View on chain',
 
 
           'footer.apiLink': 'Public API',
@@ -478,6 +479,7 @@ i18n
           'orphans.column.tx': 'Tx',
           'orphans.viewOrphan': 'Voir le détail du bloc orphelin',
           'orphans.viewCanonical': 'Voir le détail du bloc canonique',
+          'orphans.viewOnChain': 'Voir sur la chaîne',
 
 
           'footer.apiLink': 'API publique',
@@ -763,6 +765,7 @@ i18n
           'orphans.column.tx': 'Tx',
           'orphans.viewOrphan': 'Ver detalles del bloque huérfano',
           'orphans.viewCanonical': 'Ver detalles del bloque canónico',
+          'orphans.viewOnChain': 'Ver en la cadena',
 
 
           'footer.apiLink': 'API pública',

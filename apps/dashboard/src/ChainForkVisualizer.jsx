@@ -332,6 +332,17 @@ export default function ChainForkVisualizer() {
     setTimeout(() => { highlightRef.current = null; bump() }, 4500)
   }, [])
 
+  const goToHeight = useCallback(async (height) => {
+    if (height == null || Number.isNaN(height)) return false
+    if (tipRef.current && height > tipRef.current) return false
+    if (!blocksRef.current.get(height)?.canonical) {
+      await fetchChunk(chunkToFor(height, tipRef.current))
+    }
+    if (!blocksRef.current.get(height)?.canonical) return false
+    focusHeight(height)
+    return true
+  }, [fetchChunk, focusHeight])
+
   const handleSearch = useCallback(async (e) => {
     e.preventDefault()
     const q = query.trim()
@@ -346,14 +357,20 @@ export default function ChainForkVisualizer() {
       setSearchError(t('fork.searchInvalid')); return
     }
     if (height == null || Number.isNaN(height)) { setSearchError(t('fork.searchInvalid')); return }
-    if (tipRef.current && height > tipRef.current) { setSearchError(t('fork.searchNotFound')); return }
-    if (!blocksRef.current.get(height)?.canonical) {
-      await fetchChunk(chunkToFor(height, tipRef.current))
+    const ok = await goToHeight(height)
+    if (!ok) setSearchError(t('fork.searchNotFound'))
+  }, [query, t, goToHeight])
+
+  useEffect(() => {
+    const onFocusBlock = (e) => {
+      const height = e.detail?.height
+      if (height == null) return
+      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      goToHeight(height)
     }
-    const e2 = blocksRef.current.get(height)
-    if (!e2 || !e2.canonical) { setSearchError(t('fork.searchNotFound')); return }
-    focusHeight(height)
-  }, [query, t, fetchChunk, focusHeight])
+    window.addEventListener('mm:focus-block', onFocusBlock)
+    return () => window.removeEventListener('mm:focus-block', onFocusBlock)
+  }, [goToHeight])
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement)
