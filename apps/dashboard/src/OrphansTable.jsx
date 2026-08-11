@@ -30,6 +30,7 @@ export default function OrphansTable() {
     isOrphan: false,
     agoSeconds: 0,
   })
+  const viewOnChain = (o) => window.dispatchEvent(new CustomEvent('mm:focus-block', { detail: { height: o.height } }))
 
   if (status !== 'ok') {
     return (
@@ -59,6 +60,7 @@ export default function OrphansTable() {
                 <th className="py-2 px-2 whitespace-nowrap">{t('orphans.column.canonicalHash')}</th>
                 <th className="py-2 px-2 whitespace-nowrap">{t('orphans.column.pool')}</th>
                 <th className="py-2 px-2 text-right whitespace-nowrap">{t('orphans.column.tx')}</th>
+                <th className="py-2 px-2 text-right whitespace-nowrap"></th>
               </tr>
             </thead>
             <tbody>
@@ -91,6 +93,21 @@ export default function OrphansTable() {
                   </td>
                   <td className="py-2 px-2 text-xs">{o.miner_pool ?? 'unknown'}</td>
                   <td className="py-2 px-2 text-right font-mono">{o.tx_count}</td>
+                  <td className="py-2 px-2 text-right whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => viewOnChain(o)}
+                      title={t('orphans.viewOnChain')}
+                      className="inline-flex items-center gap-1 text-xs rounded border px-2 py-1 transition-all hover:brightness-110 active:scale-[0.98]"
+                      style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 40%, var(--color-border))', color: 'var(--color-accent)' }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M3 17l6-6 4 4 8-8" />
+                        <path d="M17 7h4v4" />
+                      </svg>
+                      {t('orphans.viewOnChain')}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
