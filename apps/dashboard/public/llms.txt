@@ -6,10 +6,15 @@
 
 monerometrics runs its own Monero node, indexes every block as it arrives, and
 detects chain reorganizations by re-checking a rolling window of recent blocks
-against the node. Mining-pool attribution is verified on-chain by block-hash match
-against the pools' own public block lists, never inferred from a pool's
-self-reported hashrate. Blocks matching no known pool are reported as `unknown`
-rather than guessed.
+against the node. Mining-pool attribution is verified, not guessed: where a pool
+publishes its wallet view key, the coinbase output is checked cryptographically
+(view-key proof); attribution is also cross-checked against the pools' own public
+block lists, never inferred from a pool's self-reported hashrate. Blocks matching
+no known pool are reported as `unknown`.
+
+The interactive chain fork visualizer covers the whole chain: you can search any
+block height or block hash and jump straight to it, all the way down to the
+genesis block, with lazy loading so it stays fast.
 
 No account, no API key, no rate-limit tiers, no tracking, no ads.
 
