@@ -192,6 +192,21 @@ export default function App() {
             {ONION_HOST}
           </a>
         </div>
+        <div className="mt-3">
+          <a
+            href="https://monerica.com/site/monerometrics"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Review monerometrics on Monerica"
+            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] opacity-55 hover:opacity-100 transition-opacity"
+            style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 28%, var(--color-border))', color: 'var(--color-dim)' }}
+          >
+            <span className="inline-flex items-center rounded-sm bg-white px-1 py-0.5" style={{ lineHeight: 0 }}>
+              <img src="/monerica-logo.png" alt="Monerica" style={{ height: 11, width: 'auto', display: 'block' }} />
+            </span>
+            {t('footer.monerica')}
+          </a>
+        </div>
       </footer>
     </div>
   )

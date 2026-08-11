@@ -206,6 +206,7 @@ i18n
           'state.syncProgress': 'Syncing the blockchain — {{pct}}% · history will appear once synced',
           'footer.xSoon': 'X — coming soon',
           'footer.tor': '.onion version (Tor)',
+          'footer.monerica': 'Review on Monerica',
           'footer.matrixSoon': 'Matrix — coming soon',
 
 
@@ -491,6 +492,7 @@ i18n
           'state.syncProgress': 'Synchronisation de la blockchain — {{pct}} % · l’historique apparaîtra une fois synchronisé',
           'footer.xSoon': 'X — bientôt',
           'footer.tor': 'Version .onion (Tor)',
+          'footer.monerica': 'Voir sur Monerica',
           'footer.matrixSoon': 'Matrix — bientôt',
 
 
@@ -777,6 +779,7 @@ i18n
           'state.syncProgress': 'Sincronizando la blockchain — {{pct}} % · el historial aparecerá al sincronizar',
           'footer.xSoon': 'X — próximamente',
           'footer.tor': 'Versión .onion (Tor)',
+          'footer.monerica': 'Ver en Monerica',
           'footer.matrixSoon': 'Matrix — próximamente',
 
 
