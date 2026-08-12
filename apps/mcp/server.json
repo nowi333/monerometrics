@@ -1,0 +1,16 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.json",
+  "name": "io.github.nowi333/monerometrics",
+  "description": "Live, read-only Monero (XMR) network metrics: chain reorganizations, orphan blocks, mining-pool centralization (Nakamoto coefficient), hashrate, block time, mempool, and chain search down to the genesis block.",
+  "repository": {
+    "url": "https://github.com/nowi333/monerometrics",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.monerometrics.net/mcp"
+    }
+  ]
+}
