@@ -37,6 +37,7 @@ No account, no API key, no rate-limit tiers, no tracking, no ads.
 
 ## More
 
+- [Full reference](https://monerometrics.net/llms-full.txt): detailed methodology, glossary, full API reference and FAQ
 - [Dashboard](https://monerometrics.net/): charts, chain fork visualizer, documentation
 - [Source code](https://github.com/nowi333/monerometrics): infrastructure and application code
 - Tor hidden service: 6wbhchvavey26lbtscl6w6qg76balycixtsklcggrsslyk4xah6sbbad.onion
