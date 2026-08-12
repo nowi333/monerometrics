@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp
+  namespace: monerometrics
+  labels:
+    app: monerometrics-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monerometrics-mcp
+  template:
+    metadata:
+      labels:
+        app: monerometrics-mcp
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: mcp
+          image: ghcr.io/nowi333/monerometrics-mcp:0.1.1
+          env:
+            - name: MM_API_BASE
+              value: "https://api.monerometrics.net"
+            - name: MCP_HOST
+              value: "0.0.0.0"
+            - name: MCP_PORT
+              value: "8080"
+          ports:
+            - containerPort: 8080
+          resources:
+            requests: { memory: 96Mi, cpu: 50m }
+            limits: { memory: 256Mi, cpu: 500m }
+          readinessProbe:
+            tcpSocket: { port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: 8080 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp
+  namespace: monerometrics
+  labels:
+    app: monerometrics-mcp
+spec:
+  selector:
+    app: monerometrics-mcp
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: mcp
+  namespace: monerometrics
+  labels:
+    app: monerometrics-mcp
+    app.kubernetes.io/part-of: monerometrics
+    environment: poc
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`api.monerometrics.net`) && PathPrefix(`/mcp`)
+      services:
+        - name: mcp
+          port: 8080

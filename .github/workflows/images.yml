@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/worker/**'
       - 'apps/api/**'
+      - 'apps/mcp/**'
       - '.github/workflows/images.yml'
   workflow_dispatch:
 
@@ -18,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [worker, api]
+        app: [worker, api, mcp]
     steps:
       - uses: actions/checkout@v4
 
