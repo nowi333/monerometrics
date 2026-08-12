@@ -35,6 +35,10 @@ No account, no API key, no rate-limit tiers, no tracking, no ads.
 - [Pool distribution](https://api.monerometrics.net/pools/distribution): mining-pool shares, largest-pool share, Nakamoto coefficient
 - [Pool sources](https://api.monerometrics.net/pools/sources): reachability of each pool API used for attribution
 
+## For AI agents
+
+- MCP server (Model Context Protocol, Streamable HTTP): `https://api.monerometrics.net/mcp` — query the Monero network live from any MCP-compatible assistant, no account or API key. Tools include network_info, pool_distribution (Nakamoto coefficient), reorgs, recent_orphans, search_block (down to genesis) and more.
+
 ## More
 
 - [Full reference](https://monerometrics.net/llms-full.txt): detailed methodology, glossary, full API reference and FAQ
