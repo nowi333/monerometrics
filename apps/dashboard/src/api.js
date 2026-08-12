@@ -22,6 +22,7 @@ export const api = {
 
   health: () => fetchJSON('/health'),
   info: () => fetchJSON('/info'),
+  usageExternal: () => fetchJSON('/usage/external'),
 
   reorgsStats: () => fetchJSON('/reorgs/stats'),
   poolsDistribution: (window = '24h') => fetchJSON(`/pools/distribution?window=${window}`),

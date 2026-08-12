@@ -229,3 +229,7 @@ class PriceResponse(BaseModel):
     haveno_bid: Optional[float] = None
     haveno_ask: Optional[float] = None
     premium_pct: Optional[float] = None
+
+class ExternalUsageResponse(BaseModel):
+    """Count of external API requests (excluding the dashboard and the MCP server)."""
+    external_requests: int

@@ -12,7 +12,7 @@ import httpx
 import json
 import os
 import re
-from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse
+from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, ExternalUsageResponse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
 
@@ -23,16 +23,59 @@ async def lifespan(app: FastAPI):
     log.info('Initializing asyncpg connection pool...')
     await init_pool(database_url)
     log.info('Pool initialized. API ready.')
+    global _external_total
+    try:
+        async with get_pool().acquire() as conn:
+            await conn.execute('CREATE TABLE IF NOT EXISTS api_usage (metric TEXT PRIMARY KEY, count BIGINT NOT NULL DEFAULT 0)')
+            await conn.execute("INSERT INTO api_usage(metric, count) VALUES ('external_requests', 0) ON CONFLICT (metric) DO NOTHING")
+            _external_total = await conn.fetchval("SELECT count FROM api_usage WHERE metric = 'external_requests'") or 0
+        log.info(f'External usage counter loaded: {_external_total}')
+    except Exception as e:
+        log.warning(f'External usage counter init failed: {e}')
     yield
     log.info('Shutting down...')
+    await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.7.4', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.7.5', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
 RATE_LIMIT_ONION_PER_MIN = int(os.getenv('RATE_LIMIT_ONION_PER_MIN', '1200'))
 _rate_buckets: dict[str, deque] = defaultdict(deque)
 _rate_last_sweep = 0.0
+
+DASHBOARD_ORIGINS = {'https://monerometrics.net', 'https://www.monerometrics.net', 'http://localhost:5173', 'http://localhost:4173'}
+_USAGE_SKIP_EXACT = {'/', '/health', '/openapi.json', '/docs', '/redoc', '/favicon.ico'}
+_USAGE_SKIP_PREFIXES = ('/usage', '/mcp', '/metrics')
+_external_total = 0
+_external_dirty = 0
+_external_last_flush = 0.0
+
+def _is_external_request(request: Request) -> bool:
+    if request.method != 'GET':
+        return False
+    path = request.url.path
+    if path in _USAGE_SKIP_EXACT or path.startswith(_USAGE_SKIP_PREFIXES):
+        return False
+    if _is_onion(request):
+        return False
+    if request.headers.get('origin', '') in DASHBOARD_ORIGINS:
+        return False
+    if request.headers.get('user-agent', '').lower().startswith('monerometrics-mcp'):
+        return False
+    return True
+
+async def _flush_external():
+    global _external_dirty
+    if _external_dirty <= 0:
+        return
+    try:
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE api_usage SET count = $1 WHERE metric = 'external_requests'", _external_total)
+        _external_dirty = 0
+    except Exception:
+        pass
 
 def _is_onion(request: Request) -> bool:
     return request.headers.get(ONION_HEADER, '').strip() == '1'
@@ -48,7 +91,7 @@ def _client_ip(request: Request) -> str:
 
 @app.middleware('http')
 async def rate_limit(request: Request, call_next):
-    global _rate_last_sweep
+    global _rate_last_sweep, _external_total, _external_dirty, _external_last_flush
     now = time.time()
     client_ip = _client_ip(request)
     limit = RATE_LIMIT_ONION_PER_MIN if client_ip == ONION_BUCKET_KEY else RATE_LIMIT_PER_MIN
@@ -66,6 +109,12 @@ async def rate_limit(request: Request, call_next):
                 b.popleft()
             if not b:
                 del _rate_buckets[ip]
+    if _is_external_request(request):
+        _external_total += 1
+        _external_dirty += 1
+        if _external_dirty >= 25 or now - _external_last_flush > 60:
+            _external_last_flush = now
+            await _flush_external()
     return await call_next(request)
 app.add_middleware(CORSMiddleware, allow_origins=['https://monerometrics.net', 'https://www.monerometrics.net', 'http://localhost:5173', 'http://localhost:4173'], allow_credentials=False, allow_methods=['GET'], allow_headers=['*'])
 
@@ -89,6 +138,10 @@ async def info():
         total_orphans = await conn.fetchval('SELECT COUNT(*) FROM blocks WHERE is_canonical = false')
         total_reorgs = await conn.fetchval('SELECT COUNT(*) FROM reorgs_detected')
     return InfoResponse(api_version=app.version, latest_indexed_height=latest, total_blocks_indexed=total_blocks or 0, total_orphan_blocks=total_orphans or 0, total_reorgs_detected=total_reorgs or 0)
+
+@app.get('/usage/external', response_model=ExternalUsageResponse)
+async def usage_external():
+    return ExternalUsageResponse(external_requests=_external_total)
 
 @app.get('/chain/window', response_model=ChainWindowResponse)
 async def chain_window(from_height: int=Query(..., alias='from', ge=0), to_height: int=Query(..., alias='to', ge=0)):
