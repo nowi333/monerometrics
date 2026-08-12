@@ -51,6 +51,24 @@ export default function Documentation() {
     return () => { alive = false }
   }, [])
 
+  const [usage, setUsage] = useState(null)
+  useEffect(() => {
+    let alive = true
+    const load = () => api.usageExternal().then(d => { if (alive) setUsage(d.external_requests) }).catch(() => {})
+    load()
+    const id = setInterval(load, 30000)
+    return () => { alive = false; clearInterval(id) }
+  }, [])
+
+  const [mcpCopied, setMcpCopied] = useState(false)
+  const copyMcp = async () => {
+    try {
+      await navigator.clipboard.writeText('https://api.monerometrics.net/mcp')
+      setMcpCopied(true)
+      setTimeout(() => setMcpCopied(false), 2000)
+    } catch { }
+  }
+
   const copyOnion = async () => {
     try {
       await navigator.clipboard.writeText(ONION_HOST)
@@ -177,6 +195,15 @@ export default function Documentation() {
         <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
           {t('doc.apiP1')} <a href="https://api.monerometrics.net/openapi.json" className="hover:underline" style={{ color: 'var(--color-info)' }}>api.monerometrics.net</a>
         </p>
+        {usage != null && (
+          <div className="inline-flex items-center gap-2 text-xs mb-4 rounded-full border px-3 py-1" style={{ borderColor: 'var(--color-border)', color: 'var(--color-dim)' }}>
+            <span className="relative inline-flex" aria-hidden="true">
+              <span className="w-2 h-2 rounded-full" style={{ background: 'var(--color-success)' }} />
+              <span className="absolute inset-0 w-2 h-2 rounded-full animate-ping" style={{ background: 'var(--color-success)' }} />
+            </span>
+            {t('doc.usage', { count: usage.toLocaleString() })}
+          </div>
+        )}
         <div className="space-y-2">
           {ENDPOINTS.map(e => (
             <div key={e.p} className="mm-node rounded border p-3">
@@ -189,6 +216,29 @@ export default function Documentation() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="rounded-lg border p-5 sm:p-6 relative overflow-hidden" style={card}>
+        <div aria-hidden="true" className="pointer-events-none absolute -top-14 -right-10 w-48 h-48 rounded-full" style={{ background: 'color-mix(in srgb, var(--color-accent) 14%, transparent)', filter: 'blur(52px)' }} />
+        <div className="relative flex items-start gap-3 mb-4">
+          <span className="shrink-0 inline-flex items-center justify-center rounded-lg" style={{ width: 36, height: 36, background: 'color-mix(in srgb, var(--color-accent) 14%, transparent)', color: 'var(--color-accent)' }}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 7h9M4 12h16M4 17h7" /><circle cx="17.5" cy="7" r="2.2" /><circle cx="13.5" cy="17" r="2.2" />
+            </svg>
+          </span>
+          <div>
+            <h2 className="text-lg font-medium mb-1" style={{ color: 'var(--color-text)' }}>{t('doc.mcp.title')}</h2>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)', maxWidth: '60ch' }}>{t('doc.mcp.text')}</p>
+          </div>
+        </div>
+        <button type="button" onClick={copyMcp} title={t('doc.mcp.copy')} className="mm-node relative w-full rounded border p-3 flex items-center justify-between gap-3 text-left">
+          <code className="text-xs sm:text-sm font-mono break-all" style={{ color: 'var(--color-text)' }}>https://api.monerometrics.net/mcp</code>
+          <span className="text-xs font-mono shrink-0" style={{ color: mcpCopied ? 'var(--color-success)' : 'var(--color-accent)' }}>{mcpCopied ? t('doc.mcp.copied') : t('doc.mcp.copy')}</span>
+        </button>
+        <p className="text-[11px] mt-3" style={{ color: 'var(--color-dim)' }}>
+          {t('doc.mcp.note')}{' '}
+          <a href="https://registry.modelcontextprotocol.io/?search=monerometrics" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: 'var(--color-info)' }}>{t('doc.mcp.registry')}</a>
+        </p>
       </section>
 
       <section className="rounded-lg border p-5 sm:p-6 relative overflow-hidden" style={card}>

@@ -25,6 +25,7 @@ are **free and open, permanently** — there is no paid tier, and there will not
 
 - **Dashboard** — [monerometrics.net](https://monerometrics.net)
 - **Public API** — [api.monerometrics.net](https://api.monerometrics.net) (OpenAPI documented)
+- **MCP server** — `https://api.monerometrics.net/mcp` (Streamable HTTP; in the [MCP Registry](https://registry.modelcontextprotocol.io/?search=monerometrics))
 - **Tor hidden service** — `6wbhchvavey26lbtscl6w6qg76balycixtsklcggrsslyk4xah6sbbad.onion`
   (dashboard + API, no Cloudflare, no IP exposure — see [Access over Tor](#access-over-tor))
 
@@ -482,6 +483,7 @@ can be consumed from anywhere. No key, no account, no tracking.
 |---|---|
 | `GET /health` | Liveness + database connectivity check. |
 | `GET /info` | Global metadata: API version, latest indexed height, total blocks, orphans, reorgs. |
+| `GET /usage/external` | Count of external API requests served, excluding this dashboard and the MCP server. |
 
 **Network**
 
@@ -518,12 +520,29 @@ can be consumed from anywhere. No key, no account, no tracking.
 |---|---|
 | `GET /price` | XMR/USD from a centralized reference (CoinGecko, with Kraken as fallback) **and** the Haveno peer-to-peer street price (RetoSwap network, via `haveno.markets`), plus the premium of the street price over spot. Both sources are proxied and cached server-side (~5 s) so the browser never calls them directly. |
 
+## MCP server
+
+The same read-only metrics are exposed to AI assistants through a **Model Context
+Protocol** server ([`apps/mcp/`](apps/mcp/)), so any MCP-compatible client (Claude,
+IDE agents, …) can query the Monero network directly — no account, no API key.
+
+- **Endpoint** (Streamable HTTP): `https://api.monerometrics.net/mcp`
+- **Registry**: published to the official [MCP Registry](https://registry.modelcontextprotocol.io/?search=monerometrics) as `io.github.nowi333/monerometrics`.
+- **Tools**: `network_info`, `network_hashrate`, `reorgs`, `reorg_stats`, `recent_orphans`,
+  `pool_distribution` (largest-pool share + Nakamoto coefficient), `chain_provenance`,
+  `search_block` (by height or hash, down to the genesis block), `get_block`,
+  `chain_fork_window`, `price`, and more. Plus a `monerometrics://reference` resource.
+
+It is a thin wrapper over the public REST API (one small FastMCP service), deployed
+alongside the API on k3s and routed at `/mcp`.
+
 ## Repository layout
 
 ```
 apps/          Application code
   dashboard/   React + Vite SPA (EN/FR/ES)
   api/         FastAPI service
+  mcp/         Model Context Protocol server (thin wrapper over the API)
   worker/      Python indexer (reorg detection) + shared pool module
 infra/         Terraform — modules (network, server, dns) + environments
 config/        Ansible — inventory, playbooks, roles (hardening, nginx, tor, k3s, ...)
