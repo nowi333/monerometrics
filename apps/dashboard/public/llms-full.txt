@@ -1,0 +1,139 @@
+# monerometrics — full reference for language models
+
+> monerometrics is a free, reorg-aware observatory of the Monero (XMR) network.
+> It runs its own Monero node, indexes every block from the genesis block to the
+> current tip, and exposes chain reorganizations, orphan blocks, network hashrate,
+> block time, mempool state, block emission and mining-pool distribution through a
+> public read-only API and an interactive dashboard. No account, no API key, no
+> rate-limit tiers, no tracking, no ads.
+
+- Website: https://monerometrics.net/
+- API base: https://api.monerometrics.net/
+- OpenAPI schema: https://api.monerometrics.net/openapi.json
+- Source code (MIT): https://github.com/nowi333/monerometrics
+- Tor hidden service: 6wbhchvavey26lbtscl6w6qg76balycixtsklcggrsslyk4xah6sbbad.onion
+
+## What it does
+
+monerometrics answers one question that most explorers ignore: how healthy and how
+decentralized is the Monero network right now, and how has it behaved over time. It
+focuses on chain stability (reorganizations and orphan blocks) and on mining
+centralization, rather than on individual transactions (which on Monero are private
+by design and cannot be inspected).
+
+Everything is measured from a self-hosted Monero node, not scraped from third-party
+explorers. Historical series are stored so they can be queried over windows from one
+hour to five years.
+
+## Key definitions
+
+- Chain reorganization (reorg): the network replaces one or more recent blocks with
+  a competing branch that becomes the canonical chain. A reorg of depth N means N
+  blocks were rolled back. Reorgs are normal at depth 1 but deeper or frequent reorgs
+  can signal instability or an attack.
+- Orphan block: a valid block that was mined but is not part of the final canonical
+  chain, because a competing block at the same height won. Orphans are kept in history
+  and shown next to the canonical chain.
+- Fork point: the last common block shared by the canonical chain and an orphan branch.
+- Nakamoto coefficient: the minimum number of mining pools that together produce more
+  than 50% of blocks over a window. Lower means more centralized.
+- Largest-pool share: the percentage of blocks produced by the single biggest pool
+  over a window.
+- Merge mining: Monero blocks can carry an auxiliary-chain tag (for chains merge-mined
+  with Monero). monerometrics records whether a block is merge-mined.
+- Coinbase: the first transaction of a block, which pays the block reward to the miner.
+  It is the only part of a Monero block whose recipient can be checked, and only when
+  the pool has published the matching wallet view key.
+
+## How reorg and orphan detection works
+
+The indexer follows the node's tip and, on every poll, re-checks a rolling window of
+recent blocks against the node. When a previously-seen block at a given height is
+replaced by a different hash, the old block is recorded as an orphan and a reorg event
+is written with its fork point, depth and the number of affected transactions. Because
+this only works in real time, reorgs and orphans are captured from the moment live
+indexing began; they cannot be reconstructed for the distant past, since the node only
+retains the winning chain.
+
+## How mining-pool attribution works
+
+Attribution is verified, not guessed. In order of strength:
+
+1. View-key proof (cryptographic): some pools publish the wallet view key for their
+   payout address. For those, monerometrics derives the one-time output key of the
+   block's coinbase and checks whether it belongs to the pool's address. A match is
+   mathematical proof that the pool mined the block, verifiable by anyone with the
+   pool's public address and view key. This works retroactively for as long as the
+   pool used that address.
+2. Public pool block lists (self-reported): many pools expose an API listing the
+   blocks they found (height and hash). monerometrics cross-references these. This is
+   trustworthy to the extent the pool's own API is honest, and ranks below view-key
+   proof.
+3. p2pool detection (structural): p2pool pays all its miners directly in the coinbase,
+   so a p2pool block has many coinbase outputs instead of one. That structure is a
+   reliable fingerprint for p2pool blocks after its launch.
+
+Blocks that match none of the above are reported as unknown, never guessed. Solo
+miners and pools without a public key or block list legitimately stay unknown. Deep
+historical blocks (before pools existed or before they published keys) are shown as
+header-only history: real height, hash and timestamp, but no pool attribution and no
+past-fork data.
+
+Each attributed block carries a source tag: viewkey_proof, pool_api,
+pool_api_unproven, or coinbase_heuristic, so the strength of every attribution is
+transparent.
+
+## Chain fork visualizer
+
+An interactive visualizer renders the canonical chain and competing orphan branches.
+It covers the whole chain: you can search any block height or 64-character block hash
+and jump straight to it, all the way down to the genesis block (height 0). Loading is
+lazy and viewport-bounded, so it stays fast regardless of how far back you go. Each
+block shows its height, short hash, mining pool, attribution-evidence dot and a
+merge-mining marker. The "Recent orphan blocks" table links each orphan to its position
+in the visualizer.
+
+## Public API
+
+Base URL: https://api.monerometrics.net/ — free, public, read-only, JSON. Full
+machine-readable description at /openapi.json.
+
+- GET /health — service liveness.
+- GET /network/info — current height, difficulty, hashrate, mempool size.
+- GET /network/hashrate?window=1h|24h|7d|30d|90d|1y|5y — network hashrate time series.
+- GET /network/blocktime?window=... — block-time variance time series.
+- GET /network/mempool?window=... — mempool size time series.
+- GET /network/emission?window=... — block reward / emission time series.
+- GET /price — Monero price (official spot plus a Haveno decentralized-exchange reference).
+- GET /reorgs — detected chain reorganizations.
+- GET /reorgs/stats — reorg counts, depth and affected transactions over windows.
+- GET /orphans/recent?limit= — recent orphan blocks with their canonical counterpart.
+- GET /chain/window?from=&to= — canonical blocks in a height range.
+- GET /chain/fork-window?limit=&to= — canonical chain plus competing orphans around a height; `to` selects the window, enabling browsing down to the genesis block.
+- GET /chain/block/{hash} — full detail for one block (height, prev hash, size, difficulty, reward, coinbase, tx list, merge-mining tags).
+- GET /chain/provenance?window= — how attribution was established over a window (share proven by view key, by pool API, etc.).
+- GET /pools/distribution?window=1h|6h|24h|48h|7d — mining-pool block shares, largest-pool share and Nakamoto coefficient.
+- GET /pools/sources — reachability of each pool API used for attribution.
+
+## FAQ
+
+Q: What is monerometrics?
+A: A free, reorg-aware observatory of the Monero (XMR) network, run from a self-hosted
+node, with a public read-only API and no tracking.
+
+Q: Does it show individual Monero transactions?
+A: No. Monero transactions are private by design. monerometrics measures network-level
+health and mining decentralization, plus the coinbase (miner reward) where a pool has
+published its view key.
+
+Q: Can I explore old blocks?
+A: Yes. The fork visualizer lets you search any height or hash and jump to it, down to
+the genesis block, with lazy loading.
+
+Q: How reliable is the pool attribution?
+A: View-key attributions are cryptographic proof. Pool-API attributions are the pool's
+own claim. Anything unmatched is reported as unknown, never guessed.
+
+Q: Is it really free?
+A: Yes: no account, no API key, no rate-limit tiers, no tracking, no ads. Source code
+is MIT-licensed.
