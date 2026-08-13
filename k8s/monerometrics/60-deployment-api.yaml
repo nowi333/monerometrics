@@ -16,7 +16,7 @@ spec:
   template:
     metadata:
       annotations:
-        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-inject: "false"
         vault.hashicorp.com/role: "monerometrics-api"
         vault.hashicorp.com/agent-inject-secret-postgres-credentials: "secret/data/postgres/credentials"
         vault.hashicorp.com/agent-inject-template-postgres-credentials: |
@@ -32,7 +32,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: api
-          image: ghcr.io/nowi333/monerometrics-api:0.7.3
+          image: ghcr.io/nowi333/monerometrics-api:0.7.5
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsNonRoot: true
@@ -49,6 +49,9 @@ spec:
               value: "postgres"
             - name: POSTGRES_PORT
               value: "5432"
+          envFrom:
+            - secretRef:
+                name: postgres-credentials-fallback
           ports:
             - name: http
               containerPort: 8000
