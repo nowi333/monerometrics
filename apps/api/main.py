@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from db import init_pool, close_pool, get_pool, get_database_url
+import discovery
 import asyncpg
 import httpx
 import json
@@ -36,7 +37,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.7.5', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.8.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -116,6 +117,7 @@ async def rate_limit(request: Request, call_next):
             _external_last_flush = now
             await _flush_external()
     return await call_next(request)
+app.include_router(discovery.router)
 app.add_middleware(CORSMiddleware, allow_origins=['https://monerometrics.net', 'https://www.monerometrics.net', 'http://localhost:5173', 'http://localhost:4173'], allow_credentials=False, allow_methods=['GET'], allow_headers=['*'])
 
 @app.get('/health', response_model=HealthResponse)
