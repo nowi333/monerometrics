@@ -12,7 +12,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY db.py models.py main.py pool_proofs.json ./
+COPY db.py models.py main.py discovery.py pool_proofs.json ./
 
 RUN chown -R api:api /app
 USER api
