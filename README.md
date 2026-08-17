@@ -144,6 +144,24 @@ flowchart TB
 | `edge` | CX23 | 80/443 from the internet | nginx reverse proxy + ModSecurity WAF, serves the static dashboard |
 | `k3s` | CX33 + 128 GB volume | none (outbound only) | k3s cluster: monerod, worker, PostgreSQL, API, OpenBao |
 
+### Running cost
+
+Taken from the Hetzner invoice, per hour of use, excluding VAT:
+
+| Item | Unit price | Monthly (730 h) |
+| --- | --- | --- |
+| 2 × CX23 (`bastion`, `edge`) | 0.0088 €/h | 12.85 € |
+| 1 × CX33 (`k3s`) | 0.0136 €/h | 9.93 € |
+| 3 × primary IPv4 | 0.0008 €/h | 1.75 € |
+| 128 GB volume | 0.0572 €/GB-month | 7.32 € |
+| **Total** | | **31.85 € excl. VAT — 38.22 € incl. VAT** |
+
+Cloudflare, Let's Encrypt, Tailscale and GitHub Actions are on free tiers.
+
+The volume is the item that moves: the pruned Monero blockchain occupies 104 GB of it, while the
+entire indexed database of 3.7 M blocks takes 2 GB — about 572 bytes per block. Storage is sized
+against chain growth, not against indexing.
+
 Key choices:
 
 - **Defense in depth.** Per-server firewalls, a single SSH entry point, a WAF on the only public
@@ -163,7 +181,7 @@ Key choices:
 
 > **These topologies are the production target, not what runs today.** The live platform is a
 > deliberately lean **single-node POC**: one k3s node (a single point of failure), one
-> unreplicated PostgreSQL, one edge. It is honest, cheap (~28 €/month) and enough to prove the
+> unreplicated PostgreSQL, one edge. It is honest, cheap (~38 €/month including VAT) and enough to prove the
 > product — but the k3s node, the database and the edge are all SPOFs. The plan below removes
 > them **in tiers**, each independently fundable, so infrastructure grows with the project's
 > community funding rather than ahead of it.
