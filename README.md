@@ -158,9 +158,17 @@ Taken from the Hetzner invoice, per hour of use, excluding VAT:
 
 Cloudflare, Let's Encrypt, Tailscale and GitHub Actions are on free tiers.
 
-The volume is the item that moves: the pruned Monero blockchain occupies 104 GB of it, while the
-entire indexed database of 3.7 M blocks takes 2 GB — about 572 bytes per block. Storage is sized
-against chain growth, not against indexing.
+The volume is the item that moves. The pruned Monero blockchain occupies 104 GB of it, while the
+entire indexed database of 3.7 M blocks takes 2 GB — about 572 bytes per block.
+
+Growth is measured from the indexed data rather than estimated. Summing the recorded size of every
+canonical block gives 186.8 GB for the full chain against 104 GB on disk, so this pruned node keeps
+**56 %** of Monero. The chain grew **22.18 GB over the last twelve full months**, which is
+**12.35 GB a year on disk** — steady across years (17.5 GB in 2022, 18.3 in 2023, 29.1 in 2024,
+22.2 in 2025). At 93 % full, the 128 GB volume saturates in roughly eight months, so it is sized up
+to 160 GB.
+
+Storage is driven by the chain, not by indexing: the database adds about 150 MB a year.
 
 Key choices:
 
