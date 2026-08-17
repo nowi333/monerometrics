@@ -6,6 +6,11 @@ SITE = 'https://monerometrics.net'
 ONION = 'http://6wbhchvavey26lbtscl6w6qg76balycixtsklcggrsslyk4xah6sbbad.onion'
 REPO = 'https://github.com/nowi333/monerometrics'
 XMR_DONATION = '41mkUSrcAvdGw9E19a83rsh9zdSNC7m8PP34NvmRCCPLZVot61kJHc9i8KGge5JmxkDTuiz7a2nUtE7C4rcQJn4xKjfFyU2'
+ANONPAY = (
+    'https://trocador.app/anonpay/?ticker_to=xmr&network_to=Mainnet&donation=True'
+    '&name=monerometrics&description=Support%20monerometrics&buttonbgcolor=ff6600'
+    f'&address={XMR_DONATION}'
+)
 SUMMARY = 'Reorg-aware Monero (XMR) network observatory: chain reorganizations, orphan blocks, mining-pool centralization with cryptographically verified attribution.'
 
 router = APIRouter(include_in_schema=False)
@@ -107,9 +112,18 @@ def _payment() -> dict:
         'rateLimit': {'requests': 120, 'window': '1m', 'scope': 'ip'},
         'donation': {
             'optional': True,
-            'currency': 'XMR',
-            'address': XMR_DONATION,
             'note': 'Voluntary. Nothing is unlocked, rate-limited or degraded by donating.',
+            'settlement': 'XMR',
+            'methods': [
+                {'type': 'direct', 'currency': 'XMR', 'address': XMR_DONATION},
+                {
+                    'type': 'swap',
+                    'currency': 'any',
+                    'url': ANONPAY,
+                    'provider': 'trocador.app',
+                    'note': 'Pay in any supported cryptocurrency, settled to the XMR address above. No account, no KYC.',
+                },
+            ],
         },
         'accepts': [],
     }
@@ -129,6 +143,7 @@ async def api_root():
         'authentication': 'none',
         'pricing': 'free',
         'donation_xmr': XMR_DONATION,
+        'donation_any_currency': ANONPAY,
     }
 
 @router.get('/robots.txt', response_class=PlainTextResponse)
@@ -166,7 +181,8 @@ async def llms():
         '- Reorg and orphan data only covers what this node observed live.',
         '',
         f'Source code: {REPO}',
-        f'Optional XMR donation: {XMR_DONATION}',
+        f'Optional donation in XMR: {XMR_DONATION}',
+        f'Optional donation in any cryptocurrency (settled to XMR, no account): {ANONPAY}',
     ]
     return '\n'.join(lines) + '\n'
 
