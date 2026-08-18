@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
 BASE = 'https://api.monerometrics.net'
 SITE = 'https://monerometrics.net'
@@ -37,7 +37,7 @@ def _agent_card() -> dict:
             {'url': BASE, 'transport': 'HTTP+JSON'},
         ],
         'provider': {'organization': 'monerometrics', 'url': SITE},
-        'version': '0.8.1',
+        'version': '0.8.2',
         'documentationUrl': f'{BASE}/docs',
         'capabilities': {'streaming': False, 'pushNotifications': False, 'stateTransitionHistory': False},
         'defaultInputModes': ['text/plain', 'application/json'],
@@ -103,6 +103,32 @@ def _openrpc() -> dict:
         ],
     }
 
+def _oauth_protected() -> dict:
+    return {
+        'resource': BASE,
+        'authorization_servers': [],
+        'scopes_supported': [],
+        'bearer_methods_supported': [],
+        'resource_documentation': f'{BASE}/docs',
+        'authentication_required': False,
+        'note': 'This resource is public and read-only. No authorization server is involved and no token is accepted. Connect anonymously.',
+    }
+
+def _oauth_server() -> dict:
+    return {
+        'authentication_required': False,
+        'note': 'No authorization server. This API and its MCP endpoint are public, read-only and unauthenticated.',
+        'resource': BASE,
+        'resource_documentation': f'{BASE}/docs',
+    }
+
+def _server_card() -> dict:
+    card = _mcp_manifest()['servers'][0]
+    card['websiteUrl'] = SITE
+    card['documentationUrl'] = f'{BASE}/docs'
+    card['tools'] = [{'name': skill_id, 'description': description} for skill_id, _, description in SKILLS]
+    return card
+
 def _payment() -> dict:
     return {
         'x402Version': 1,
@@ -154,6 +180,21 @@ async def robots():
         'Disallow: /usage/\n'
         f'Sitemap: {SITE}/sitemap.xml\n'
     )
+
+@router.get('/agents.txt', response_class=PlainTextResponse)
+async def agents_txt():
+    return await llms()
+
+@router.get('/sitemap.xml')
+@router.get('/sitemap-index.xml')
+@router.get('/sitemap_index.xml')
+async def sitemap():
+    urls = ['/', '/docs', '/openapi.json', '/mcp', '/llms.txt']
+    body = ['<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    body += [f'  <url><loc>{BASE}{u}</loc></url>' for u in urls]
+    body.append('</urlset>')
+    return Response('\n'.join(body) + '\n', media_type='application/xml')
 
 @router.get('/llms.txt', response_class=PlainTextResponse)
 async def llms():
@@ -209,7 +250,15 @@ _JSON_ROUTES = {
     '/.well-known/openrpc.json': _openrpc,
     '/openrpc.json': _openrpc,
     '/.well-known/x402': _payment,
+    '/.well-known/x402.json': _payment,
     '/.well-known/payment-manifest': _payment,
+    '/.well-known/oauth-protected-resource': _oauth_protected,
+    '/.well-known/oauth-authorization-server': _oauth_server,
+    '/.well-known/mcp/server-card.json': _server_card,
+    '/.well-known/glama.json': _server_card,
+    '/.well-known/mpp': _mcp_manifest,
+    '/agent-directory.json': _agents_json,
+    '/.well-known/agent-directory.json': _agents_json,
     '/.well-known/ai-plugin.json': lambda: {
         'schema_version': 'v1',
         'name_for_human': 'monerometrics',
