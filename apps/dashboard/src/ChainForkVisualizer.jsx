@@ -106,9 +106,18 @@ export default function ChainForkVisualizer() {
   }, [mergeBlocks])
 
   useEffect(() => {
+    let id = null
+    const poll = () => { attemptedRef.current.delete('tip'); fetchChunk(null) }
+    const start = () => { if (!id) id = setInterval(poll, 30000) }
+    const stop = () => { if (id) { clearInterval(id); id = null } }
+    const onVisibility = () => {
+      if (document.hidden) stop()
+      else { poll(); start() }
+    }
     fetchChunk(null)
-    const id = setInterval(() => { attemptedRef.current.delete('tip'); fetchChunk(null) }, 30000)
-    return () => clearInterval(id)
+    if (!document.hidden) start()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility) }
   }, [fetchChunk])
 
   const hasOrphans = stats.hasOrphans
