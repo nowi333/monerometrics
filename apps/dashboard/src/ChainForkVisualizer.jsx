@@ -24,6 +24,7 @@ const GAP_X = 30
 const STEP = BLOCK_W + GAP_X
 const CANONICAL_Y = 80
 const FORK_Y = 180
+const LANE_H = 100
 const CHUNK = 250
 const BUFFER = 45
 const MAX_VISIBLE = 280
@@ -32,6 +33,32 @@ const COVERAGE_START = 3490000
 const chunkToFor = (h, tip) => {
   const to = (Math.floor(h / CHUNK) + 1) * CHUNK - 1
   return tip && to > tip ? tip : to
+}
+
+const countLanes = (map) => {
+  const byHash = new Map()
+  const orphans = []
+  for (const e of map.values()) {
+    if (e.canonical) byHash.set(e.canonical.hash, e.canonical)
+    for (const o of e.orphans) { byHash.set(o.hash, o); orphans.push(o) }
+  }
+  if (orphans.length === 0) return 0
+  orphans.sort((a, b) => a.height - b.height)
+  const branchOf = new Map()
+  const spans = []
+  for (const o of orphans) {
+    const parent = byHash.get(o.prev_hash)
+    const pb = parent && !parent.is_canonical ? branchOf.get(parent.hash) : null
+    if (pb) { pb.end = o.height; branchOf.set(o.hash, pb) }
+    else { const br = { start: o.height, end: o.height }; spans.push(br); branchOf.set(o.hash, br) }
+  }
+  const laneEnd = []
+  for (const br of spans) {
+    const lane = laneEnd.findIndex(v => v < br.start - 1)
+    if (lane === -1) laneEnd.push(br.end)
+    else laneEnd[lane] = br.end
+  }
+  return laneEnd.length
 }
 
 export default function ChainForkVisualizer() {
@@ -55,7 +82,7 @@ export default function ChainForkVisualizer() {
 
   const [status, setStatus] = useState('loading')
   const [version, setVersion] = useState(0)
-  const [stats, setStats] = useState({ blocks: 0, reorgs: 0, hasOrphans: false })
+  const [stats, setStats] = useState({ blocks: 0, reorgs: 0, hasOrphans: false, lanes: 0 })
   const [tooltip, setTooltip] = useState(null)
   const [selected, setSelected] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -94,7 +121,7 @@ export default function ChainForkVisualizer() {
           mergeBlocks(d.blocks)
           let orphans = false
           for (const e of blocksRef.current.values()) { if (e.orphans.length) { orphans = true; break } }
-          setStats({ blocks: blocksRef.current.size, reorgs: reorgsRef.current.size, hasOrphans: orphans })
+          setStats({ blocks: blocksRef.current.size, reorgs: reorgsRef.current.size, hasOrphans: orphans, lanes: countLanes(blocksRef.current) })
           setStatus('ok')
           bump()
         } else if (blocksRef.current.size === 0) {
@@ -121,12 +148,19 @@ export default function ChainForkVisualizer() {
   }, [fetchChunk])
 
   const hasOrphans = stats.hasOrphans
+  const contentTop = CANONICAL_Y - 34
+  const contentBottom = hasOrphans
+    ? FORK_Y + Math.max(0, stats.lanes - 1) * LANE_H + BLOCK_H + 14
+    : CANONICAL_Y + BLOCK_H + 42
+  const panelH = Math.max(210, contentBottom - contentTop + 48)
 
   const render = useCallback(() => {
     const node = svgRef.current
     if (!node || blocksRef.current.size === 0) return
     const W = Math.round(node.getBoundingClientRect().width) || 900
-    const H = isFullscreen ? Math.round(window.innerHeight * 0.8) : (hasOrphans ? 600 : 340)
+    const H = isFullscreen ? Math.round(window.innerHeight * 0.8) : panelH
+
+    const centerTy = (k) => (H - (contentBottom - contentTop) * k) / 2 - contentTop * k
 
     const sourceWord = (src) => t('fork.evi.' + (src || 'none'), { defaultValue: '' })
     const anchor = anchorRef.current ?? tipRef.current ?? 0
@@ -242,12 +276,76 @@ export default function ChainForkVisualizer() {
             .attr('stroke', 'var(--color-success)').attr('stroke-width', 2)
         }
       }
+      const byHash = new Map()
+      const orphanList = []
       for (let h = lo; h <= hi; h++) {
         const e = map.get(h)
         if (!e) continue
-        for (const orphan of e.orphans) {
-          const x = worldX(orphan.height)
-          content.append('path').attr('d', `M ${x + BLOCK_W / 2} ${CANONICAL_Y + BLOCK_H} L ${x + BLOCK_W / 2} ${FORK_Y}`).attr('stroke', 'var(--color-danger)').attr('stroke-width', 2).attr('stroke-dasharray', '4 3').attr('fill', 'none')
+        if (e.canonical) byHash.set(e.canonical.hash, e.canonical)
+        for (const o of e.orphans) { byHash.set(o.hash, o); orphanList.push(o) }
+      }
+      orphanList.sort((a, b) => a.height - b.height)
+
+      const branchOf = new Map()
+      const branches = []
+      for (const o of orphanList) {
+        const parent = byHash.get(o.prev_hash)
+        const parentBranch = parent && !parent.is_canonical ? branchOf.get(parent.hash) : null
+        if (parentBranch) {
+          parentBranch.blocks.push(o)
+          branchOf.set(o.hash, parentBranch)
+        } else {
+          const br = { blocks: [o], ancestor: parent && parent.is_canonical ? parent : null, lane: 0 }
+          branches.push(br)
+          branchOf.set(o.hash, br)
+        }
+      }
+
+      const laneEnd = []
+      for (const br of branches) {
+        const start = br.blocks[0].height
+        const end = br.blocks[br.blocks.length - 1].height
+        let lane = laneEnd.findIndex(v => v < start - 1)
+        if (lane === -1) { lane = laneEnd.length; laneEnd.push(end) } else { laneEnd[lane] = end }
+        br.lane = lane
+      }
+      const laneY = (lane) => FORK_Y + lane * LANE_H
+
+      for (const br of branches) {
+        const y = laneY(br.lane)
+        const first = br.blocks[0]
+        const fx = worldX(first.height)
+        if (br.ancestor) {
+          const ax = worldX(br.ancestor.height) + BLOCK_W
+          const ay = CANONICAL_Y + BLOCK_H / 2
+          const my = (ay + y + BLOCK_H / 2) / 2
+          content.append('path')
+            .attr('d', `M ${ax} ${ay} C ${ax + GAP_X * 0.7} ${ay}, ${fx - GAP_X * 0.7} ${my}, ${fx} ${y + BLOCK_H / 2}`)
+            .attr('stroke', 'var(--color-danger)').attr('stroke-width', 2).attr('fill', 'none')
+          content.append('circle')
+            .attr('cx', ax).attr('cy', ay).attr('r', 3.5)
+            .attr('fill', 'var(--color-warn)').attr('stroke', 'var(--color-card)').attr('stroke-width', 1)
+        } else {
+          content.append('path')
+            .attr('d', `M ${fx + BLOCK_W / 2} ${CANONICAL_Y + BLOCK_H} L ${fx + BLOCK_W / 2} ${y}`)
+            .attr('stroke', 'var(--color-danger)').attr('stroke-width', 2).attr('stroke-dasharray', '4 3').attr('fill', 'none')
+        }
+        for (let i = 0; i < br.blocks.length - 1; i++) {
+          const a = br.blocks[i]
+          const b = br.blocks[i + 1]
+          if (b.height !== a.height + 1) continue
+          content.append('line')
+            .attr('x1', worldX(a.height) + BLOCK_W).attr('y1', y + BLOCK_H / 2)
+            .attr('x2', worldX(b.height)).attr('y2', y + BLOCK_H / 2)
+            .attr('stroke', 'var(--color-danger)').attr('stroke-width', 2)
+        }
+        if (br.blocks.length > 1) {
+          const last = br.blocks[br.blocks.length - 1]
+          content.append('text')
+            .attr('x', (fx + worldX(last.height) + BLOCK_W) / 2).attr('y', y - 7)
+            .attr('text-anchor', 'middle').attr('fill', 'var(--color-danger)')
+            .attr('font-size', '9.5px').attr('font-weight', '600')
+            .text(t('fork.branchDepth', { count: br.blocks.length, defaultValue: `${br.blocks.length} blocs` }))
         }
       }
       if (COVERAGE_START > lo && COVERAGE_START <= hi + 1) {
@@ -266,10 +364,9 @@ export default function ChainForkVisualizer() {
       }
 
       for (const b of canon) drawBlock(b, CANONICAL_Y, false)
-      for (let h = lo; h <= hi; h++) {
-        const e = map.get(h)
-        if (!e) continue
-        for (const orphan of e.orphans) drawBlock(orphan, FORK_Y, true)
+      for (const br of branches) {
+        const y = laneY(br.lane)
+        for (const orphan of br.blocks) drawBlock(orphan, y, true)
       }
 
       const labelX = Math.max(worldX(lo) + 4, visMinX + 6)
@@ -296,7 +393,7 @@ export default function ChainForkVisualizer() {
     const focusTransform = (h, k) => {
       const cx = worldX(h) + BLOCK_W / 2
       const tx = W / 2 - cx * k
-      const ty = H * 0.42 - (CANONICAL_Y + BLOCK_H / 2) * k
+      const ty = centerTy(k)
       return d3.zoomIdentity.translate(tx, ty).scale(k)
     }
 
@@ -313,12 +410,12 @@ export default function ChainForkVisualizer() {
     } else {
       const tip = tipRef.current
       const tx = W - 24 - (worldX(tip) + BLOCK_W) * kInit
-      const ty = H * 0.32 - CANONICAL_Y * kInit
+      const ty = centerTy(kInit)
       T = d3.zoomIdentity.translate(tx, ty).scale(kInit)
     }
     svg.call(zoom.transform, T)
     drawCulled(T)
-  }, [t, isFullscreen, hasOrphans, fetchChunk])
+  }, [t, isFullscreen, hasOrphans, panelH, contentTop, contentBottom, fetchChunk])
 
   useEffect(() => { render() }, [render, version])
 
@@ -466,7 +563,7 @@ export default function ChainForkVisualizer() {
         <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '8px', background: 'var(--color-bg)' }}>
           <svg
             ref={svgRef}
-            style={{ width: '100%', height: isFullscreen ? '80vh' : (hasOrphans ? '600px' : '340px'), display: 'block', cursor: 'grab' }}
+            style={{ width: '100%', height: isFullscreen ? '80vh' : `${panelH}px`, display: 'block', cursor: 'grab' }}
           />
           {!interacted && (
             <div
