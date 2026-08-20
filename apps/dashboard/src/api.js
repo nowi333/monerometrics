@@ -18,6 +18,17 @@ async function fetchJSON(path) {
   return response.json()
 }
 
+const shortCache = new Map()
+
+function cachedJSON(path, ttl = 25000) {
+  const now = Date.now()
+  const hit = shortCache.get(path)
+  if (hit && now - hit.at < ttl) return hit.promise
+  const promise = fetchJSON(path).catch(e => { shortCache.delete(path); throw e })
+  shortCache.set(path, { at: now, promise })
+  return promise
+}
+
 export const api = {
 
   health: () => fetchJSON('/health'),
@@ -32,7 +43,7 @@ export const api = {
 
   networkInfo: () => fetchJSON('/network/info'),
   networkHashrate: (window = '30d') => fetchJSON(`/network/hashrate?window=${window}`),
-  networkBlocktime: (window = '24h') => fetchJSON(`/network/blocktime?window=${window}`),
+  networkBlocktime: (window = '24h') => cachedJSON(`/network/blocktime?window=${window}`),
   networkMempool: (window = '24h') => fetchJSON(`/network/mempool?window=${window}`),
   networkEmission: (window = '30d') => fetchJSON(`/network/emission?window=${window}`),
   chainForkWindow: (limit = 250, to = null) => fetchJSON(`/chain/fork-window?limit=${limit}${to != null ? `&to=${to}` : ''}`),
