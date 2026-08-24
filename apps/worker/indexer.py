@@ -29,6 +29,8 @@ PRICE_INTERVAL = int(os.getenv('PRICE_INTERVAL', '600'))
 PRICE_RETENTION_DAYS = int(os.getenv('PRICE_RETENTION_DAYS', '400'))
 HAVENO_SYNC_INTERVAL = int(os.getenv('HAVENO_SYNC_INTERVAL', '3600'))
 HAVENO_OFFER_INTERVAL = int(os.getenv('HAVENO_OFFER_INTERVAL', '600'))
+FEE_INTERVAL = int(os.getenv('FEE_INTERVAL', '300'))
+FEE_RETENTION_DAYS = int(os.getenv('FEE_RETENTION_DAYS', '400'))
 ATOMIC_UNITS = Decimal(10) ** 12
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-worker')
@@ -233,6 +235,52 @@ def get_block_headers_range(client: httpx.Client, start: int, end: int) -> list[
     if 'error' in data:
         raise RuntimeError(f"monerod error: {data['error']}")
     return data['result'].get('headers', [])
+
+def get_fee_estimate(client: httpx.Client) -> dict:
+    payload = {'jsonrpc': '2.0', 'id': '0', 'method': 'get_fee_estimate', 'params': {'grace_blocks': 10}}
+    r = client.post(f'{MONEROD_URL}/json_rpc', json=payload, timeout=10)
+    r.raise_for_status()
+    return r.json().get('result', {})
+
+_fee_last_record = 0.0
+
+def ensure_fee_table(conn: psycopg.Connection) -> None:
+    with conn.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS fee_snapshots (
+                observed_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                fee_slow     BIGINT,
+                fee_normal   BIGINT,
+                fee_fast     BIGINT,
+                fee_fastest  BIGINT,
+                PRIMARY KEY (observed_at)
+            )
+        """)
+        cur.execute('CREATE INDEX IF NOT EXISTS fee_snapshots_time_idx ON fee_snapshots (observed_at DESC)')
+
+def maybe_record_fees(conn: psycopg.Connection, client: httpx.Client) -> None:
+    global _fee_last_record
+    if time.time() - _fee_last_record < FEE_INTERVAL:
+        return
+    try:
+        est = get_fee_estimate(client)
+    except Exception as e:
+        log.warning(f'fee estimate failed: {e}')
+        return
+    fees = est.get('fees')
+    if not fees or len(fees) < 4:
+        base = est.get('fee')
+        if not base:
+            return
+        fees = [base, base * 4, base * 20, base * 166]
+    with conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO fee_snapshots (fee_slow, fee_normal, fee_fast, fee_fastest)
+            VALUES (%s, %s, %s, %s)
+        """, (fees[0], fees[1], fees[2], fees[3]))
+        cur.execute('DELETE FROM fee_snapshots WHERE observed_at < NOW() - make_interval(days => %s)',
+                    (FEE_RETENTION_DAYS,))
+    _fee_last_record = time.time()
 
 def get_last_indexed_height(conn: psycopg.Connection) -> int:
     with conn.cursor() as cur:
@@ -568,6 +616,8 @@ def index_loop() -> None:
                 with psycopg.connect(DATABASE_URL, autocommit=False) as conn:
                     persist_pool_sources(conn)
                     record_mempool(conn, info)
+                    ensure_fee_table(conn)
+                    maybe_record_fees(conn, http_client)
                     maybe_prune_mempool(conn)
                     rescan_confirmation_window(http_client, conn, top)
                     index_forward(http_client, conn, top)
