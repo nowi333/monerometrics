@@ -127,14 +127,11 @@ export default function KPICards() {
             {t('kpi.havenoBook')}
           </div>
           {[
-            { dot: '#f59e0b', label: t('charts.spreadBest'), value: havenoAsk, pct: price?.ask_premium_pct, flash: true },
-            { dot: '#8b5cf6', label: t('charts.spreadAvgOffer'), value: havenoAvg, pct: price?.ask_avg_premium_pct, flash: false },
+            { label: t('charts.spreadBest'), value: havenoAsk, pct: price?.ask_premium_pct, flash: true },
+            { label: t('charts.spreadAvgOffer'), value: havenoAvg, pct: price?.ask_avg_premium_pct, flash: false },
           ].map(row => (
             <div key={row.label} className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 sm:gap-2 mb-1.5 last:mb-0">
-              <span className="flex items-center gap-1.5 text-[11px] min-w-0" style={{ color: 'var(--color-dim)' }}>
-                <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: row.dot }} />
-                <span className="truncate">{row.label}</span>
-              </span>
+              <span className="text-[11px] min-w-0 truncate" style={{ color: 'var(--color-dim)' }}>{row.label}</span>
               <span className="font-mono text-xs whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>
                 {row.flash
                   ? <span key={havenoDetail} className="mm-flash inline-block">{row.value != null ? usd(row.value) : '—'}</span>
