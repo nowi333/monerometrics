@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 class HealthResponse(BaseModel):
@@ -229,6 +229,31 @@ class PriceResponse(BaseModel):
     haveno_bid: Optional[float] = None
     haveno_ask: Optional[float] = None
     premium_pct: Optional[float] = None
+    ask_premium_pct: Optional[float] = None
+    premium_note: Optional[str] = None
+
+
+class SpreadPoint(BaseModel):
+    timestamp_unix: int
+    official_usd: Optional[float] = None
+    haveno_bid: Optional[float] = None
+    haveno_ask: Optional[float] = None
+    ask_premium_pct: Optional[float] = None
+
+
+class SpreadResponse(BaseModel):
+    """Haveno peer-to-peer quotes against the centralised spot reference.
+
+    ask_premium_pct is what it actually costs to buy without KYC right now:
+    the lowest Haveno ask over the centralised spot. The last traded price is
+    reported too, but it is a past fill in a thin book and is not a live level.
+    """
+    window: str
+    points: List[SpreadPoint] = []
+    current_ask_premium_pct: Optional[float] = None
+    avg_ask_premium_pct: Optional[float] = None
+    haveno_vol_24h: Optional[float] = None
+    samples: int = 0
 
 class ExternalUsageResponse(BaseModel):
     """Count of external API requests (excluding the dashboard and the MCP server)."""
