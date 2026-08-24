@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.9.1', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.9.2', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -462,7 +462,8 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
         async with pool.acquire() as conn:
             rows = await conn.fetch(f"""
                 SELECT EXTRACT(EPOCH FROM observed_at)::bigint AS timestamp_unix,
-                       official_usd, haveno_bid, haveno_ask, haveno_vol_24h
+                       official_usd, haveno_bid, haveno_ask, haveno_vol_24h,
+                       haveno_ask_avg, haveno_ask_amount, haveno_ask_offers
                 FROM price_snapshots
                 WHERE observed_at >= NOW() - INTERVAL '{interval}'
                 ORDER BY observed_at
@@ -473,12 +474,17 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
     for r in rows:
         official = float(r['official_usd']) if r['official_usd'] is not None else None
         ask = float(r['haveno_ask']) if r['haveno_ask'] is not None else None
+        ask_avg = float(r['haveno_ask_avg']) if r['haveno_ask_avg'] is not None else None
         points.append(SpreadPoint(
             timestamp_unix=r['timestamp_unix'],
             official_usd=official,
             haveno_bid=float(r['haveno_bid']) if r['haveno_bid'] is not None else None,
             haveno_ask=ask,
+            haveno_ask_avg=ask_avg,
             ask_premium_pct=round((ask / official - 1) * 100, 2) if official and ask else None,
+            ask_avg_premium_pct=round((ask_avg / official - 1) * 100, 2) if official and ask_avg else None,
+            ask_amount=float(r['haveno_ask_amount']) if r['haveno_ask_amount'] is not None else None,
+            ask_offers=r['haveno_ask_offers'],
         ))
     prem = [p.ask_premium_pct for p in points if p.ask_premium_pct is not None]
     max_points = 1500
@@ -490,6 +496,9 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
         window=window,
         points=kept,
         current_ask_premium_pct=prem[-1] if prem else None,
+        current_ask_avg_premium_pct=next((p.ask_avg_premium_pct for p in reversed(points) if p.ask_avg_premium_pct is not None), None),
+        current_ask_amount=next((p.ask_amount for p in reversed(points) if p.ask_amount is not None), None),
+        current_ask_offers=next((p.ask_offers for p in reversed(points) if p.ask_offers is not None), None),
         avg_ask_premium_pct=round(sum(prem) / len(prem), 2) if prem else None,
         haveno_vol_24h=float(rows[-1]['haveno_vol_24h']) if rows and rows[-1]['haveno_vol_24h'] is not None else None,
         samples=len(points),

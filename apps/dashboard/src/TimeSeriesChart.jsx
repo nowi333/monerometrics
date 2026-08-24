@@ -65,6 +65,7 @@ function rgba(hex, a) {
 export default function TimeSeriesChart({
   title, infoText, color, windows, defaultWindow,
   fetcher, mapPoints, format, currentValue, fill = true, referenceY = null, yMax = null, emptyText = null,
+  extraSeries = null, seriesLabel = null,
 }) {
   const { t } = useTranslation()
   const [window, setWindow] = useState(defaultWindow)
@@ -166,7 +167,7 @@ export default function TimeSeriesChart({
   }
 
   const datasets = [{
-    label: title,
+    label: seriesLabel || title,
     data: ys,
     borderColor: color,
     backgroundColor: rgba(color, 0.12),
@@ -188,6 +189,23 @@ export default function TimeSeriesChart({
       pointRadius: 0,
       fill: false,
     })
+  }
+
+  if (extraSeries) {
+    for (const serie of extraSeries(data, window)) {
+      datasets.push({
+        label: serie.label,
+        data: serie.data,
+        borderColor: serie.color,
+        backgroundColor: rgba(serie.color, 0.10),
+        borderWidth: 1.6,
+        borderDash: serie.dash || undefined,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        fill: false,
+        tension: 0,
+      })
+    }
   }
 
   const chartData = { labels: points.map(p => p.label), datasets }
@@ -215,7 +233,7 @@ export default function TimeSeriesChart({
       }
     },
     plugins: {
-      legend: { display: !!referenceY, labels: { color: '#8b9099', font: { size: 11 }, boxWidth: 12 } },
+      legend: { display: !!referenceY || !!extraSeries, labels: { color: '#8b9099', font: { size: 11 }, boxWidth: 12 } },
 
       crosshair: { format },
       tooltip: {

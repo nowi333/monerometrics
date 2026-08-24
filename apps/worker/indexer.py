@@ -1,4 +1,5 @@
 import os
+import json
 import sys
 import time
 import logging
@@ -391,10 +392,22 @@ def ensure_price_table() -> None:
                 haveno_bid      NUMERIC(12,2),
                 haveno_ask      NUMERIC(12,2),
                 haveno_vol_24h  NUMERIC(16,2),
+                haveno_ask_avg  NUMERIC(12,2),
+                haveno_bid_avg  NUMERIC(12,2),
+                haveno_ask_amount NUMERIC(16,4),
+                haveno_bid_amount NUMERIC(16,4),
+                haveno_ask_offers INTEGER,
+                haveno_bid_offers INTEGER,
+                haveno_book     JSONB,
                 PRIMARY KEY (observed_at)
             )
         """)
         cur.execute('CREATE INDEX IF NOT EXISTS price_snapshots_time_idx ON price_snapshots (observed_at DESC)')
+        for col, typ in [('haveno_ask_avg', 'NUMERIC(12,2)'), ('haveno_bid_avg', 'NUMERIC(12,2)'),
+                         ('haveno_ask_amount', 'NUMERIC(16,4)'), ('haveno_bid_amount', 'NUMERIC(16,4)'),
+                         ('haveno_ask_offers', 'INTEGER'), ('haveno_bid_offers', 'INTEGER'),
+                         ('haveno_book', 'JSONB')]:
+            cur.execute(f'ALTER TABLE price_snapshots ADD COLUMN IF NOT EXISTS {col} {typ}')
 
 def _fetch_official(http_client: httpx.Client):
     try:
@@ -413,6 +426,32 @@ def _fetch_official(http_client: httpx.Client):
     except Exception as e:
         log.warning(f'kraken price failed: {e}')
     return None, None
+
+def _fetch_depth(http_client: httpx.Client):
+    try:
+        r = http_client.get('https://haveno.markets/api/v1/depth/XMR_USD',
+                            params={'network': 'reto'}, timeout=8)
+        r.raise_for_status()
+        d = r.json()
+        def side(rows):
+            rows = [x for x in (rows or []) if x.get('price') and x.get('amount')]
+            if not rows:
+                return None, None, None, None
+            total = sum(float(x['amount']) for x in rows)
+            wavg = sum(float(x['price']) * float(x['amount']) for x in rows) / total
+            offers = sum(int(x.get('offer_count') or 1) for x in rows)
+            prices = [float(x['price']) for x in rows]
+            return round(wavg, 2), round(total, 4), offers, prices
+        ask_avg, ask_amt, ask_offers, ask_prices = side(d.get('asks'))
+        bid_avg, bid_amt, bid_offers, bid_prices = side(d.get('bids'))
+        best_ask = min(ask_prices) if ask_prices else None
+        best_bid = max(bid_prices) if bid_prices else None
+        return {'ask_avg': ask_avg, 'ask_amount': ask_amt, 'ask_offers': ask_offers, 'best_ask': best_ask,
+                'bid_avg': bid_avg, 'bid_amount': bid_amt, 'bid_offers': bid_offers, 'best_bid': best_bid,
+                'book': json.dumps(d)}
+    except Exception as e:
+        log.warning(f'haveno depth failed: {e}')
+    return {}
 
 def _fetch_haveno(http_client: httpx.Client):
     try:
@@ -436,14 +475,23 @@ def maybe_record_price(http_client: httpx.Client) -> None:
         return
     official, source = _fetch_official(http_client)
     last, bid, ask, vol = _fetch_haveno(http_client)
-    if official is None and last is None:
+    d = _fetch_depth(http_client)
+    if d.get('best_ask') is not None:
+        ask = d['best_ask']
+    if d.get('best_bid') is not None:
+        bid = d['best_bid']
+    if official is None and last is None and not d:
         return
     with psycopg.connect(DATABASE_URL, autocommit=True) as conn, conn.cursor() as cur:
         cur.execute("""
             INSERT INTO price_snapshots
-                (official_usd, official_source, haveno_last, haveno_bid, haveno_ask, haveno_vol_24h)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (official, source, last, bid, ask, vol))
+                (official_usd, official_source, haveno_last, haveno_bid, haveno_ask, haveno_vol_24h,
+                 haveno_ask_avg, haveno_bid_avg, haveno_ask_amount, haveno_bid_amount,
+                 haveno_ask_offers, haveno_bid_offers, haveno_book)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (official, source, last, bid, ask, vol,
+              d.get('ask_avg'), d.get('bid_avg'), d.get('ask_amount'), d.get('bid_amount'),
+              d.get('ask_offers'), d.get('bid_offers'), d.get('book')))
         cur.execute('DELETE FROM price_snapshots WHERE observed_at < NOW() - make_interval(days => %s)',
                     (PRICE_RETENTION_DAYS,))
     _price_last_record = time.time()

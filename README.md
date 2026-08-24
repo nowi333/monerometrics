@@ -545,13 +545,23 @@ can be consumed from anywhere. No key, no account, no tracking.
 | Endpoint | Description |
 |---|---|
 | `GET /price` | XMR/USD from a centralized reference (CoinGecko, with Kraken as fallback) **and** the Haveno peer-to-peer street price (RetoSwap network, via `haveno.markets`). Returns `ask_premium_pct`, the lowest Haveno ask over spot, alongside the legacy `premium_pct` computed from the last traded price. Both sources are proxied and cached server-side (~5 s) so the browser never calls them directly. |
-| `GET /price/spread?window=` | Haveno bid/ask against centralized spot over time, sampled every 10 minutes. `window` accepts `24h`, `7d`, `30d`, `90d`, `1y`. |
+| `GET /price/spread?window=` | Haveno order book against centralized spot over time, sampled every 10 minutes: lowest ask, amount-weighted average offer, resting liquidity and offer count. `window` accepts `24h`, `7d`, `30d`, `90d`, `1y`. |
 
-**Reading the Haveno premium.** Two numbers are exposed and they do not mean the same thing.
-`ask_premium_pct` compares the **lowest Haveno ask** to centralized spot: what it actually costs to
-buy XMR without KYC right now. `premium_pct` compares the **last traded price** to spot; that fill
-may be hours old in a thin book, so it can overstate the premium by ten points or more. Prefer
-`ask_premium_pct` — `premium_pct` is kept only for backward compatibility.
+**Reading the Haveno premium.** Three numbers are exposed and they do not mean the same thing.
+`ask_premium_pct` compares the **lowest Haveno ask** to centralized spot. `ask_avg_premium_pct`
+compares the **amount-weighted average of every sell offer** in the book. The gap between them is
+the shape of the book: at the time of writing the top of book sits at −0.2% while the average offer
+sits at +9.4%, so the cheapest offer tracks spot and the depth does not. `premium_pct` compares the
+**last traded price** to spot; that fill may be hours old in a thin book, so it can overstate the
+premium by ten points or more, and it is kept only for backward compatibility.
+
+**What these numbers are not.** The depth endpoint exposes price, amount and offer count, but **not
+the payment method** behind each offer. A Haveno offer settled by instant bank transfer and one
+settled by cash in the mail carry very different privacy — and very different premiums — yet appear
+identically here. The lowest ask is therefore not, on its own, the price of buying Monero privately;
+it is the price of the most competitive offer, whatever its payment rail. Note also that `XMR_USD`
+is fiat US dollars: `haveno.markets` lists `USDT-ERC20`, `USDT-TRC20`, `USDC-ERC20` and `DAI-ERC20`
+as separate markets, so this pair is not a stablecoin quote.
 
 Known limits, stated rather than discovered: only the USD pair carries meaningful volume on Haveno;
 offers are advertisements with differing payment methods rather than a matched order book, so the
