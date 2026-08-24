@@ -570,12 +570,12 @@ export default function ChainForkVisualizer() {
               className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 text-xs rounded-full border px-3 py-1.5 pointer-events-none"
               style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-dim)' }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
                 <path
-                  d="M5 2.5 L5 19.2 L9.3 15.1 L12.1 21.5 L15.1 20.2 L12.4 14 L17.8 14 Z"
+                  d="M8.6 2.6c0-1 .8-1.8 1.8-1.8s1.8.8 1.8 1.8v8.2c.3-.4.8-.7 1.4-.7.8 0 1.4.5 1.6 1.2.3-.3.8-.5 1.3-.5.8 0 1.5.6 1.7 1.3.3-.2.7-.4 1.1-.4 1 0 1.8.8 1.8 1.8v3.7c0 3.2-2.6 5.8-5.8 5.8h-2.6c-1.7 0-3.3-.8-4.4-2.1l-3.5-4.3c-.6-.8-.5-1.9.2-2.5.7-.6 1.8-.5 2.4.2l1.2 1.4z"
                   fill="currentColor"
                   stroke="var(--color-card)"
-                  strokeWidth="1.4"
+                  strokeWidth="1.3"
                   strokeLinejoin="round"
                 />
               </svg>
