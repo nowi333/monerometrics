@@ -51,6 +51,7 @@ export const api = {
   blockDetail: (hash) => fetchJSON(`/chain/block/${hash}`),
   chainProvenance: (window = '24h') => fetchJSON(`/chain/provenance?window=${window}`),
   price: () => fetchJSON('/price'),
+  priceSpread: (window = '7d') => fetchJSON(`/price/spread?window=${window}`),
 }
 
 export function formatHashrate(hs) {
