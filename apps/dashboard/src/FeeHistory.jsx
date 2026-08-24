@@ -3,6 +3,8 @@ import { api } from './api'
 import TimeSeriesChart from './TimeSeriesChart'
 import { makeDateFmt } from './chartDate'
 
+const MIN_POINTS = 2
+
 export default function FeeHistory() {
   const { t, i18n } = useTranslation()
   const D = makeDateFmt(i18n.language)
@@ -21,8 +23,12 @@ export default function FeeHistory() {
       windows={['24h', '7d', '30d', '90d', '1y']}
       defaultWindow="30d"
       fetcher={(w) => api.networkFeesHistory(w)}
-      mapPoints={(d, w) => d.points.map(p => ({ y: p.normal_xmr * 1e9, label: fmtLabel(p.timestamp_unix, w), full: fmtFull(p.timestamp_unix) }))}
+      mapPoints={(d, w) => {
+        if (d.points.length < MIN_POINTS) return []
+        return d.points.map(p => ({ y: p.normal_xmr * 1e9, label: fmtLabel(p.timestamp_unix, w), full: fmtFull(p.timestamp_unix) }))
+      }}
       format={(v) => `${Math.round(v)} nXMR`}
+      emptyText={t('fees.collecting')}
     />
   )
 }
