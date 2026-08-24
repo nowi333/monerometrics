@@ -550,6 +550,17 @@ can be consumed from anywhere. No key, no account, no tracking.
 | `GET /haveno/liquidity?window=&currency=` | XMR resting in open Haveno offers, hourly, back to November 2024. `currency` accepts `USD`, `EUR`, `AUD`, `GBP`. |
 | `GET /haveno/trades?limit=&currency=` | Recent executed Haveno trades with payment method, price and premium. |
 
+**Discovery.** Beyond the documented API, the service answers the agent-discovery conventions crawlers
+actually ask for: `llms.txt`, `agents.json`, agent cards, `mcp.json`, OpenRPC, `ai-plugin.json`, x402,
+`owners.json`, and the OAuth protected-resource metadata at both the bare path and the RFC 9728 form
+with the resource path appended (`/.well-known/oauth-protected-resource/mcp`). Serving these cut the
+404 rate on agent traffic from 95% to a few dozen a day.
+
+Requests for endpoints that do not exist get a JSON body listing the interfaces that do, rather than a
+bare 404. What the service deliberately does **not** answer is `/v1/models` and its variants: those
+probes look for an OpenAI-compatible inference API, and answering them would advertise a capability
+this project does not have.
+
 ### The price of a payment rail
 
 The interesting question about a no-KYC exchange is not what Monero costs there, it is **what makes
