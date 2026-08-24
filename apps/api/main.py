@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.9.0', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.9.1', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -458,14 +458,17 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
     interval = {'24h': '24 hours', '7d': '7 days', '30d': '30 days',
                 '90d': '90 days', '1y': '365 days'}[window]
     pool = get_pool()
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(f"""
-            SELECT EXTRACT(EPOCH FROM observed_at)::bigint AS timestamp_unix,
-                   official_usd, haveno_bid, haveno_ask, haveno_vol_24h
-            FROM price_snapshots
-            WHERE observed_at >= NOW() - INTERVAL '{interval}'
-            ORDER BY observed_at
-        """)
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(f"""
+                SELECT EXTRACT(EPOCH FROM observed_at)::bigint AS timestamp_unix,
+                       official_usd, haveno_bid, haveno_ask, haveno_vol_24h
+                FROM price_snapshots
+                WHERE observed_at >= NOW() - INTERVAL '{interval}'
+                ORDER BY observed_at
+            """)
+    except asyncpg.exceptions.UndefinedTableError:
+        return SpreadResponse(window=window, points=[], samples=0)
     points = []
     for r in rows:
         official = float(r['official_usd']) if r['official_usd'] is not None else None
