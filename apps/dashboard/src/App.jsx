@@ -38,6 +38,15 @@ function Guard({ children }) {
   return <ErrorBoundary label={t('state.panelError')} retryLabel={t('state.retry')}>{children}</ErrorBoundary>
 }
 
+function Section({ label }) {
+  return (
+    <div className="flex items-center gap-3 mt-8 mb-3">
+      <span className="text-[10px] uppercase tracking-[0.16em] shrink-0" style={{ color: 'var(--color-dim)' }}>{label}</span>
+      <span className="h-px flex-1" style={{ background: 'var(--color-border)' }} />
+    </div>
+  )
+}
+
 export default function App() {
   const { t } = useTranslation()
   const [view, setView] = useState('dashboard')
@@ -108,7 +117,26 @@ export default function App() {
       ) : <>
       <Guard><KPICards /></Guard>
 
+      <Section label={t('section.consensus')} />
+
       <Guard><ChainForkVisualizer /></Guard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <Guard><ReorgsStats /></Guard>
+        <Guard><OrphansTable /></Guard>
+      </div>
+
+      <Section label={t('section.mining')} />
+
+      <div className="mb-4">
+        <Guard><PoolsDistribution /></Guard>
+      </div>
+
+      <div className="mb-4">
+        <Guard><Provenance /></Guard>
+      </div>
+
+      <Section label={t('section.network')} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <Guard><HashrateChart /></Guard>
@@ -120,6 +148,8 @@ export default function App() {
         <Guard><EmissionChart /></Guard>
       </div>
 
+      <Section label={t('section.market')} />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <Guard><SpreadChart /></Guard>
         <Guard><HavenoLiquidity /></Guard>
@@ -127,22 +157,6 @@ export default function App() {
 
       <div className="mb-4">
         <Guard><HavenoMethods /></Guard>
-      </div>
-
-      <div className="mb-4">
-        <Guard><PoolsDistribution /></Guard>
-      </div>
-
-      <div className="mb-4">
-        <Guard><Provenance /></Guard>
-      </div>
-
-      <div className="mb-4">
-        <Guard><ReorgsStats /></Guard>
-      </div>
-
-      <div className="mb-4">
-        <Guard><OrphansTable /></Guard>
       </div>
 
       <Guard><Donation /></Guard>
