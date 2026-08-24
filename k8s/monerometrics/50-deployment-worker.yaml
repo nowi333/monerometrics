@@ -32,7 +32,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: worker
-          image: ghcr.io/nowi333/monerometrics-worker:0.9.1
+          image: ghcr.io/nowi333/monerometrics-worker:0.9.2
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsNonRoot: true
