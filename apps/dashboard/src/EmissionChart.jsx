@@ -1,20 +1,20 @@
 import { useTranslation } from 'react-i18next'
+import { makeDateFmt } from './chartDate'
 import { api } from './api'
 import TimeSeriesChart from './TimeSeriesChart'
 
-function fmtLabel(bucket, win) {
-  const d = new Date(bucket)
-  if (win === '24h') return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  if (win === '7d') return d.toLocaleDateString([], { weekday: 'short', hour: '2-digit' })
-  if (win === '5y') return d.toLocaleDateString([], { month: 'short', year: '2-digit' })
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
-}
-function fmtFull(bucket) {
-  return new Date(bucket).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
 
 export default function EmissionChart() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const D = makeDateFmt(i18n.language)
+  const fmtLabel = (bucket, win) => {
+    const d = new Date(bucket)
+    if (win === '1h' || win === '24h') return D.time(d)
+    if (win === '7d') return D.dayHour(d)
+    if (win === '5y') return D.monthYear(d)
+    return D.dayMonth(d)
+  }
+  const fmtFull = (bucket) => D.full(new Date(bucket))
   return (
     <TimeSeriesChart
       title={t('charts.emissionTitle')}

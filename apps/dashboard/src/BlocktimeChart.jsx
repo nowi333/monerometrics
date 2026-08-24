@@ -1,18 +1,18 @@
 import { useTranslation } from 'react-i18next'
+import { makeDateFmt } from './chartDate'
 import { api } from './api'
 import TimeSeriesChart from './TimeSeriesChart'
 
-function fmtLabel(ts, win) {
-  const d = new Date(ts * 1000)
-  if (win === '1h' || win === '24h') return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
-}
-function fmtFull(ts) {
-  return new Date(ts * 1000).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
 
 export default function BlocktimeChart() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const D = makeDateFmt(i18n.language)
+  const fmtLabel = (ts, win) => {
+    const d = new Date(ts * 1000)
+    if (win === '1h' || win === '24h') return D.time(d)
+    return D.dayMonth(d)
+  }
+  const fmtFull = (ts) => D.full(new Date(ts * 1000))
   return (
     <TimeSeriesChart
       title={t('charts.blocktimeTitle')}
