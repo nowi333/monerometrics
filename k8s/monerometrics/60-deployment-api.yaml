@@ -45,6 +45,8 @@ spec:
               type: RuntimeDefault
           command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
           env:
+            - name: RATE_LIMIT_PER_MIN
+              value: "300"
             - name: POSTGRES_HOST
               value: "postgres"
             - name: POSTGRES_PORT

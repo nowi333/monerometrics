@@ -65,7 +65,7 @@ function rgba(hex, a) {
 export default function TimeSeriesChart({
   title, infoText, color, windows, defaultWindow,
   fetcher, mapPoints, format, currentValue, fill = true, referenceY = null, yMax = null, emptyText = null,
-  extraSeries = null, seriesLabel = null,
+  extraSeries = null, seriesLabel = null, footer = null, bandFill = false,
 }) {
   const { t } = useTranslation()
   const [window, setWindow] = useState(defaultWindow)
@@ -202,7 +202,7 @@ export default function TimeSeriesChart({
         borderDash: serie.dash || undefined,
         pointRadius: 0,
         pointHoverRadius: 4,
-        fill: false,
+        fill: bandFill ? '-1' : false,
         tension: 0,
       })
     }
@@ -277,7 +277,11 @@ export default function TimeSeriesChart({
           </div>
         )}
       </div>
-      {stats && (
+      {footer ? (
+        <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-xs font-mono" style={{ color: 'var(--color-dim)' }}>
+          {footer(data)}
+        </div>
+      ) : stats && (
         <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-xs font-mono" style={{ color: 'var(--color-dim)' }}>
           <span>{t('charts.min')} <span style={{ color: 'var(--color-text-secondary)' }}>{format(stats.min)}</span></span>
           <span>{t('charts.avg')} <span style={{ color: 'var(--color-text-secondary)' }}>{format(stats.avg)}</span></span>
