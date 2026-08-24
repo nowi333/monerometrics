@@ -13,7 +13,7 @@ import httpx
 import json
 import os
 import re
-from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, ExternalUsageResponse
+from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, ExternalUsageResponse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
 
@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.9.2', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.10.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -505,6 +505,134 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
     )
     _agg_cache_set(f'spread:{window}', response)
     return response
+
+
+HAVENO_WINDOWS = {'30d': '30 days', '90d': '90 days', '180d': '180 days', '1y': '365 days', 'all': '3650 days'}
+REVERSIBLE_METHODS = {'PAYPAL', 'VENMO', 'CASH_APP', 'TRANSFERWISE_USD', 'TRANSFERWISE', 'REVOLUT', 'WISE', 'ZELLE_REVERSIBLE'}
+IRREVERSIBLE_METHODS = {'PAY_BY_MAIL', 'US_POSTAL_MONEY_ORDER', 'CASH_DEPOSIT', 'ZELLE', 'F2F', 'MONEY_GRAM', 'WESTERN_UNION'}
+
+
+def _reversible(method: str):
+    if not method:
+        return None
+    if method in REVERSIBLE_METHODS:
+        return True
+    if method in IRREVERSIBLE_METHODS:
+        return False
+    return None
+
+
+@app.get('/haveno/methods', response_model=HavenoMethodsResponse)
+async def haveno_methods(window: str=Query('180d', regex='^(30d|90d|180d|1y|all)$'),
+                         currency: str=Query('USD', regex='^(USD|EUR)$')):
+    """Executed Haveno trades grouped by payment method, priced against centralized spot."""
+    cached = _agg_cache_get(f'hvmethods:{window}:{currency}', 900)
+    if cached is not None:
+        return cached
+    interval = HAVENO_WINDOWS[window]
+    pool = get_pool()
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(f"""
+                SELECT t.payment_method,
+                       count(*)::int AS trades,
+                       sum(t.base_vol) AS volume_xmr,
+                       avg(t.price / s.price - 1) * 100 AS avg_premium,
+                       percentile_cont(0.5) WITHIN GROUP (ORDER BY t.price / s.price - 1) * 100 AS median_premium,
+                       stddev(t.price / s.price - 1) * 100 AS stddev_premium
+                FROM haveno_trades t
+                JOIN spot_daily s ON s.day = t.traded_at::date AND s.currency = t.currency
+                WHERE t.currency = $1
+                  AND t.traded_at >= NOW() - INTERVAL '{interval}'
+                GROUP BY t.payment_method
+                HAVING count(*) >= 3
+                ORDER BY avg(t.price / s.price - 1) DESC
+            """, currency)
+            src = await conn.fetchval('SELECT source FROM spot_daily WHERE currency = $1 ORDER BY day DESC LIMIT 1', currency)
+    except asyncpg.exceptions.UndefinedTableError:
+        return HavenoMethodsResponse(window=window, currency=currency)
+    methods = [HavenoMethod(
+        payment_method=r['payment_method'] or 'UNKNOWN',
+        trades=r['trades'],
+        volume_xmr=round(float(r['volume_xmr']), 2) if r['volume_xmr'] is not None else None,
+        avg_premium_pct=round(float(r['avg_premium']), 2) if r['avg_premium'] is not None else None,
+        median_premium_pct=round(float(r['median_premium']), 2) if r['median_premium'] is not None else None,
+        stddev_premium_pct=round(float(r['stddev_premium']), 2) if r['stddev_premium'] is not None else None,
+        reversible=_reversible(r['payment_method']),
+    ) for r in rows]
+    response = HavenoMethodsResponse(window=window, currency=currency, methods=methods,
+                                     trades_total=sum(m.trades for m in methods), spot_source=src)
+    _agg_cache_set(f'hvmethods:{window}:{currency}', response)
+    return response
+
+
+@app.get('/haveno/liquidity', response_model=HavenoLiquidityResponse)
+async def haveno_liquidity(window: str=Query('90d', regex='^(24h|7d|30d|90d|1y|all)$'),
+                           currency: str=Query('USD', regex='^(USD|EUR|AUD|GBP|BTC)$')):
+    """Resting liquidity and open offer count on Haveno over time."""
+    cached = _agg_cache_get(f'hvliq:{window}:{currency}', 600)
+    if cached is not None:
+        return cached
+    interval = {'24h': '24 hours', '7d': '7 days', '30d': '30 days',
+                '90d': '90 days', '1y': '365 days', 'all': '3650 days'}[window]
+    pool = get_pool()
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(f"""
+                SELECT EXTRACT(EPOCH FROM period_start)::bigint AS timestamp_unix,
+                       max_liquidity, max_offers
+                FROM haveno_liquidity
+                WHERE currency = $1 AND period_start >= NOW() - INTERVAL '{interval}'
+                ORDER BY period_start
+            """, currency)
+    except asyncpg.exceptions.UndefinedTableError:
+        return HavenoLiquidityResponse(window=window, currency=currency)
+    points = [HavenoLiquidityPoint(
+        timestamp_unix=r['timestamp_unix'],
+        max_liquidity=float(r['max_liquidity']) if r['max_liquidity'] is not None else None,
+        max_offers=r['max_offers'],
+    ) for r in rows]
+    total = len(points)
+    max_points = 1500
+    kept = points
+    if len(kept) > max_points:
+        step = len(kept) / max_points
+        kept = [kept[int(i * step)] for i in range(max_points)]
+    response = HavenoLiquidityResponse(
+        window=window, currency=currency, points=kept,
+        current_liquidity=points[-1].max_liquidity if points else None,
+        current_offers=points[-1].max_offers if points else None,
+        samples=total)
+    _agg_cache_set(f'hvliq:{window}:{currency}', response)
+    return response
+
+
+@app.get('/haveno/trades', response_model=HavenoTradesResponse)
+async def haveno_trades(limit: int=Query(100, ge=1, le=1000),
+                        currency: str=Query('USD', regex='^(USD|EUR|AUD|GBP|BTC)$')):
+    """Recent executed Haveno trades with their payment method."""
+    pool = get_pool()
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT EXTRACT(EPOCH FROM t.traded_at)::bigint AS timestamp_unix,
+                       t.price, t.payment_method, t.base_vol,
+                       CASE WHEN s.price IS NOT NULL THEN (t.price / s.price - 1) * 100 END AS premium
+                FROM haveno_trades t
+                LEFT JOIN spot_daily s ON s.day = t.traded_at::date AND s.currency = t.currency
+                WHERE t.currency = $1
+                ORDER BY t.traded_at DESC
+                LIMIT $2
+            """, currency, limit)
+    except asyncpg.exceptions.UndefinedTableError:
+        return HavenoTradesResponse(currency=currency)
+    trades = [HavenoTrade(
+        timestamp_unix=r['timestamp_unix'], price=float(r['price']),
+        payment_method=r['payment_method'],
+        base_vol=float(r['base_vol']) if r['base_vol'] is not None else None,
+        premium_pct=round(float(r['premium']), 2) if r['premium'] is not None else None,
+    ) for r in rows]
+    return HavenoTradesResponse(currency=currency, count=len(trades), trades=trades)
 
 @app.get('/pools/sources', response_model=PoolSourcesResponse)
 async def pools_sources():

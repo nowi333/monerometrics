@@ -7,6 +7,8 @@ import KPICards from './KPICards'
 import ChainForkVisualizer from './ChainForkVisualizer'
 import BlocktimeChart from './BlocktimeChart'
 import SpreadChart from './SpreadChart'
+import HavenoMethods from './HavenoMethods'
+import HavenoLiquidity from './HavenoLiquidity'
 import HashrateChart from './HashrateChart'
 import MempoolChart from './MempoolChart'
 import EmissionChart from './EmissionChart'
@@ -118,8 +120,13 @@ export default function App() {
         <Guard><EmissionChart /></Guard>
       </div>
 
-      <div className="mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <Guard><SpreadChart /></Guard>
+        <Guard><HavenoLiquidity /></Guard>
+      </div>
+
+      <div className="mb-4">
+        <Guard><HavenoMethods /></Guard>
       </div>
 
       <div className="mb-4">
