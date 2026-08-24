@@ -238,7 +238,11 @@ class SpreadPoint(BaseModel):
     official_usd: Optional[float] = None
     haveno_bid: Optional[float] = None
     haveno_ask: Optional[float] = None
+    haveno_ask_avg: Optional[float] = None
     ask_premium_pct: Optional[float] = None
+    ask_avg_premium_pct: Optional[float] = None
+    ask_amount: Optional[float] = None
+    ask_offers: Optional[int] = None
 
 
 class SpreadResponse(BaseModel):
@@ -251,8 +255,11 @@ class SpreadResponse(BaseModel):
     window: str
     points: List[SpreadPoint] = []
     current_ask_premium_pct: Optional[float] = None
+    current_ask_avg_premium_pct: Optional[float] = None
     avg_ask_premium_pct: Optional[float] = None
     haveno_vol_24h: Optional[float] = None
+    current_ask_amount: Optional[float] = None
+    current_ask_offers: Optional[int] = None
     samples: int = 0
 
 class ExternalUsageResponse(BaseModel):
