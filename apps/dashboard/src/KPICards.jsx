@@ -42,9 +42,8 @@ export default function KPICards() {
   }
 
   const usd = (n) => n != null ? `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
-  const havenoDetail = price?.haveno_usd != null
-    ? `${t('kpi.havenoStreet')} ${usd(price.haveno_usd)}`
-    : t('kpi.havenoUnavailable')
+  const havenoAsk = price?.haveno_ask ?? null
+  const havenoDetail = havenoAsk != null ? `${t('kpi.havenoStreet')} ${usd(havenoAsk)}` : t('kpi.havenoUnavailable')
 
   const cards = [
     {
@@ -114,9 +113,9 @@ export default function KPICards() {
           </div>
         </div>
         <div className="mt-auto pt-3 flex items-center justify-between text-xs border-t" style={{ borderColor: 'var(--color-border)', color: 'var(--color-dim)' }}>
-          <span className="uppercase tracking-wide">Haveno</span>
+          <span className="uppercase tracking-wide">{t('kpi.havenoAsk')}</span>
           <span className="font-mono" style={{ color: 'var(--color-text-secondary)' }}>
-            <span key={havenoDetail} className="mm-flash inline-block">{price?.haveno_usd != null ? usd(price.haveno_usd) : '—'}</span>
+            <span key={havenoDetail} className="mm-flash inline-block">{havenoAsk != null ? usd(havenoAsk) : '—'}</span>
           </span>
         </div>
       </div>

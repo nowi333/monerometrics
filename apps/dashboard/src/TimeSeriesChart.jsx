@@ -64,7 +64,7 @@ function rgba(hex, a) {
 
 export default function TimeSeriesChart({
   title, infoText, color, windows, defaultWindow,
-  fetcher, mapPoints, format, currentValue, fill = true, referenceY = null, yMax = null,
+  fetcher, mapPoints, format, currentValue, fill = true, referenceY = null, yMax = null, emptyText = null,
 }) {
   const { t } = useTranslation()
   const [window, setWindow] = useState(defaultWindow)
@@ -162,7 +162,7 @@ export default function TimeSeriesChart({
   )
 
   if (status !== 'ok') {
-    return wrap(<PanelState status={status} variant="chart" height={240} />)
+    return wrap(<PanelState status={status} variant="chart" height={240} emptyText={emptyText} />)
   }
 
   const datasets = [{
