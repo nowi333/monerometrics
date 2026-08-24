@@ -39,7 +39,7 @@ export default function HavenoMethods() {
   )
 
   const wrap = (inner) => (
-    <div className="rounded-lg border p-5 sm:p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
+    <div className="rounded-lg border p-4 sm:p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
       {header}
       {inner}
     </div>
@@ -55,10 +55,10 @@ export default function HavenoMethods() {
         <thead>
           <tr style={{ color: 'var(--color-dim)' }} className="text-[10px] uppercase tracking-wide">
             <th className="text-left font-medium pb-2">{t('haveno.methods.method')}</th>
-            <th className="text-right font-medium pb-2">{t('haveno.methods.trades')}</th>
-            <th className="text-right font-medium pb-2">{t('haveno.methods.volume')}</th>
-            <th className="text-right font-medium pb-2">{t('haveno.methods.premium')}</th>
-            <th className="text-left font-medium pb-2 pl-3 w-[38%]"></th>
+            <th className="text-right font-medium pb-2 pl-3">{t('haveno.methods.trades')}</th>
+            <th className="text-right font-medium pb-2 pl-3 hidden sm:table-cell">{t('haveno.methods.volume')}</th>
+            <th className="text-right font-medium pb-2 pl-3">{t('haveno.methods.premium')}</th>
+            <th className="text-left font-medium pb-2 pl-3 w-[38%] hidden sm:table-cell"></th>
           </tr>
         </thead>
         <tbody style={{ fontFamily: 'var(--font-mono)' }}>
@@ -69,21 +69,21 @@ export default function HavenoMethods() {
             return (
               <tr key={m.payment_method} style={{ borderTop: '1px solid var(--color-border)' }}>
                 <td className="py-2 pr-2" style={{ color: 'var(--color-text)' }}>
-                  {m.payment_method.replace(/_/g, ' ').toLowerCase()}
+                  <span className="block leading-tight">{m.payment_method.replace(/_/g, ' ').toLowerCase()}</span>
                   {m.reversible != null && (
-                    <span className="ml-2 text-[10px] uppercase" style={{ color }}>
+                    <span className="text-[9.5px] uppercase tracking-wide" style={{ color }}>
                       {m.reversible ? t('haveno.methods.reversible') : t('haveno.methods.final')}
                     </span>
                   )}
                 </td>
-                <td className="py-2 text-right" style={{ color: 'var(--color-text-secondary)' }}>{m.trades}</td>
-                <td className="py-2 text-right" style={{ color: 'var(--color-text-secondary)' }}>
+                <td className="py-2 pl-3 text-right tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>{m.trades}</td>
+                <td className="py-2 pl-3 text-right tabular-nums hidden sm:table-cell" style={{ color: 'var(--color-text-secondary)' }}>
                   {m.volume_xmr != null ? Math.round(m.volume_xmr).toLocaleString() : '—'}
                 </td>
-                <td className="py-2 text-right font-semibold" style={{ color }}>
+                <td className="py-2 pl-3 text-right font-semibold tabular-nums whitespace-nowrap" style={{ color }}>
                   {p > 0 ? '+' : ''}{p.toFixed(2)}%
                 </td>
-                <td className="py-2 pl-3">
+                <td className="py-2 pl-3 hidden sm:table-cell">
                   <div className="h-2 rounded-sm" style={{
                     width: `${Math.max(2, (Math.abs(p) / span) * 100)}%`,
                     background: color, opacity: 0.55,

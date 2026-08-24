@@ -52,32 +52,33 @@ export default function OrphansTable() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px] text-sm">
+          <table className="w-full sm:min-w-[520px] text-sm">
             <thead>
               <tr className="text-left text-[color:var(--color-dim)] border-b border-[color:var(--color-border)]">
                 <th className="py-2 px-2 whitespace-nowrap">{t('orphans.column.height')}</th>
                 <th className="py-2 px-2 whitespace-nowrap">{t('orphans.column.orphanHash')}</th>
-                <th className="py-2 px-2 whitespace-nowrap">{t('orphans.column.canonicalHash')}</th>
+                <th className="py-2 px-2 whitespace-nowrap hidden sm:table-cell">{t('orphans.column.canonicalHash')}</th>
                 <th className="py-2 px-2 whitespace-nowrap">{t('orphans.column.pool')}</th>
-                <th className="py-2 px-2 text-right whitespace-nowrap">{t('orphans.column.tx')}</th>
+                <th className="py-2 px-2 text-right whitespace-nowrap hidden sm:table-cell">{t('orphans.column.tx')}</th>
                 <th className="py-2 px-2 text-right whitespace-nowrap"></th>
               </tr>
             </thead>
             <tbody>
               {orphans.map(o => (
                 <tr key={o.orphan_hash} className="border-b border-[color:var(--color-border)]">
-                  <td className="py-2 px-2 font-mono">{o.height}</td>
-                  <td className="py-2 px-2 text-xs whitespace-nowrap">
+                  <td className="py-2 px-1.5 sm:px-2 font-mono">{o.height}</td>
+                  <td className="py-2 px-1.5 sm:px-2 text-xs whitespace-nowrap">
                     <button
                       type="button"
                       onClick={() => openOrphan(o)}
                       title={t('orphans.viewOrphan')}
                       className="font-mono text-orange-400 rounded hover:underline underline-offset-2 inline-flex items-center gap-1 transition-opacity hover:opacity-80"
                     >
-                      {o.orphan_hash.slice(0, 12)}...
+                      <span className="sm:hidden">{o.orphan_hash.slice(0, 8)}…</span>
+                      <span className="hidden sm:inline">{o.orphan_hash.slice(0, 12)}...</span>
                     </button>
                   </td>
-                  <td className="py-2 px-2 text-xs whitespace-nowrap">
+                  <td className="py-2 px-2 text-xs whitespace-nowrap hidden sm:table-cell">
                     {o.canonical_hash ? (
                       <button
                         type="button"
@@ -91,21 +92,21 @@ export default function OrphansTable() {
                       <span className="font-mono text-[color:var(--color-dim)]">—</span>
                     )}
                   </td>
-                  <td className="py-2 px-2 text-xs">{o.miner_pool ?? 'unknown'}</td>
-                  <td className="py-2 px-2 text-right font-mono">{o.tx_count}</td>
-                  <td className="py-2 px-2 text-right whitespace-nowrap">
+                  <td className="py-2 px-1.5 sm:px-2 text-xs">{o.miner_pool ?? 'unknown'}</td>
+                  <td className="py-2 px-2 text-right font-mono hidden sm:table-cell">{o.tx_count}</td>
+                  <td className="py-2 px-1.5 sm:px-2 text-right whitespace-nowrap">
                     <button
                       type="button"
                       onClick={() => viewOnChain(o)}
                       title={t('orphans.viewOnChain')}
-                      className="inline-flex items-center gap-1 text-xs rounded border px-2 py-1 transition-all hover:brightness-110 active:scale-[0.98]"
+                      className="inline-flex items-center gap-1 text-xs rounded border px-1.5 sm:px-2 py-1 transition-all hover:brightness-110 active:scale-[0.98]"
                       style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 40%, var(--color-border))', color: 'var(--color-accent)' }}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M3 17l6-6 4 4 8-8" />
                         <path d="M17 7h4v4" />
                       </svg>
-                      {t('orphans.viewOnChain')}
+                      <span className="hidden sm:inline">{t('orphans.viewOnChain')}</span>
                     </button>
                   </td>
                 </tr>

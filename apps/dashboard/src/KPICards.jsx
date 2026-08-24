@@ -110,38 +110,41 @@ export default function KPICards() {
           {t('kpi.priceTitle')}
         </div>
         <div className="flex-1 flex flex-col justify-center">
-          <div className="w-full mx-auto" style={{ maxWidth: 260 }}>
+          <div className="w-full mx-auto hidden sm:block" style={{ maxWidth: 260 }}>
             <TradingViewMini locale={i18n.language || 'en'} />
+          </div>
+          <div className="sm:hidden font-mono text-2xl" style={{ color: 'var(--color-text)' }}>
+            {price?.official_usd != null ? usd(price.official_usd) : '—'}
+            {price?.official_change_24h != null && (
+              <span className="ml-2 text-xs" style={{ color: price.official_change_24h >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                {signed(price.official_change_24h)}
+              </span>
+            )}
           </div>
         </div>
         <div className="mt-auto pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
           <div className="text-[10px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-dim)' }}>
             {t('kpi.havenoBook')}
           </div>
-          <div className="flex items-baseline justify-between text-xs mb-1">
-            <span className="flex items-center gap-1.5" style={{ color: 'var(--color-dim)' }}>
-              <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: '#f59e0b' }} />
-              {t('charts.spreadBest')}
-            </span>
-            <span className="font-mono" style={{ color: 'var(--color-text-secondary)' }}>
-              <span key={havenoDetail} className="mm-flash inline-block">{havenoAsk != null ? usd(havenoAsk) : '—'}</span>
-              {price?.ask_premium_pct != null && (
-                <span className="ml-2" style={{ color: 'var(--color-dim)' }}>{signed(price.ask_premium_pct)}</span>
-              )}
-            </span>
-          </div>
-          <div className="flex items-baseline justify-between text-xs">
-            <span className="flex items-center gap-1.5" style={{ color: 'var(--color-dim)' }}>
-              <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: '#8b5cf6' }} />
-              {t('charts.spreadAvgOffer')}
-            </span>
-            <span className="font-mono" style={{ color: 'var(--color-text-secondary)' }}>
-              {havenoAvg != null ? usd(havenoAvg) : '—'}
-              {price?.ask_avg_premium_pct != null && (
-                <span className="ml-2" style={{ color: 'var(--color-dim)' }}>{signed(price.ask_avg_premium_pct)}</span>
-              )}
-            </span>
-          </div>
+          {[
+            { dot: '#f59e0b', label: t('charts.spreadBest'), value: havenoAsk, pct: price?.ask_premium_pct, flash: true },
+            { dot: '#8b5cf6', label: t('charts.spreadAvgOffer'), value: havenoAvg, pct: price?.ask_avg_premium_pct, flash: false },
+          ].map(row => (
+            <div key={row.label} className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 sm:gap-2 mb-1.5 last:mb-0">
+              <span className="flex items-center gap-1.5 text-[11px] min-w-0" style={{ color: 'var(--color-dim)' }}>
+                <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: row.dot }} />
+                <span className="truncate">{row.label}</span>
+              </span>
+              <span className="font-mono text-xs whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>
+                {row.flash
+                  ? <span key={havenoDetail} className="mm-flash inline-block">{row.value != null ? usd(row.value) : '—'}</span>
+                  : (row.value != null ? usd(row.value) : '—')}
+                {row.pct != null && (
+                  <span className="ml-1.5" style={{ color: 'var(--color-dim)' }}>{signed(row.pct)}</span>
+                )}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
