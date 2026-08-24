@@ -544,7 +544,19 @@ can be consumed from anywhere. No key, no account, no tracking.
 
 | Endpoint | Description |
 |---|---|
-| `GET /price` | XMR/USD from a centralized reference (CoinGecko, with Kraken as fallback) **and** the Haveno peer-to-peer street price (RetoSwap network, via `haveno.markets`), plus the premium of the street price over spot. Both sources are proxied and cached server-side (~5 s) so the browser never calls them directly. |
+| `GET /price` | XMR/USD from a centralized reference (CoinGecko, with Kraken as fallback) **and** the Haveno peer-to-peer street price (RetoSwap network, via `haveno.markets`). Returns `ask_premium_pct`, the lowest Haveno ask over spot, alongside the legacy `premium_pct` computed from the last traded price. Both sources are proxied and cached server-side (~5 s) so the browser never calls them directly. |
+| `GET /price/spread?window=` | Haveno bid/ask against centralized spot over time, sampled every 10 minutes. `window` accepts `24h`, `7d`, `30d`, `90d`, `1y`. |
+
+**Reading the Haveno premium.** Two numbers are exposed and they do not mean the same thing.
+`ask_premium_pct` compares the **lowest Haveno ask** to centralized spot: what it actually costs to
+buy XMR without KYC right now. `premium_pct` compares the **last traded price** to spot; that fill
+may be hours old in a thin book, so it can overstate the premium by ten points or more. Prefer
+`ask_premium_pct` — `premium_pct` is kept only for backward compatibility.
+
+Known limits, stated rather than discovered: only the USD pair carries meaningful volume on Haveno;
+offers are advertisements with differing payment methods rather than a matched order book, so the
+highest bid can sit above the lowest ask; and history starts on 24 August 2026, when recording began,
+because `haveno.markets` exposes no historical series and the spread cannot be backfilled.
 
 ## MCP server
 

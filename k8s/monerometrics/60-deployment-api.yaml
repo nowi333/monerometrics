@@ -32,7 +32,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: api
-          image: ghcr.io/nowi333/monerometrics-api:0.8.2
+          image: ghcr.io/nowi333/monerometrics-api:0.9.0
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsNonRoot: true
