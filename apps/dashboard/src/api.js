@@ -52,6 +52,9 @@ export const api = {
   chainProvenance: (window = '24h') => fetchJSON(`/chain/provenance?window=${window}`),
   price: () => fetchJSON('/price'),
   priceSpread: (window = '7d') => fetchJSON(`/price/spread?window=${window}`),
+  havenoMethods: (window = '180d', currency = 'USD') => fetchJSON(`/haveno/methods?window=${window}&currency=${currency}`),
+  havenoLiquidity: (window = '90d', currency = 'USD') => fetchJSON(`/haveno/liquidity?window=${window}&currency=${currency}`),
+  havenoTrades: (limit = 100, currency = 'USD') => fetchJSON(`/haveno/trades?limit=${limit}&currency=${currency}`),
 }
 
 export function formatHashrate(hs) {

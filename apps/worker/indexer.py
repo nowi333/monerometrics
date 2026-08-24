@@ -6,6 +6,7 @@ import logging
 from decimal import Decimal
 from datetime import datetime, timezone
 import httpx
+import haveno
 import psycopg
 from prometheus_client import start_http_server, Counter, Gauge
 import pools
@@ -25,6 +26,8 @@ MEMPOOL_RETENTION_DAYS = int(os.getenv('MEMPOOL_RETENTION_DAYS', '90'))
 MEMPOOL_PRUNE_INTERVAL = int(os.getenv('MEMPOOL_PRUNE_INTERVAL', '3600'))
 PRICE_INTERVAL = int(os.getenv('PRICE_INTERVAL', '600'))
 PRICE_RETENTION_DAYS = int(os.getenv('PRICE_RETENTION_DAYS', '400'))
+HAVENO_SYNC_INTERVAL = int(os.getenv('HAVENO_SYNC_INTERVAL', '3600'))
+HAVENO_OFFER_INTERVAL = int(os.getenv('HAVENO_OFFER_INTERVAL', '600'))
 ATOMIC_UNITS = Decimal(10) ** 12
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-worker')
@@ -498,6 +501,31 @@ def maybe_record_price(http_client: httpx.Client) -> None:
     if official and ask:
         log.info(f'Price recorded · official={official} · haveno ask={ask} · spread={round((ask/official-1)*100,2)}%')
 
+
+_haveno_last_sync = 0.0
+_haveno_last_offers = 0.0
+
+def maybe_sync_haveno(http_client: httpx.Client) -> None:
+    global _haveno_last_sync, _haveno_last_offers
+    now = time.time()
+    if now - _haveno_last_offers >= HAVENO_OFFER_INTERVAL:
+        try:
+            n = haveno.snapshot_offers(DATABASE_URL, http_client)
+            if n:
+                log.info(f'Haveno offers snapshot: {n} offers')
+        except Exception as e:
+            log.warning(f'haveno offers snapshot failed: {e}')
+        _haveno_last_offers = now
+    if now - _haveno_last_sync >= HAVENO_SYNC_INTERVAL:
+        try:
+            t = haveno.sync_trades(DATABASE_URL, http_client)
+            liq = haveno.sync_liquidity(DATABASE_URL, http_client)
+            spot = haveno.sync_spot(DATABASE_URL, http_client)
+            log.info(f'Haveno sync: {t} new trades, {liq} liquidity points, {spot} spot days')
+        except Exception as e:
+            log.warning(f'haveno sync failed: {e}')
+        _haveno_last_sync = now
+
 def index_loop() -> None:
     log.info(f'Starting worker · monerod={MONEROD_URL} · poll={POLL_INTERVAL}s · batch={MAX_BLOCKS_PER_BATCH} · window={CONFIRMATION_WINDOW}')
     log.info(f'Postgres credentials source: {_source}')
@@ -505,8 +533,13 @@ def index_loop() -> None:
         maybe_refresh_pool_index(http_client)
         verify_proof_keys(http_client)
         ensure_price_table()
+        try:
+            haveno.ensure_schema(DATABASE_URL)
+        except Exception as e:
+            log.warning(f'haveno schema failed: {e}')
         while True:
             maybe_record_price(http_client)
+            maybe_sync_haveno(http_client)
             _heartbeat()
             M_LAST_LOOP.set(time.time())
             try:

@@ -546,6 +546,40 @@ can be consumed from anywhere. No key, no account, no tracking.
 |---|---|
 | `GET /price` | XMR/USD from a centralized reference (CoinGecko, with Kraken as fallback) **and** the Haveno peer-to-peer street price (RetoSwap network, via `haveno.markets`). Returns `ask_premium_pct`, the lowest Haveno ask over spot, alongside the legacy `premium_pct` computed from the last traded price. Both sources are proxied and cached server-side (~5 s) so the browser never calls them directly. |
 | `GET /price/spread?window=` | Haveno order book against centralized spot over time, sampled every 10 minutes: lowest ask, amount-weighted average offer, resting liquidity and offer count. `window` accepts `24h`, `7d`, `30d`, `90d`, `1y`. |
+| `GET /haveno/methods?window=&currency=` | Executed Haveno trades grouped by **payment method**, with average, median and standard deviation of the premium over centralized spot. `window` accepts `30d`, `90d`, `180d`, `1y`, `all`; `currency` accepts `USD`, `EUR`. |
+| `GET /haveno/liquidity?window=&currency=` | XMR resting in open Haveno offers, hourly, back to November 2024. `currency` accepts `USD`, `EUR`, `AUD`, `GBP`. |
+| `GET /haveno/trades?limit=&currency=` | Recent executed Haveno trades with payment method, price and premium. |
+
+### The price of a payment rail
+
+The interesting question about a no-KYC exchange is not what Monero costs there, it is **what makes
+it cost more**. Grouping every executed trade by payment method answers it, and the answer is not
+the intuitive one:
+
+| Payment method | Trades | Volume (XMR) | Avg premium | Reversible |
+|---|---:|---:|---:|---|
+| PayPal | 63 | 25 197 | +14.67% | yes |
+| Wise (TransferWise USD) | 86 | 15 756 | +13.60% | yes |
+| Cash App | 249 | 67 824 | +10.77% | yes |
+| Venmo | 30 | 9 569 | +8.92% | yes |
+| Zelle | 466 | 298 361 | +2.60% | no |
+| US postal money order | 8 | 4 615 | +1.46% | no |
+| Revolut | 89 | 42 209 | +1.41% | yes |
+| Cash by mail | 219 | 455 897 | +1.37% | no |
+
+*USD market, 180 days to 24 August 2026, spot reference Kraken daily close.*
+
+**The premium tracks reversibility, not privacy.** A buyer who pays by PayPal or Cash App can file a
+chargeback after the Monero has already been released, and there is no recourse — so sellers price
+that risk in, at nine to fifteen percent. Rails that cannot be reversed sit near one to three
+percent. Cash in an envelope, the most private method on the list, is among the *cheapest*, and
+carries the largest volume of any rail.
+
+The `reversible` flag is **our classification, not a Haveno field**. Payment methods with only a
+handful of trades produce a fragile premium. The spot reference is a daily close, so intraday moves
+add noise, and trades before September 2024 fall outside Kraken's 720-day window and carry no
+premium at all. Crypto pairs are excluded: `haveno.markets` quotes them inverted, and a premium
+against a fiat spot would be meaningless.
 
 **Reading the Haveno premium.** Three numbers are exposed and they do not mean the same thing.
 `ask_premium_pct` compares the **lowest Haveno ask** to centralized spot. `ask_avg_premium_pct`

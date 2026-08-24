@@ -37,7 +37,7 @@ def _agent_card() -> dict:
             {'url': BASE, 'transport': 'HTTP+JSON'},
         ],
         'provider': {'organization': 'monerometrics', 'url': SITE},
-        'version': '0.9.2',
+        'version': '0.10.0',
         'documentationUrl': f'{BASE}/docs',
         'capabilities': {'streaming': False, 'pushNotifications': False, 'stateTransitionHistory': False},
         'defaultInputModes': ['text/plain', 'application/json'],

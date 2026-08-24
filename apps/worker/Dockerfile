@@ -7,7 +7,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY indexer.py retro_pools.py pools.py pool_proofs.py pool_proofs.json .
+COPY indexer.py haveno.py retro_pools.py pools.py pool_proofs.py pool_proofs.json .
 
 EXPOSE 9100
 

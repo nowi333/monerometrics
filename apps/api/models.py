@@ -265,3 +265,56 @@ class SpreadResponse(BaseModel):
 class ExternalUsageResponse(BaseModel):
     """Count of external API requests (excluding the dashboard and the MCP server)."""
     external_requests: int
+
+
+class HavenoMethod(BaseModel):
+    payment_method: str
+    trades: int
+    volume_xmr: Optional[float] = None
+    avg_premium_pct: Optional[float] = None
+    median_premium_pct: Optional[float] = None
+    stddev_premium_pct: Optional[float] = None
+    reversible: Optional[bool] = None
+
+
+class HavenoMethodsResponse(BaseModel):
+    """Executed Haveno trades grouped by payment method, priced against centralized spot.
+
+    The premium is each trade's price over the centralized daily close for that day.
+    `reversible` flags payment rails that allow the buyer to claw funds back after
+    release; it is our own classification, not a Haveno field.
+    """
+    window: str
+    currency: str
+    methods: List[HavenoMethod] = []
+    trades_total: int = 0
+    spot_source: Optional[str] = None
+
+
+class HavenoLiquidityPoint(BaseModel):
+    timestamp_unix: int
+    max_liquidity: Optional[float] = None
+    max_offers: Optional[int] = None
+
+
+class HavenoLiquidityResponse(BaseModel):
+    window: str
+    currency: str
+    points: List[HavenoLiquidityPoint] = []
+    current_liquidity: Optional[float] = None
+    current_offers: Optional[int] = None
+    samples: int = 0
+
+
+class HavenoTrade(BaseModel):
+    timestamp_unix: int
+    price: float
+    payment_method: Optional[str] = None
+    base_vol: Optional[float] = None
+    premium_pct: Optional[float] = None
+
+
+class HavenoTradesResponse(BaseModel):
+    currency: str
+    count: int = 0
+    trades: List[HavenoTrade] = []

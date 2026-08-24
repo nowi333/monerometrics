@@ -16,6 +16,9 @@ const ENDPOINTS = [
   { m: 'GET', p: '/network/mempool', k: 'networkMempool', q: 'window=1h|24h|7d|30d|90d|1y|5y' },
   { m: 'GET', p: '/network/emission', k: 'networkEmission', q: 'window=24h|7d|30d|90d|1y|5y' },
   { m: 'GET', p: '/price/spread', k: 'priceSpread', q: 'window=24h|7d|30d|90d|1y' },
+  { m: 'GET', p: '/haveno/methods', k: 'havenoMethods', q: 'window=30d|90d|180d|1y|all&currency=USD|EUR' },
+  { m: 'GET', p: '/haveno/liquidity', k: 'havenoLiquidity', q: 'window=24h|7d|30d|90d|1y|all&currency=USD|EUR|AUD|GBP' },
+  { m: 'GET', p: '/haveno/trades', k: 'havenoTrades', q: 'limit=1..1000&currency=USD|EUR|AUD|GBP' },
   { m: 'GET', p: '/chain/window', k: 'chainWindow', q: 'from=INT&to=INT' },
   { m: 'GET', p: '/chain/fork-window', k: 'chainForkWindow', q: 'limit=10..500' },
   { m: 'GET', p: '/reorgs', k: 'reorgs', q: 'limit=1..1000' },
@@ -190,6 +193,13 @@ export default function Documentation() {
         <p className="text-sm mb-3 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.price.p1')}</p>
         <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.price.p2')}</p>
         <p className="text-sm leading-relaxed mt-3" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.price.p3')}</p>
+      </section>
+
+      <section className="rounded-lg border p-5 sm:p-6" style={card}>
+        <h2 className="text-lg font-medium mb-3" style={{ color: 'var(--color-text)' }}>{t('doc.haveno.title')}</h2>
+        <p className="text-sm mb-3 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.haveno.p1')}</p>
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.haveno.p2')}</p>
+        <p className="text-sm leading-relaxed mt-3" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.haveno.p3')}</p>
       </section>
 
       <section className="rounded-lg border p-5 sm:p-6" style={card}>
