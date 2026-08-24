@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useNetworkInfo } from './networkStore'
 
-export default function PanelState({ status, variant = 'block', height = 240 }) {
+export default function PanelState({ status, variant = 'block', height = 240, emptyText = null }) {
   const { t } = useTranslation()
   const { info } = useNetworkInfo()
 
@@ -14,7 +14,7 @@ export default function PanelState({ status, variant = 'block', height = 240 }) 
   let message
   if (status === 'error') message = t('state.apiError')
   else if (pct != null) message = t('state.syncProgress', { pct })
-  else if (isEmpty) message = t('state.waitingSync')
+  else if (isEmpty) message = emptyText || t('state.waitingSync')
   else message = t('state.loading')
 
   return (
