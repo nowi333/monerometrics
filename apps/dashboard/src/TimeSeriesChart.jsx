@@ -65,7 +65,7 @@ function rgba(hex, a) {
 export default function TimeSeriesChart({
   title, infoText, color, windows, defaultWindow,
   fetcher, mapPoints, format, currentValue, fill = true, referenceY = null, yMax = null, emptyText = null,
-  extraSeries = null, seriesLabel = null, footer = null, bandFill = false,
+  extraSeries = null, seriesLabel = null, footer = null, bandFill = false, headlineExtra = null,
 }) {
   const { t } = useTranslation()
   const [window, setWindow] = useState(defaultWindow)
@@ -125,6 +125,7 @@ export default function TimeSeriesChart({
         {status === 'ok' && current != null && (
           <p className="text-2xl font-medium mt-1" style={{ color }}>
             <span ref={readoutRef}>{format(current)}</span>
+            {headlineExtra ? headlineExtra(data) : null}
             <span ref={timeRef} className="text-xs ml-2 font-normal align-middle" style={{ color: 'var(--color-dim)' }} />
           </p>
         )}
