@@ -22,6 +22,8 @@ METRICS_PORT = int(os.getenv('METRICS_PORT', '9100'))
 HEARTBEAT_FILE = os.getenv('HEARTBEAT_FILE', '/tmp/worker-heartbeat')
 MEMPOOL_RETENTION_DAYS = int(os.getenv('MEMPOOL_RETENTION_DAYS', '90'))
 MEMPOOL_PRUNE_INTERVAL = int(os.getenv('MEMPOOL_PRUNE_INTERVAL', '3600'))
+PRICE_INTERVAL = int(os.getenv('PRICE_INTERVAL', '600'))
+PRICE_RETENTION_DAYS = int(os.getenv('PRICE_RETENTION_DAYS', '400'))
 ATOMIC_UNITS = Decimal(10) ** 12
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-worker')
@@ -375,6 +377,79 @@ def _heartbeat() -> None:
     except OSError:
         pass
 
+
+_price_last_record = 0.0
+
+def ensure_price_table(conn: psycopg.Connection) -> None:
+    with conn.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS price_snapshots (
+                observed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                official_usd    NUMERIC(12,2),
+                official_source TEXT,
+                haveno_last     NUMERIC(12,2),
+                haveno_bid      NUMERIC(12,2),
+                haveno_ask      NUMERIC(12,2),
+                haveno_vol_24h  NUMERIC(16,2),
+                PRIMARY KEY (observed_at)
+            )
+        """)
+        cur.execute('CREATE INDEX IF NOT EXISTS price_snapshots_time_idx ON price_snapshots (observed_at DESC)')
+
+def _fetch_official(http_client: httpx.Client):
+    try:
+        r = http_client.get('https://api.coingecko.com/api/v3/simple/price',
+                            params={'ids': 'monero', 'vs_currencies': 'usd'}, timeout=8)
+        r.raise_for_status()
+        return float(r.json()['monero']['usd']), 'coingecko'
+    except Exception as e:
+        log.warning(f'coingecko price failed: {e}')
+    try:
+        r = http_client.get('https://api.kraken.com/0/public/Ticker',
+                            params={'pair': 'XMRUSD'}, timeout=8)
+        r.raise_for_status()
+        res = r.json()['result']
+        return float(res[next(iter(res))]['c'][0]), 'kraken'
+    except Exception as e:
+        log.warning(f'kraken price failed: {e}')
+    return None, None
+
+def _fetch_haveno(http_client: httpx.Client):
+    try:
+        r = http_client.get('https://haveno.markets/api/v1/tickers',
+                            params={'network': 'reto', 'time_period': '24h'}, timeout=8)
+        r.raise_for_status()
+        usd = r.json().get('USD') or {}
+        def f(v):
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+        return f(usd.get('last_price')), f(usd.get('highest_bid')), f(usd.get('lowest_ask')), f(usd.get('base_vol'))
+    except Exception as e:
+        log.warning(f'haveno price failed: {e}')
+    return None, None, None, None
+
+def maybe_record_price(conn: psycopg.Connection, http_client: httpx.Client) -> None:
+    global _price_last_record
+    if time.time() - _price_last_record < PRICE_INTERVAL:
+        return
+    official, source = _fetch_official(http_client)
+    last, bid, ask, vol = _fetch_haveno(http_client)
+    if official is None and last is None:
+        return
+    with conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO price_snapshots
+                (official_usd, official_source, haveno_last, haveno_bid, haveno_ask, haveno_vol_24h)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (official, source, last, bid, ask, vol))
+        cur.execute('DELETE FROM price_snapshots WHERE observed_at < NOW() - make_interval(days => %s)',
+                    (PRICE_RETENTION_DAYS,))
+    _price_last_record = time.time()
+    if official and ask:
+        log.info(f'Price recorded · official={official} · haveno ask={ask} · spread={round((ask/official-1)*100,2)}%')
+
 def index_loop() -> None:
     log.info(f'Starting worker · monerod={MONEROD_URL} · poll={POLL_INTERVAL}s · batch={MAX_BLOCKS_PER_BATCH} · window={CONFIRMATION_WINDOW}')
     log.info(f'Postgres credentials source: {_source}')
@@ -400,7 +475,9 @@ def index_loop() -> None:
                     continue
                 with psycopg.connect(DATABASE_URL, autocommit=False) as conn:
                     persist_pool_sources(conn)
+                    ensure_price_table(conn)
                     record_mempool(conn, info)
+                    maybe_record_price(conn, http_client)
                     maybe_prune_mempool(conn)
                     rescan_confirmation_window(http_client, conn, top)
                     index_forward(http_client, conn, top)
