@@ -2,6 +2,7 @@ import os
 import json
 import sys
 import time
+import threading
 import logging
 from decimal import Decimal
 from datetime import datetime, timezone
@@ -504,6 +505,19 @@ def maybe_record_price(http_client: httpx.Client) -> None:
 
 _haveno_last_sync = 0.0
 _haveno_last_offers = 0.0
+_haveno_running = threading.Event()
+
+def _haveno_full_sync() -> None:
+    try:
+        with httpx.Client() as client:
+            t = haveno.sync_trades(DATABASE_URL, client)
+            liq = haveno.sync_liquidity(DATABASE_URL, client)
+            spot = haveno.sync_spot(DATABASE_URL, client)
+        log.info(f'Haveno sync: {t} new trades, {liq} liquidity points, {spot} spot days')
+    except Exception as e:
+        log.warning(f'haveno sync failed: {e}')
+    finally:
+        _haveno_running.clear()
 
 def maybe_sync_haveno(http_client: httpx.Client) -> None:
     global _haveno_last_sync, _haveno_last_offers
@@ -516,15 +530,10 @@ def maybe_sync_haveno(http_client: httpx.Client) -> None:
         except Exception as e:
             log.warning(f'haveno offers snapshot failed: {e}')
         _haveno_last_offers = now
-    if now - _haveno_last_sync >= HAVENO_SYNC_INTERVAL:
-        try:
-            t = haveno.sync_trades(DATABASE_URL, http_client)
-            liq = haveno.sync_liquidity(DATABASE_URL, http_client)
-            spot = haveno.sync_spot(DATABASE_URL, http_client)
-            log.info(f'Haveno sync: {t} new trades, {liq} liquidity points, {spot} spot days')
-        except Exception as e:
-            log.warning(f'haveno sync failed: {e}')
+    if now - _haveno_last_sync >= HAVENO_SYNC_INTERVAL and not _haveno_running.is_set():
         _haveno_last_sync = now
+        _haveno_running.set()
+        threading.Thread(target=_haveno_full_sync, name='haveno-sync', daemon=True).start()
 
 def index_loop() -> None:
     log.info(f'Starting worker · monerod={MONEROD_URL} · poll={POLL_INTERVAL}s · batch={MAX_BLOCKS_PER_BATCH} · window={CONFIRMATION_WINDOW}')
