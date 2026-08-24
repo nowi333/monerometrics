@@ -74,7 +74,6 @@ export default function TimeSeriesChart({
   const boxRef = useRef(null)
   const chartRef = useRef(null)
   const readoutRef = useRef(null)
-  const timeRef = useRef(null)
 
   const { data, status } = usePolledData(
     () => fetcher(window),
@@ -118,7 +117,7 @@ export default function TimeSeriesChart({
 
   const header = (
     <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
-      <div>
+      <div className="min-w-0">
         <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
           {title}{infoText ? <InfoTooltip text={infoText} /> : null}
         </h3>
@@ -129,7 +128,6 @@ export default function TimeSeriesChart({
           <p className="text-2xl font-medium mt-1" style={{ color }}>
             <span ref={readoutRef}>{format(current)}</span>
             {headlineExtra ? headlineExtra(data) : null}
-            <span ref={timeRef} className="text-xs ml-2 font-normal align-middle" style={{ color: 'var(--color-dim)' }} />
           </p>
         )}
       </div>
@@ -216,7 +214,6 @@ export default function TimeSeriesChart({
 
   const restoreReadout = () => {
     if (readoutRef.current) readoutRef.current.textContent = format(current)
-    if (timeRef.current) timeRef.current.textContent = ''
   }
 
   const options = {
@@ -231,7 +228,6 @@ export default function TimeSeriesChart({
       const p = elements && elements.length ? points[elements[0].index] : null
       if (p) {
         readoutRef.current.textContent = format(p.y)
-        if (timeRef.current) timeRef.current.textContent = p.full
       } else {
         restoreReadout()
       }
