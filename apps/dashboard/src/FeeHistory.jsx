@@ -19,6 +19,7 @@ export default function FeeHistory() {
     <TimeSeriesChart
       title={t('fees.historyTitle')}
       infoText={t('info.feesHistory')}
+      subtitle={t('fees.historySub')}
       color="#3b82f6"
       windows={['24h', '7d', '30d', '90d', '1y']}
       defaultWindow="30d"
