@@ -13,7 +13,7 @@ import httpx
 import json
 import os
 import re
-from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, ExternalUsageResponse
+from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
 
@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.10.2', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.11.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -432,6 +432,76 @@ async def _haveno_price():
         except Exception as e:
             log.warning(f'haveno price failed: {e}')
     return None, None, None
+
+
+FEE_REFERENCE_BYTES = 1500
+FEE_TIERS = [('slow', 'fee_slow', 20), ('normal', 'fee_normal', 4), ('fast', 'fee_fast', 2), ('fastest', 'fee_fastest', 1)]
+
+
+async def _spot_usd():
+    cached = _agg_cache_get('price', 5)
+    if cached is not None and cached.official_usd:
+        return cached.official_usd
+    official, _, _ = await _official_price()
+    return official
+
+
+@app.get('/network/fees', response_model=FeeEstimateResponse)
+async def network_fees():
+    """Current Monero fee tiers, priced for a reference ~1500-byte transaction."""
+    pool = get_pool()
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT EXTRACT(EPOCH FROM observed_at)::bigint AS ts,
+                       fee_slow, fee_normal, fee_fast, fee_fastest
+                FROM fee_snapshots ORDER BY observed_at DESC LIMIT 1
+            """)
+    except asyncpg.exceptions.UndefinedTableError:
+        return FeeEstimateResponse(reference_bytes=FEE_REFERENCE_BYTES)
+    if row is None:
+        return FeeEstimateResponse(reference_bytes=FEE_REFERENCE_BYTES)
+    spot = await _spot_usd()
+    tiers = []
+    for name, col, blocks in FEE_TIERS:
+        per_byte = int(row[col]) if row[col] is not None else 0
+        xmr = per_byte * FEE_REFERENCE_BYTES / 1e12
+        tiers.append(FeeTier(
+            tier=name, per_byte_pico=per_byte,
+            typical_xmr=round(xmr, 8),
+            typical_usd=round(xmr * spot, 4) if spot else None,
+            blocks_target=blocks,
+        ))
+    return FeeEstimateResponse(reference_bytes=FEE_REFERENCE_BYTES, spot_usd=spot,
+                               updated_unix=row['ts'], tiers=tiers)
+
+
+@app.get('/network/fees/history', response_model=FeeHistoryResponse)
+async def network_fees_history(window: str=Query('30d', regex='^(24h|7d|30d|90d|1y)$')):
+    """Normal-tier fee for the reference transaction, in XMR, over time."""
+    cached = _agg_cache_get(f'fees:{window}', _series_ttl(window))
+    if cached is not None:
+        return cached
+    interval = {'24h': '24 hours', '7d': '7 days', '30d': '30 days', '90d': '90 days', '1y': '365 days'}[window]
+    pool = get_pool()
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(f"""
+                SELECT EXTRACT(EPOCH FROM observed_at)::bigint AS ts, fee_normal
+                FROM fee_snapshots
+                WHERE observed_at >= NOW() - INTERVAL '{interval}' AND fee_normal IS NOT NULL
+                ORDER BY observed_at
+            """)
+    except asyncpg.exceptions.UndefinedTableError:
+        return FeeHistoryResponse(window=window, reference_bytes=FEE_REFERENCE_BYTES)
+    points = [FeePoint(timestamp_unix=r['ts'], normal_xmr=round(int(r['fee_normal']) * FEE_REFERENCE_BYTES / 1e12, 8)) for r in rows]
+    total = len(points)
+    if len(points) > 1500:
+        step = len(points) / 1500
+        points = [points[int(i * step)] for i in range(1500)]
+    response = FeeHistoryResponse(window=window, reference_bytes=FEE_REFERENCE_BYTES, points=points, samples=total)
+    _agg_cache_set(f'fees:{window}', response)
+    return response
 
 
 async def _haveno_depth():

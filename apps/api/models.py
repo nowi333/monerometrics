@@ -322,3 +322,36 @@ class HavenoTradesResponse(BaseModel):
     currency: str
     count: int = 0
     trades: List[HavenoTrade] = []
+
+
+class FeeTier(BaseModel):
+    tier: str
+    per_byte_pico: int
+    typical_xmr: float
+    typical_usd: Optional[float] = None
+    blocks_target: int
+
+
+class FeeEstimateResponse(BaseModel):
+    """Current Monero fee tiers, priced for a reference transaction.
+
+    Monero fees are per-byte, not per-transaction. The four tiers are the node's
+    own priority levels. typical_* is the fee for a reference ~1500-byte transaction
+    (roughly 2 inputs, 2 outputs); real fees scale with transaction size.
+    """
+    reference_bytes: int
+    spot_usd: Optional[float] = None
+    updated_unix: Optional[int] = None
+    tiers: List[FeeTier] = []
+
+
+class FeePoint(BaseModel):
+    timestamp_unix: int
+    normal_xmr: float
+
+
+class FeeHistoryResponse(BaseModel):
+    window: str
+    reference_bytes: int
+    points: List[FeePoint] = []
+    samples: int = 0
