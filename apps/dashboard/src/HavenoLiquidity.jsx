@@ -1,18 +1,18 @@
 import { useTranslation } from 'react-i18next'
+import { makeDateFmt } from './chartDate'
 import { api } from './api'
 import TimeSeriesChart from './TimeSeriesChart'
 
-function fmtLabel(ts, win) {
-  const d = new Date(ts * 1000)
-  if (win === '24h' || win === '7d') return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit' })
-  return d.toLocaleDateString([], { year: '2-digit', month: 'short', day: 'numeric' })
-}
-function fmtFull(ts) {
-  return new Date(ts * 1000).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
 
 export default function HavenoLiquidity() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const D = makeDateFmt(i18n.language)
+  const fmtLabel = (ts, win) => {
+    const d = new Date(ts * 1000)
+    if (win === '24h' || win === '7d') return D.dayMonthHour(d)
+    return D.dayMonthYear(d)
+  }
+  const fmtFull = (ts) => D.full(new Date(ts * 1000))
   return (
     <TimeSeriesChart
       title={t('charts.havenoLiquidityTitle')}

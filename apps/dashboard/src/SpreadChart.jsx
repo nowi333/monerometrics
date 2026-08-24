@@ -1,27 +1,27 @@
 import { useTranslation } from 'react-i18next'
+import { makeDateFmt } from './chartDate'
 import { api } from './api'
 import TimeSeriesChart from './TimeSeriesChart'
 
 const MIN_POINTS = 12
 const HOUR = 3600
 
-function makeLabeller(points) {
+function makeLabeller(points, D) {
   const span = points.length > 1 ? points[points.length - 1].timestamp_unix - points[0].timestamp_unix : 0
   return (ts) => {
     const d = new Date(ts * 1000)
-    if (span <= 36 * HOUR) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    if (span <= 30 * 24 * HOUR) return d.toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit' })
-    return d.toLocaleDateString([], { day: 'numeric', month: 'short', year: '2-digit' })
+    if (span <= 36 * HOUR) return D.time(d)
+    if (span <= 30 * 24 * HOUR) return D.dayMonthHour(d)
+    return D.dayMonthYear(d)
   }
-}
-function fmtFull(ts) {
-  return new Date(ts * 1000).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 const usable = (d) => d.points.filter(p => p.ask_premium_pct != null)
 const pct = (v) => v == null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(2)}%`
 
 export default function SpreadChart() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const D = makeDateFmt(i18n.language)
+  const fmtFull = (ts) => D.full(new Date(ts * 1000))
   return (
     <TimeSeriesChart
       title={t('charts.spreadTitle')}
@@ -36,7 +36,7 @@ export default function SpreadChart() {
       mapPoints={(d) => {
         const pts = usable(d)
         if (pts.length < MIN_POINTS) return []
-        const label = makeLabeller(pts)
+        const label = makeLabeller(pts, D)
         return pts.map(p => ({ y: p.ask_premium_pct, label: label(p.timestamp_unix), full: fmtFull(p.timestamp_unix) }))
       }}
       extraSeries={(d) => {
