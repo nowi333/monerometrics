@@ -37,7 +37,7 @@ def _agent_card() -> dict:
             {'url': BASE, 'transport': 'HTTP+JSON'},
         ],
         'provider': {'organization': 'monerometrics', 'url': SITE},
-        'version': '0.10.0',
+        'version': '0.10.1',
         'documentationUrl': f'{BASE}/docs',
         'capabilities': {'streaming': False, 'pushNotifications': False, 'stateTransitionHistory': False},
         'defaultInputModes': ['text/plain', 'application/json'],
@@ -154,6 +154,34 @@ def _payment() -> dict:
         'accepts': [],
     }
 
+
+def _owners() -> dict:
+    return {
+        'schemaVersion': '1',
+        'name': 'monerometrics',
+        'description': SUMMARY,
+        'url': SITE,
+        'repository': REPO,
+        'license': 'MIT',
+        'operator': {
+            'type': 'individual',
+            'handle': 'nowi333',
+            'contact': f'{REPO}/issues',
+            'note': 'Pseudonymous operator. Everything put forward as credentials is public and running.',
+        },
+        'funding': [
+            {'type': 'donation', 'currency': 'XMR', 'address': XMR_DONATION},
+            {'type': 'donation', 'currency': 'any', 'url': ANONPAY},
+        ],
+        'policy': {
+            'authentication': 'none',
+            'pricing': 'free',
+            'rateLimit': '300 requests/minute per IP',
+            'dataRetention': 'No IP addresses stored. Daily aggregates only, keyed by a salted non-reversible identifier.',
+            'training': 'allowed',
+        },
+    }
+
 @router.get('/')
 async def api_root():
     return {
@@ -253,6 +281,11 @@ _JSON_ROUTES = {
     '/.well-known/x402.json': _payment,
     '/.well-known/payment-manifest': _payment,
     '/.well-known/oauth-protected-resource': _oauth_protected,
+    '/.well-known/oauth-protected-resource/mcp': _oauth_protected,
+    '/.well-known/oauth-authorization-server/mcp': _oauth_server,
+    '/.well-known/owners.json': _owners,
+    '/.well-known/owner.json': _owners,
+    '/owners.json': _owners,
     '/.well-known/oauth-authorization-server': _oauth_server,
     '/.well-known/mcp/server-card.json': _server_card,
     '/.well-known/glama.json': _server_card,

@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.10.0', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.10.1', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -119,6 +119,22 @@ async def rate_limit(request: Request, call_next):
     return await call_next(request)
 app.include_router(discovery.router)
 app.add_middleware(CORSMiddleware, allow_origins=['https://monerometrics.net', 'https://www.monerometrics.net', 'http://localhost:5173', 'http://localhost:4173'], allow_credentials=False, allow_methods=['GET'], allow_headers=['*'])
+
+@app.exception_handler(404)
+async def not_found(request: Request, exc):
+    """Answer a wrong guess with the list of interfaces that do exist."""
+    return JSONResponse(status_code=404, content={
+        'error': 'not_found',
+        'path': request.url.path,
+        'message': 'No such endpoint. This is a Monero network observatory, not a model or inference API.',
+        'interfaces': {
+            'openapi': 'https://api.monerometrics.net/openapi.json',
+            'documentation': 'https://api.monerometrics.net/docs',
+            'mcp': 'https://api.monerometrics.net/mcp',
+            'llms': 'https://api.monerometrics.net/llms.txt',
+            'agent_card': 'https://api.monerometrics.net/.well-known/agent-card.json',
+        },
+    })
 
 @app.get('/health', response_model=HealthResponse)
 async def health():
