@@ -505,10 +505,10 @@ export default function ChainForkVisualizer() {
   return (
     <div
       ref={containerRef}
-      className="rounded-lg border p-6 mb-4"
+      className="rounded-lg border p-4 sm:p-6 mb-4"
       style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
     >
-      <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-2 gap-y-3">
         <div>
           <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
             {t('fork.title')}<InfoTooltip text={t('info.fork')} />
@@ -521,15 +521,15 @@ export default function ChainForkVisualizer() {
         </div>
 
         {status === 'ok' && (
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <form onSubmit={handleSearch} className="flex items-center gap-1">
-              <div className="relative">
+          <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-wrap sm:justify-end">
+            <form onSubmit={handleSearch} className="flex items-center gap-1 flex-1 sm:flex-none min-w-0">
+              <div className="relative flex-1 min-w-0">
                 <input
                   value={query}
                   onChange={e => { setQuery(e.target.value); if (searchError) setSearchError('') }}
                   placeholder={t('fork.searchPlaceholder')}
                   spellCheck={false}
-                  className="text-xs rounded border pl-2 pr-2 py-1.5 w-40 sm:w-52 outline-none focus:ring-1"
+                  className="text-xs rounded border pl-2 pr-2 py-1.5 w-full sm:w-52 outline-none focus:ring-1"
                   style={{ background: 'var(--color-bg)', borderColor: searchError ? 'var(--color-danger)' : 'var(--color-border)', color: 'var(--color-text)', fontFamily: 'var(--font-mono)' }}
                 />
               </div>
@@ -537,7 +537,7 @@ export default function ChainForkVisualizer() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               </button>
             </form>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <button onClick={handleZoomOut} className="p-1.5 rounded border text-xs" style={ctrlStyle} title={t('fork.zoomOut')}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               </button>
