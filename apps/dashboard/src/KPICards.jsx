@@ -43,6 +43,8 @@ export default function KPICards() {
 
   const usd = (n) => n != null ? `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
   const havenoAsk = price?.haveno_ask ?? null
+  const havenoAvg = price?.haveno_ask_avg ?? null
+  const signed = (v) => `${v > 0 ? '+' : ''}${v.toFixed(2)}%`
   const havenoDetail = havenoAsk != null ? `${t('kpi.havenoStreet')} ${usd(havenoAsk)}` : t('kpi.havenoUnavailable')
 
   const cards = [
@@ -112,11 +114,34 @@ export default function KPICards() {
             <TradingViewMini locale={i18n.language || 'en'} />
           </div>
         </div>
-        <div className="mt-auto pt-3 flex items-center justify-between text-xs border-t" style={{ borderColor: 'var(--color-border)', color: 'var(--color-dim)' }}>
-          <span className="uppercase tracking-wide">{t('kpi.havenoAsk')}</span>
-          <span className="font-mono" style={{ color: 'var(--color-text-secondary)' }}>
-            <span key={havenoDetail} className="mm-flash inline-block">{havenoAsk != null ? usd(havenoAsk) : '—'}</span>
-          </span>
+        <div className="mt-auto pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="text-[10px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-dim)' }}>
+            {t('kpi.havenoBook')}
+          </div>
+          <div className="flex items-baseline justify-between text-xs mb-1">
+            <span className="flex items-center gap-1.5" style={{ color: 'var(--color-dim)' }}>
+              <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: '#f59e0b' }} />
+              {t('charts.spreadBest')}
+            </span>
+            <span className="font-mono" style={{ color: 'var(--color-text-secondary)' }}>
+              <span key={havenoDetail} className="mm-flash inline-block">{havenoAsk != null ? usd(havenoAsk) : '—'}</span>
+              {price?.ask_premium_pct != null && (
+                <span className="ml-2" style={{ color: 'var(--color-dim)' }}>{signed(price.ask_premium_pct)}</span>
+              )}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between text-xs">
+            <span className="flex items-center gap-1.5" style={{ color: 'var(--color-dim)' }}>
+              <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: '#8b5cf6' }} />
+              {t('charts.spreadAvgOffer')}
+            </span>
+            <span className="font-mono" style={{ color: 'var(--color-text-secondary)' }}>
+              {havenoAvg != null ? usd(havenoAvg) : '—'}
+              {price?.ask_avg_premium_pct != null && (
+                <span className="ml-2" style={{ color: 'var(--color-dim)' }}>{signed(price.ask_avg_premium_pct)}</span>
+              )}
+            </span>
+          </div>
         </div>
       </div>
     </div>
