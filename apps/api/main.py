@@ -13,7 +13,7 @@ import httpx
 import json
 import os
 import re
-from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, ExternalUsageResponse
+from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, ExternalUsageResponse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
 
@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.8.2', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.9.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -428,8 +428,11 @@ async def price():
     official, change, source = await _official_price()
     haveno, bid, ask = await _haveno_price()
     premium = None
+    ask_premium = None
     if official and haveno:
         premium = round((haveno / official - 1) * 100, 1)
+    if official and ask:
+        ask_premium = round((ask / official - 1) * 100, 2)
 
     result = PriceResponse(
         official_usd=round(official, 2) if official else None,
@@ -439,9 +442,57 @@ async def price():
         haveno_bid=round(bid, 2) if bid else None,
         haveno_ask=round(ask, 2) if ask else None,
         premium_pct=premium,
+        ask_premium_pct=ask_premium,
+        premium_note='premium_pct compares the last Haveno fill to live spot and can be stale in a thin book. Use ask_premium_pct for the real cost of buying without KYC.',
     )
     _agg_cache_set('price', result)
     return result
+
+
+@app.get('/price/spread', response_model=SpreadResponse)
+async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
+    """Haveno peer-to-peer quotes against centralised spot, over time."""
+    cached = _agg_cache_get(f'spread:{window}', _series_ttl(window))
+    if cached is not None:
+        return cached
+    interval = {'24h': '24 hours', '7d': '7 days', '30d': '30 days',
+                '90d': '90 days', '1y': '365 days'}[window]
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(f"""
+            SELECT EXTRACT(EPOCH FROM observed_at)::bigint AS timestamp_unix,
+                   official_usd, haveno_bid, haveno_ask, haveno_vol_24h
+            FROM price_snapshots
+            WHERE observed_at >= NOW() - INTERVAL '{interval}'
+            ORDER BY observed_at
+        """)
+    points = []
+    for r in rows:
+        official = float(r['official_usd']) if r['official_usd'] is not None else None
+        ask = float(r['haveno_ask']) if r['haveno_ask'] is not None else None
+        points.append(SpreadPoint(
+            timestamp_unix=r['timestamp_unix'],
+            official_usd=official,
+            haveno_bid=float(r['haveno_bid']) if r['haveno_bid'] is not None else None,
+            haveno_ask=ask,
+            ask_premium_pct=round((ask / official - 1) * 100, 2) if official and ask else None,
+        ))
+    prem = [p.ask_premium_pct for p in points if p.ask_premium_pct is not None]
+    max_points = 1500
+    kept = points
+    if len(kept) > max_points:
+        step = len(kept) / max_points
+        kept = [kept[int(i * step)] for i in range(max_points)]
+    response = SpreadResponse(
+        window=window,
+        points=kept,
+        current_ask_premium_pct=prem[-1] if prem else None,
+        avg_ask_premium_pct=round(sum(prem) / len(prem), 2) if prem else None,
+        haveno_vol_24h=float(rows[-1]['haveno_vol_24h']) if rows and rows[-1]['haveno_vol_24h'] is not None else None,
+        samples=len(points),
+    )
+    _agg_cache_set(f'spread:{window}', response)
+    return response
 
 @app.get('/pools/sources', response_model=PoolSourcesResponse)
 async def pools_sources():
