@@ -51,6 +51,12 @@ export default function SpreadChart() {
       }}
       format={(v) => pct(v)}
       currentValue={(d) => d.current_ask_premium_pct}
+      headlineExtra={(d) => (
+        <>
+          <span className="mx-2 font-normal" style={{ color: 'var(--color-border-strong)' }}>/</span>
+          <span style={{ color: '#8b5cf6' }}>{pct(d.current_ask_avg_premium_pct)}</span>
+        </>
+      )}
       emptyText={t('charts.spreadCollecting')}
       footer={(d) => (
         <>
