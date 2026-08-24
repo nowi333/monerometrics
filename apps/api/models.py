@@ -230,6 +230,10 @@ class PriceResponse(BaseModel):
     haveno_ask: Optional[float] = None
     premium_pct: Optional[float] = None
     ask_premium_pct: Optional[float] = None
+    haveno_ask_avg: Optional[float] = None
+    ask_avg_premium_pct: Optional[float] = None
+    haveno_ask_amount: Optional[float] = None
+    haveno_ask_offers: Optional[int] = None
     premium_note: Optional[str] = None
 
 

@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.10.1', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.10.2', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -434,6 +434,38 @@ async def _haveno_price():
     return None, None, None
 
 
+async def _haveno_depth():
+    """Best and amount-weighted average sell offer, straight from the order book."""
+    async with httpx.AsyncClient(timeout=8) as client:
+        try:
+            r = await client.get('https://haveno.markets/api/v1/depth/XMR_USD',
+                                 params={'network': 'reto'})
+            r.raise_for_status()
+            d = r.json()
+
+            def side(rows):
+                rows = [x for x in (rows or []) if x.get('price') and x.get('amount')]
+                if not rows:
+                    return None, None, None
+                total = sum(float(x['amount']) for x in rows)
+                wavg = sum(float(x['price']) * float(x['amount']) for x in rows) / total
+                prices = [float(x['price']) for x in rows]
+                return prices, round(wavg, 2), round(total, 4)
+
+            ask_prices, ask_avg, ask_amount = side(d.get('asks'))
+            bid_prices, _, _ = side(d.get('bids'))
+            return {
+                'best_ask': min(ask_prices) if ask_prices else None,
+                'best_bid': max(bid_prices) if bid_prices else None,
+                'ask_avg': ask_avg,
+                'ask_amount': ask_amount,
+                'ask_offers': len(ask_prices) if ask_prices else None,
+            }
+        except Exception as e:
+            log.warning(f'haveno depth failed: {e}')
+    return {}
+
+
 @app.get('/price', response_model=PriceResponse)
 async def price():
     """XMR/USD: centralised reference plus the Haveno peer-to-peer street price."""
@@ -443,12 +475,21 @@ async def price():
 
     official, change, source = await _official_price()
     haveno, bid, ask = await _haveno_price()
+    book = await _haveno_depth()
+    if book.get('best_ask') is not None:
+        ask = book['best_ask']
+    if book.get('best_bid') is not None:
+        bid = book['best_bid']
+    ask_avg = book.get('ask_avg')
     premium = None
     ask_premium = None
+    ask_avg_premium = None
     if official and haveno:
         premium = round((haveno / official - 1) * 100, 1)
     if official and ask:
         ask_premium = round((ask / official - 1) * 100, 2)
+    if official and ask_avg:
+        ask_avg_premium = round((ask_avg / official - 1) * 100, 2)
 
     result = PriceResponse(
         official_usd=round(official, 2) if official else None,
@@ -459,6 +500,10 @@ async def price():
         haveno_ask=round(ask, 2) if ask else None,
         premium_pct=premium,
         ask_premium_pct=ask_premium,
+        haveno_ask_avg=ask_avg,
+        ask_avg_premium_pct=ask_avg_premium,
+        haveno_ask_amount=book.get('ask_amount'),
+        haveno_ask_offers=book.get('ask_offers'),
         premium_note='premium_pct compares the last Haveno fill to live spot and can be stale in a thin book. Use ask_premium_pct for the real cost of buying without KYC.',
     )
     _agg_cache_set('price', result)
