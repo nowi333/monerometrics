@@ -380,8 +380,8 @@ def _heartbeat() -> None:
 
 _price_last_record = 0.0
 
-def ensure_price_table(conn: psycopg.Connection) -> None:
-    with conn.cursor() as cur:
+def ensure_price_table() -> None:
+    with psycopg.connect(DATABASE_URL, autocommit=True) as conn, conn.cursor() as cur:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS price_snapshots (
                 observed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -430,7 +430,7 @@ def _fetch_haveno(http_client: httpx.Client):
         log.warning(f'haveno price failed: {e}')
     return None, None, None, None
 
-def maybe_record_price(conn: psycopg.Connection, http_client: httpx.Client) -> None:
+def maybe_record_price(http_client: httpx.Client) -> None:
     global _price_last_record
     if time.time() - _price_last_record < PRICE_INTERVAL:
         return
@@ -438,7 +438,7 @@ def maybe_record_price(conn: psycopg.Connection, http_client: httpx.Client) -> N
     last, bid, ask, vol = _fetch_haveno(http_client)
     if official is None and last is None:
         return
-    with conn.cursor() as cur:
+    with psycopg.connect(DATABASE_URL, autocommit=True) as conn, conn.cursor() as cur:
         cur.execute("""
             INSERT INTO price_snapshots
                 (official_usd, official_source, haveno_last, haveno_bid, haveno_ask, haveno_vol_24h)
@@ -456,7 +456,9 @@ def index_loop() -> None:
     with httpx.Client() as http_client:
         maybe_refresh_pool_index(http_client)
         verify_proof_keys(http_client)
+        ensure_price_table()
         while True:
+            maybe_record_price(http_client)
             _heartbeat()
             M_LAST_LOOP.set(time.time())
             try:
@@ -475,9 +477,7 @@ def index_loop() -> None:
                     continue
                 with psycopg.connect(DATABASE_URL, autocommit=False) as conn:
                     persist_pool_sources(conn)
-                    ensure_price_table(conn)
                     record_mempool(conn, info)
-                    maybe_record_price(conn, http_client)
                     maybe_prune_mempool(conn)
                     rescan_confirmation_window(http_client, conn, top)
                     index_forward(http_client, conn, top)
