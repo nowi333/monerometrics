@@ -236,8 +236,19 @@ button {
   background: color-mix(in srgb, var(--color-accent) 16%, transparent);
   color: var(--color-accent);
 }
+.mm-badge {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease, filter 0.25s ease;
+}
+.mm-badge:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-border));
+  box-shadow: 0 0 20px -5px color-mix(in srgb, var(--color-accent) 55%, transparent);
+  transform: translateY(-1px);
+}
+.mm-badge-img:hover {
+  filter: drop-shadow(0 0 9px color-mix(in srgb, var(--color-accent) 60%, transparent));
+}
 @media (prefers-reduced-motion: reduce) {
-  .mm-node, .mm-node-icon { transition: none; }
+  .mm-node, .mm-node-icon, .mm-badge, .mm-badge-img { transition: none; }
   .mm-node:hover { transform: none; }
 }
 

@@ -234,8 +234,8 @@ export default function App() {
             target="_blank"
             rel="noopener noreferrer"
             title="Review monerometrics on Monerica"
-            className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] opacity-55 hover:opacity-100 transition-opacity"
-            style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 28%, var(--color-border))', color: 'var(--color-dim)' }}
+            className="mm-badge inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px]"
+            style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 28%, var(--color-border))', color: 'var(--color-text-secondary)' }}
           >
             <span className="inline-flex items-center rounded-sm bg-white px-1 py-0.5" style={{ lineHeight: 0 }}>
               <img src="/monerica-logo.png" alt="Monerica" style={{ height: 11, width: 'auto', display: 'block' }} />
@@ -247,7 +247,7 @@ export default function App() {
             target="_blank"
             rel="noopener noreferrer"
             title={t('footer.xmrclub')}
-            className="inline-flex items-center opacity-55 hover:opacity-100 transition-opacity"
+            className="mm-badge-img inline-flex items-center"
             style={{ lineHeight: 0 }}
           >
             <img src="/xmrclub-badge.svg" alt={t('footer.xmrclub')} style={{ height: 26, width: 'auto', display: 'block' }} />
