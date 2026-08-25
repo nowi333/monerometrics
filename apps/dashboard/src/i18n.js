@@ -246,6 +246,7 @@ i18n
           'footer.xSoon': 'X · coming soon',
           'footer.tor': '.onion version (Tor)',
           'footer.monerica': 'Review on Monerica',
+          'footer.xmrclub': 'Rate us on xmr.club',
           'footer.matrixSoon': 'Matrix · coming soon',
 
 
@@ -589,6 +590,7 @@ i18n
           'footer.xSoon': 'X · bientôt',
           'footer.tor': 'Version .onion (Tor)',
           'footer.monerica': 'Voir sur Monerica',
+          'footer.xmrclub': 'Notez-nous sur xmr.club',
           'footer.matrixSoon': 'Matrix · bientôt',
 
 
@@ -933,6 +935,7 @@ i18n
           'footer.xSoon': 'X · próximamente',
           'footer.tor': 'Versión .onion (Tor)',
           'footer.monerica': 'Ver en Monerica',
+          'footer.xmrclub': 'Valóranos en xmr.club',
           'footer.matrixSoon': 'Matrix · próximamente',
 
 
