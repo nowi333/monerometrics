@@ -600,6 +600,15 @@ sits at +9.4%, so the cheapest offer tracks spot and the depth does not. `premiu
 **last traded price** to spot; that fill may be hours old in a thin book, so it can overstate the
 premium by ten points or more, and it is kept only for backward compatibility.
 
+**Scope: fiat markets only.** Haveno runs 34 markets. The headline liquidity figure on
+`haveno.markets` aggregates all of them and sits around 7,900 XMR, but roughly **95% of that is crypto
+pairs**: BTC/XMR alone holds about 2,000 XMR and stablecoins another 3,000. Every fiat market combined
+is only a few hundred. We index fiat on purpose. A crypto-to-crypto swap is instant, riskless and needs
+no counterparty, so those offers cannot drift far from exchange spot and their premium is always near
+zero. Fiat peer-to-peer involves a real person, chargeback exposure and delay, and that is the only
+reason a premium exists at all. Every figure here is the `XMR_USD` market unless stated otherwise, so
+it will read far smaller than the site-wide total, by design.
+
 **What these numbers are not.** The depth endpoint exposes price, amount and offer count, but **not
 the payment method** behind each offer. A Haveno offer settled by instant bank transfer and one
 settled by cash in the mail carry very different privacy — and very different premiums — yet appear
