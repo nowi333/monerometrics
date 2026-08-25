@@ -126,7 +126,6 @@ export default function Donation() {
                 {t('donate.anyCoin')}
               </button>
             </div>
-            <p className="text-[11px] mt-2" style={{ color: 'var(--color-dim)' }}>{t('donate.anyCoinNote')}</p>
           </div>
         </div>
       </div>
