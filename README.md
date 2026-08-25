@@ -753,8 +753,18 @@ public and searchable.
 ## Support the project
 
 monerometrics runs on a modest self-funded infrastructure (no ads, no tracking, no data sold),
-about 38 € a month including VAT. A Monero donation address is published on the dashboard and in
-[`/.well-known/owners.json`](https://api.monerometrics.net/.well-known/owners.json).
+about 38 € a month including VAT. Donations in XMR go to:
+
+```
+41mkUSrcAvdGw9E19a83rsh9zdSNC7m8PP34NvmRCCPLZVot61kJHc9i8KGge5JmxkDTuiz7a2nUtE7C4rcQJn4xKjfFyU2
+```
+
+Any other cryptocurrency works too, settled to that address with no account and no KYC, through
+[trocador.app AnonPay](https://trocador.app/anonpay/?ticker_to=xmr&network_to=Mainnet&donation=True&name=monerometrics&description=Support%20monerometrics&buttonbgcolor=ff6600&address=41mkUSrcAvdGw9E19a83rsh9zdSNC7m8PP34NvmRCCPLZVot61kJHc9i8KGge5JmxkDTuiz7a2nUtE7C4rcQJn4xKjfFyU2).
+
+The same address is published on the dashboard and in
+[`/.well-known/owners.json`](https://api.monerometrics.net/.well-known/owners.json), so it can be
+cross-checked against three independent sources before you send anything.
 
 ## License
 
