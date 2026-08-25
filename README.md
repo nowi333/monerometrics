@@ -10,10 +10,12 @@
 block time, mempool state, mining-pool distribution and, above all, **chain reorganizations
 (reorgs) and orphan blocks**, which most block explorers surface poorly.
 
-The project was born from the **August 2025 Qubic episode**, during which a mining pool
-approached a majority of the network hashrate and triggered reorganizations, raising concerns
-about Monero's resilience. The public debate lacked reliable, accessible data to settle it.
-monerometrics fills that gap with a neutral, verifiable, reorg-aware observatory.
+The project was born from the **August 2025 Qubic episode**, during which a mining pool paying
+miners in its own token approached a majority of the network hashrate, then withheld blocks and
+released a longer private chain. On 14 September 2025 that produced an 18-block reorganization at
+height 3,499,659 that erased about 36 minutes of history and invalidated 118 transactions, well
+past the 10 confirmations everyone treated as final. The public debate lacked reliable, accessible
+data to settle it. monerometrics fills that gap with a neutral, verifiable, reorg-aware observatory.
 
 It is **open-source and self-funded**, with no ads and no tracking. The dashboard and the API
 are **free and open, permanently**: there is no paid tier, and there will not be one.
@@ -335,8 +337,21 @@ the count in `blocks.merge_mining`; the share over a window is published by
 block in the dashboard's fork visualizer.
 
 It is tracked because it is not a curiosity but a centralization vector: an auxiliary chain can
-subsidise miners and pull hashrate toward a single pool, which is how the August 2025 Qubic episode
-built up. Around 61 % of blocks are merge-mined over the last 30 days.
+subsidise miners and pull hashrate toward whichever pool supports it, and concentrated hashrate is
+what makes a reorganization possible in the first place.
+
+**It is not, however, what Qubic did.** Qubic ran a "useful proof-of-work" scheme: it paid miners
+in its own token by converting the mined XMR, at one point roughly three times more lucrative than
+ordinary Monero mining, taking its share of the network from under 2 % in May 2025 to a claimed
+majority by August. The subsidy was economic, routed through a pool, not merge mining through the
+coinbase. The mechanisms are distinct even though both end in concentrated hashrate, and conflating
+them would be wrong.
+
+Around 61 % of blocks are merge-mined over the last 30 days, down from 74 % in August 2025. That
+share is not a network-wide drift: it is a per-pool policy. supportxmr, p2pool, c3pool and
+moneroocean merge-mine every block they find, hashvault 95 % of them, while nanopool, herominers,
+xmrpool and kryptex merge-mine none. The curve therefore tracks **which pool is finding blocks this
+week** as much as any change in practice.
 
 The auxiliary chain is **not named**: the on-chain tag carries only a Merkle root, so identifying it
 would require querying that chain. We report the count and the root rather than guessing.
