@@ -11,6 +11,7 @@ ANONPAY = (
     '&name=monerometrics&description=Support%20monerometrics&buttonbgcolor=ff6600'
     f'&address={XMR_DONATION}'
 )
+CONTACT_EMAIL = 'contact@monerometrics.net'
 SUMMARY = 'Reorg-aware Monero (XMR) network observatory: chain reorganizations, orphan blocks, mining-pool centralization with cryptographically verified attribution.'
 
 router = APIRouter(include_in_schema=False)
@@ -37,7 +38,7 @@ def _agent_card() -> dict:
             {'url': BASE, 'transport': 'HTTP+JSON'},
         ],
         'provider': {'organization': 'monerometrics', 'url': SITE},
-        'version': '0.11.0',
+        'version': '0.11.1',
         'documentationUrl': f'{BASE}/docs',
         'capabilities': {'streaming': False, 'pushNotifications': False, 'stateTransitionHistory': False},
         'defaultInputModes': ['text/plain', 'application/json'],
@@ -166,7 +167,8 @@ def _owners() -> dict:
         'operator': {
             'type': 'individual',
             'handle': 'nowi333',
-            'contact': f'{REPO}/issues',
+            'contact': CONTACT_EMAIL,
+            'issues': f'{REPO}/issues',
             'note': 'Pseudonymous operator. Everything put forward as credentials is public and running.',
         },
         'funding': [
@@ -250,6 +252,7 @@ async def llms():
         '- Reorg and orphan data only covers what this node observed live.',
         '',
         f'Source code: {REPO}',
+        f'Contact: {CONTACT_EMAIL}',
         f'Optional donation in XMR: {XMR_DONATION}',
         f'Optional donation in any cryptocurrency (settled to XMR, no account): {ANONPAY}',
     ]
@@ -302,7 +305,7 @@ _JSON_ROUTES = {
         'api': {'type': 'openapi', 'url': f'{BASE}/openapi.json'},
         'logo_url': f'{SITE}/favicon.svg',
         'legal_info_url': f'{SITE}/',
-        'contact_email': None,
+        'contact_email': CONTACT_EMAIL,
     },
 }
 
