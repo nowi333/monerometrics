@@ -4,6 +4,7 @@ import InfraDiagram from './InfraDiagram'
 import { api, timeAgo } from './api'
 
 const REPO_URL = 'https://github.com/nowi333/monerometrics'
+const CONTACT_EMAIL = 'contact@monerometrics.net'
 
 const ONION_HOST = '6wbhchvavey26lbtscl6w6qg76balycixtsklcggrsslyk4xah6sbbad.onion'
 
@@ -28,6 +29,7 @@ const ENDPOINTS = [
   { m: 'GET', p: '/pools/sources', k: 'poolsSources' },
 ]
 
+const ICON_MAIL = 'M2.4 6.6A2.4 2.4 0 0 1 4.8 4.2h14.4a2.4 2.4 0 0 1 2.4 2.4v10.8a2.4 2.4 0 0 1-2.4 2.4H4.8a2.4 2.4 0 0 1-2.4-2.4V6.6Zm2.7-.6 6.9 5.52L18.9 6H5.1Zm14.7 1.62-7.35 5.88a1.2 1.2 0 0 1-1.5 0L4.2 7.62V17.4h15.6V7.62Z'
 const ICON_GITHUB = 'M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12'
 
 export default function Documentation() {
@@ -286,6 +288,24 @@ export default function Documentation() {
             {copied ? t('doc.tor.copied') : t('doc.tor.copy')}
           </span>
         </button>
+      </section>
+
+      <section
+        className="rounded-lg border p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between"
+        style={card}
+      >
+        <div>
+          <h2 className="text-lg font-medium mb-1" style={{ color: 'var(--color-text)' }}>{t('doc.contact.title')}</h2>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)', maxWidth: '52ch' }}>{t('doc.contact.text')}</p>
+        </div>
+        <a
+          href={`mailto:${CONTACT_EMAIL}`}
+          className="shrink-0 inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-mono transition-colors hover:brightness-110"
+          style={{ borderColor: 'var(--color-border-strong)', color: 'var(--color-text)', background: 'var(--color-bg)' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="shrink-0" style={{ color: 'var(--color-accent)' }}><path d={ICON_MAIL} /></svg>
+          {CONTACT_EMAIL}
+        </a>
       </section>
 
       <section
