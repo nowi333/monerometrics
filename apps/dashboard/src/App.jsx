@@ -228,7 +228,7 @@ export default function App() {
             {ONION_HOST}
           </a>
         </div>
-        <div className="mt-3">
+        <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
           <a
             href="https://monerica.com/site/monerometrics"
             target="_blank"
@@ -241,6 +241,16 @@ export default function App() {
               <img src="/monerica-logo.png" alt="Monerica" style={{ height: 11, width: 'auto', display: 'block' }} />
             </span>
             {t('footer.monerica')}
+          </a>
+          <a
+            href="https://xmr.club/tools/monerometrics/reviews"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={t('footer.xmrclub')}
+            className="inline-flex items-center opacity-55 hover:opacity-100 transition-opacity"
+            style={{ lineHeight: 0 }}
+          >
+            <img src="/xmrclub-badge.svg" alt={t('footer.xmrclub')} style={{ height: 26, width: 'auto', display: 'block' }} />
           </a>
         </div>
       </footer>

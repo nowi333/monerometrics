@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="173" height="32" viewBox="0 0 173 32" role="img" aria-label="Rate us on xmr.club — monerometrics">
+  <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-opacity=".08"/></linearGradient>
+  <clipPath id="r"><rect width="173" height="32" rx="4" fill="#fff"/></clipPath>
+  <g clip-path="url(#r)">
+    <rect width="110" height="32" fill="#0a0a0a"/>
+    <rect x="110" width="63" height="32" fill="#d97706"/>
+    <rect width="173" height="32" fill="url(#s)"/>
+  </g>
+  <g font-family="ui-monospace,monospace" font-size="12" fill="#fff" text-anchor="middle" text-rendering="geometricPrecision">
+    <text x="55" y="14" font-weight="700" fill="#00ff41">xmr.club</text>
+    <text x="55" y="26" fill="#cbd5e1" font-size="9">monerometrics</text>
+    <text x="141.5" y="20" font-weight="700">RATE US</text>
+  </g>
+</svg>
