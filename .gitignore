@@ -96,3 +96,7 @@ nohup.out
 *.out
 *.bak
 *.tfplan
+
+# Analyses d'audience internes : jamais dans le depot, jamais servies
+audience*.html
+apps/dashboard/public/audience*.html
