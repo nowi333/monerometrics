@@ -21,6 +21,15 @@ function makeLabeller(points, D) {
   }
 }
 const usable = (d) => d.points.filter(p => p.ask_premium_pct != null)
+
+function Trait({ color, dashed }) {
+  return (
+    <svg width="16" height="8" aria-hidden="true" className="inline-block align-middle mr-1">
+      <line x1="1" y1="4" x2="15" y2="4" stroke={color} strokeWidth="2" strokeLinecap="round"
+        strokeDasharray={dashed ? '4 3' : undefined} />
+    </svg>
+  )
+}
 const pct = (v) => v == null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(2)}%`
 const hasBid = (pts) => pts.some(p => p.bid_premium_pct != null)
 
@@ -74,32 +83,36 @@ export default function SpreadChart() {
       }}
       format={(v) => pct(v)}
       currentValue={(d) => d.current_ask_premium_pct}
-      headlineExtra={(d) => (
-        <>
-          <span className="mx-2 font-normal" style={{ color: 'var(--color-border-strong)' }}>/</span>
-          <span style={{ color: ASK_AVG }}>{pct(d.current_ask_avg_premium_pct)}</span>
-        </>
-      )}
+      headlineExtra={(d) => {
+        const sep = <span className="mx-2 font-normal" style={{ color: 'var(--color-border-strong)' }}>/</span>
+        return (
+          <>
+            {sep}<span style={{ color: ASK_AVG }}>{pct(d.current_ask_avg_premium_pct)}</span>
+            {d.current_bid_premium_pct != null && <>{sep}<span style={{ color: BID_BEST }}>{pct(d.current_bid_premium_pct)}</span></>}
+            {d.current_bid_avg_premium_pct != null && <>{sep}<span style={{ color: BID_AVG }}>{pct(d.current_bid_avg_premium_pct)}</span></>}
+          </>
+        )
+      }}
       emptyText={t('charts.spreadCollecting')}
       footer={(d) => (
         <>
           <span>
-            <span style={{ color: ASK_BEST }}>■</span> {t('charts.spreadBest')}{' '}
+            <Trait color={ASK_BEST} /> {t('charts.spreadBest')}{' '}
             <span style={{ color: 'var(--color-text-secondary)' }}>{pct(d.current_ask_premium_pct)}</span>
           </span>
           <span>
-            <span style={{ color: ASK_AVG }}>▨</span> {t('charts.spreadAvgOffer')}{' '}
+            <Trait color={ASK_AVG} dashed /> {t('charts.spreadAvgOffer')}{' '}
             <span style={{ color: 'var(--color-text-secondary)' }}>{pct(d.current_ask_avg_premium_pct)}</span>
           </span>
           {d.current_bid_premium_pct != null && (
             <span>
-              <span style={{ color: BID_BEST }}>■</span> {t('charts.spreadBestBid')}{' '}
+              <Trait color={BID_BEST} /> {t('charts.spreadBestBid')}{' '}
               <span style={{ color: 'var(--color-text-secondary)' }}>{pct(d.current_bid_premium_pct)}</span>
             </span>
           )}
           {d.current_bid_avg_premium_pct != null && (
             <span>
-              <span style={{ color: BID_AVG }}>▨</span> {t('charts.spreadAvgBid')}{' '}
+              <Trait color={BID_AVG} dashed /> {t('charts.spreadAvgBid')}{' '}
               <span style={{ color: 'var(--color-text-secondary)' }}>{pct(d.current_bid_avg_premium_pct)}</span>
             </span>
           )}
