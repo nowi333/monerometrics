@@ -3,7 +3,6 @@ import { api, formatHashrate } from './api'
 import { useNetworkInfo } from './networkStore'
 import { usePolledData } from './usePolledData'
 import InfoTooltip from './InfoTooltip'
-import TradingViewMini from './TradingViewMini'
 
 function shortAge(s) {
   if (s == null) return '—'
@@ -22,7 +21,7 @@ function shortDifficulty(d) {
 }
 
 export default function KPICards() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { info: network, status: netStatus } = useNetworkInfo()
   const { data: price } = usePolledData(() => api.price(), d => !!(d && (d.official_usd || d.haveno_usd)), [], 30000)
   const { data: bt } = usePolledData(() => api.networkBlocktime('24h'), d => !!(d && d.median_delta != null), [], 60000)
@@ -110,10 +109,7 @@ export default function KPICards() {
           {t('kpi.priceTitle')}
         </div>
         <div className="flex-1 flex flex-col justify-center">
-          <div className="w-full mx-auto hidden sm:block" style={{ maxWidth: 260 }}>
-            <TradingViewMini locale={i18n.language || 'en'} />
-          </div>
-          <div className="sm:hidden font-mono text-2xl" style={{ color: 'var(--color-text)' }}>
+          <div className="font-mono text-2xl" style={{ color: 'var(--color-text)' }}>
             {price?.official_usd != null ? usd(price.official_usd) : '—'}
             {price?.official_change_24h != null && (
               <span className="ml-2 text-xs" style={{ color: price.official_change_24h >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
