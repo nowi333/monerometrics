@@ -41,7 +41,10 @@ the tools directly.
 | Tool | What it returns |
 | --- | --- |
 | `network_info` | Height, difficulty, network hashrate, mempool size |
-| `price` | XMR price (official spot + Haveno reference) |
+| `price` | Centralized spot plus both sides of the Haveno book, with the round-trip cost |
+| `haveno_book` | The live Haveno XMR/USD order book: price levels with cumulative depth, payment methods, reversible flag |
+| `haveno_premium(window)` | Haveno bids and asks against spot over time (24h,7d,30d,90d,1y) |
+| `haveno_payment_methods(window, currency)` | Executed trades grouped by payment rail, with the premium over spot |
 | `network_hashrate(window)` | Hashrate time series (1h,24h,7d,30d,90d,1y,5y) |
 | `network_blocktime(window)` | Block-time variance time series |
 | `network_mempool(window)` | Mempool size time series |

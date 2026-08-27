@@ -8,6 +8,8 @@ PORT = int(os.getenv("MCP_PORT", "8080"))
 
 SERIES_WINDOWS = ("1h", "24h", "7d", "30d", "90d", "1y", "5y")
 AGG_WINDOWS = ("1h", "6h", "24h", "48h", "7d")
+SPREAD_WINDOWS = ("24h", "7d", "30d", "90d", "1y")
+METHOD_WINDOWS = ("30d", "90d", "180d", "1y", "all")
 
 mcp = FastMCP("monerometrics", host=HOST, port=PORT, stateless_http=True, json_response=True)
 
@@ -38,8 +40,49 @@ async def network_info() -> dict:
 
 @mcp.tool()
 async def price() -> dict:
-    """Current Monero (XMR) price: official spot price plus a Haveno decentralized-exchange reference."""
+    """Current Monero (XMR) price: centralized spot plus both sides of the Haveno peer-to-peer book.
+
+    Returns the best offer and the amount-weighted average on each side, resting depth,
+    offer counts, and round_trip_cost_pct: the cost of buying XMR and selling it straight
+    back, which is far larger than the headline premium.
+    """
     return await _get("/price")
+
+
+@mcp.tool()
+async def haveno_book() -> dict:
+    """The live Haveno XMR/USD order book, both sides, priced against centralized spot.
+
+    Each price level carries its cumulative depth, offer count, payment methods and a
+    reversible flag. `asks` are makers selling XMR, so taking one means buying; `bids`
+    are makers buying, so taking one means selling. Offers are advertisements with
+    differing payment methods rather than a matched book, so nothing executes on its own
+    and the best bid can sit at or above the best ask.
+    """
+    return await _get("/haveno/book")
+
+
+@mcp.tool()
+async def haveno_premium(window: str = "7d") -> dict:
+    """Haveno peer-to-peer quotes against centralized spot over time, both sides.
+
+    window in 24h,7d,30d,90d,1y. History starts on 24 August 2026, when recording began.
+    """
+    return await _get("/price/spread", {"window": _one_of(window, SPREAD_WINDOWS, "window")})
+
+
+@mcp.tool()
+async def haveno_payment_methods(window: str = "180d", currency: str = "USD") -> dict:
+    """Executed Haveno trades grouped by payment method, with the premium over spot.
+
+    window in 30d,90d,180d,1y,all. currency in USD,EUR. The premium tracks how reversible
+    and convenient the payment rail is, not privacy: every one of these trades is equally
+    non-KYC. The reversible flag is our own classification, not a Haveno field.
+    """
+    return await _get("/haveno/methods", {
+        "window": _one_of(window, METHOD_WINDOWS, "window"),
+        "currency": _one_of(currency, ("USD", "EUR"), "currency"),
+    })
 
 
 @mcp.tool()
