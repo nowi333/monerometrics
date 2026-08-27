@@ -123,6 +123,9 @@ export default function KPICards() {
           </div>
         </div>
         <div className="mt-auto pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="text-[10px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-dim)' }}>
+            {t('kpi.havenoBook')}
+          </div>
           {[
             { label: t('charts.spreadBest'), value: havenoAsk, pct: price?.ask_premium_pct, flash: true },
             { label: t('charts.spreadAvgOffer'), value: havenoAvg, pct: price?.ask_avg_premium_pct, flash: false },
