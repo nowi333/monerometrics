@@ -76,18 +76,10 @@ export default function LanguageSwitcher() {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Language"
-        className="h-10 w-11 inline-flex items-center justify-center gap-1 rounded-lg border hover:opacity-80 transition-opacity"
+        className="h-10 w-10 inline-flex items-center justify-center rounded-lg border hover:opacity-80 transition-opacity"
         style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
       >
-        <Flag code={active.code} w={18} />
-        <svg
-          width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-          className={`transition-transform ${open ? 'rotate-180' : ''}`}
-          style={{ color: 'var(--color-dim)' }}
-          aria-hidden="true"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <Flag code={active.code} w={20} />
       </button>
 
       {open && (
