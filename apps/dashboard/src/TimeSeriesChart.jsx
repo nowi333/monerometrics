@@ -258,7 +258,7 @@ export default function TimeSeriesChart({
       },
     },
     scales: {
-      x: { ticks: { color: '#8b9099', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { display: false } },
+      x: { ticks: { color: '#8b9099', font: { size: 10 }, maxRotation: 0, autoSkip: true, autoSkipPadding: 6, maxTicksLimit: 6 }, grid: { display: false } },
       y: { max: yMax ?? undefined, ticks: { color: '#8b9099', font: { size: 10 }, callback: (v) => format(v) }, grid: { color: 'rgba(255,255,255,0.05)' } },
     },
   }
