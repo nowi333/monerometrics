@@ -47,6 +47,7 @@ export default function SpreadChart() {
       fill={false}
       bandFill
       showLegend={false}
+      headlineClass="text-lg sm:text-2xl"
       windows={['24h', '7d', '30d', '90d']}
       defaultWindow="7d"
       fetcher={(w) => api.priceSpread(w)}
@@ -85,7 +86,7 @@ export default function SpreadChart() {
       format={(v) => pct(v)}
       currentValue={(d) => d.current_ask_premium_pct}
       headlineExtra={(d) => {
-        const sep = <span className="mx-2 font-normal" style={{ color: 'var(--color-border-strong)' }}>/</span>
+        const sep = <span className="mx-1 sm:mx-2 font-normal" style={{ color: 'var(--color-border-strong)' }}>/</span>
         return (
           <>
             {sep}<span style={{ color: ASK_AVG }}>{pct(d.current_ask_avg_premium_pct)}</span>
