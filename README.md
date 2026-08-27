@@ -42,7 +42,8 @@ are **free and open, permanently**: there is no paid tier, and there will not be
   distribution with **largest-pool share and the Nakamoto coefficient**, and the evidence behind
   each attribution. *Network state*: hashrate, block-time variance, mempool, emission, and a
   **transaction fee estimator** reading the node's four priority tiers live. *Peer-to-peer market*:
-  Haveno premium over spot, resting liquidity, and **premium by payment method**. Available in
+  Haveno premium over spot on **both sides of the book**, live order-book depth, resting liquidity,
+  and **premium by payment method**. Available in
   **English, French and Spanish**, light/dark themes.
 - **Public API**: FastAPI, read-only JSON endpoints grouped by theme (service, network,
   chain/reorgs, pools, market). Automatically documented via OpenAPI.
@@ -388,7 +389,7 @@ manifest:
 |---|---|---|
 | `mempool_snapshots` | worker, each poll | Pending transaction count over time |
 | `fee_snapshots` | worker, every 5 min | The node's four fee tiers, in piconero per byte |
-| `price_snapshots` | worker, every 10 min | Centralized spot plus the Haveno book: best and average offer, resting liquidity, offer count |
+| `price_snapshots` | worker, every 10 min | Centralized spot plus the Haveno book, both sides: best and average offer, resting liquidity and offer count for asks and bids, and the raw book |
 | `haveno_offers` | worker, every 10 min | Individual open Haveno offers with their payment method |
 | `haveno_trades` | worker, hourly | Executed Haveno trades back to May 2024, with payment method |
 | `haveno_liquidity` | worker, hourly | Hourly resting liquidity per market, back to November 2024 |
@@ -455,11 +456,12 @@ can be consumed from anywhere. No key, no account, no tracking.
 
 | Endpoint | Description |
 |---|---|
-| `GET /price` | XMR/USD from a centralized reference (CoinGecko, with Kraken as fallback) **and** the Haveno peer-to-peer street price (RetoSwap network, via `haveno.markets`). Returns `ask_premium_pct`, the lowest Haveno ask over spot, alongside the legacy `premium_pct` computed from the last traded price. Both sources are proxied and cached server-side (~5 s) so the browser never calls them directly. |
-| `GET /price/spread?window=` | Haveno order book against centralized spot over time, sampled every 10 minutes: lowest ask, amount-weighted average offer, resting liquidity and offer count. `window` accepts `24h`, `7d`, `30d`, `90d`, `1y`. |
+| `GET /price` | XMR/USD from a centralized reference (CoinGecko, with Kraken as fallback) **and** the Haveno peer-to-peer street price (RetoSwap network, via `haveno.markets`). Returns `ask_premium_pct` and `bid_premium_pct`, the best offer on each side over spot, their amount-weighted counterparts, `round_trip_cost_pct`, and the legacy `premium_pct` computed from the last traded price. Both sources are proxied and cached server-side (~5 s) so the browser never calls them directly. |
+| `GET /price/spread?window=` | Haveno order book against centralized spot over time, sampled every 10 minutes, **both sides**: lowest ask and highest bid, amount-weighted average of each side, resting liquidity and offer count per side, plus `round_trip_cost_pct`. `window` accepts `24h`, `7d`, `30d`, `90d`, `1y`. |
 | `GET /haveno/methods?window=&currency=` | Executed Haveno trades grouped by **payment method**, with average, median and standard deviation of the premium over centralized spot. `window` accepts `30d`, `90d`, `180d`, `1y`, `all`; `currency` accepts `USD`, `EUR`. |
 | `GET /haveno/liquidity?window=&currency=` | XMR resting in open Haveno offers, hourly, back to November 2024. `currency` accepts `USD`, `EUR`, `AUD`, `GBP`. |
 | `GET /haveno/trades?limit=&currency=` | Recent executed Haveno trades with payment method, price and premium. |
+| `GET /haveno/book` | The **live order book** for `XMR_USD`, both sides, as price levels with cumulative depth, offer count, payment methods and a `reversible` flag, each priced against spot. Also returns the amount-weighted average of each side and `round_trip_cost_pct`. Cached ~30 s. |
 
 **Discovery.** Beyond the documented API, the service answers the agent-discovery conventions crawlers
 actually ask for: `llms.txt`, `agents.json`, agent cards, `mcp.json`, OpenRPC, `ai-plugin.json`, x402,
@@ -503,13 +505,22 @@ add noise, and trades before September 2024 fall outside Kraken's 720-day window
 premium at all. Crypto pairs are excluded: `haveno.markets` quotes them inverted, and a premium
 against a fiat spot would be meaningless.
 
-**Reading the Haveno premium.** Three numbers are exposed and they do not mean the same thing.
-`ask_premium_pct` compares the **lowest Haveno ask** to centralized spot. `ask_avg_premium_pct`
-compares the **amount-weighted average of every sell offer** in the book. The gap between them is
-the shape of the book: at the time of writing the top of book sits at −0.2% while the average offer
-sits at +9.4%, so the cheapest offer tracks spot and the depth does not. `premium_pct` compares the
-**last traded price** to spot; that fill may be hours old in a thin book, so it can overstate the
-premium by ten points or more, and it is kept only for backward compatibility.
+**Reading the Haveno premium.** Both sides of the book are exposed, and the numbers do not mean the
+same thing. On the sell side, `ask_premium_pct` compares the **lowest ask** to centralized spot and
+`ask_avg_premium_pct` compares the **amount-weighted average of every sell offer**. On the buy side,
+`bid_premium_pct` and `bid_avg_premium_pct` do the same for the offers that buy your XMR. The gap
+between best and average is the shape of one side: at the time of writing the top of book sits at
++0.2% while the average sell offer sits at +8.3%, so the cheapest offer tracks spot and the depth
+does not.
+
+The gap between the two **averages** is `round_trip_cost_pct`, the cost of buying and selling back,
+and it is the number that survives contact with reality: 21.9% at the time of writing, against an
+8.3% headline premium. It is that large because the two sides are not symmetrical — 33.7 XMR of sell
+depth against 44.6 XMR of buy depth, with the buy side averaging −11.2%. Quoting only the sell-side
+premium understates the real cost of using this market by more than a factor of two.
+
+`premium_pct` compares the **last traded price** to spot; that fill may be hours old in a thin book,
+so it can overstate the premium by ten points or more, and it is kept only for backward compatibility.
 
 **Scope: fiat markets only.** Haveno runs 34 markets. The headline liquidity figure on
 `haveno.markets` aggregates all of them and sits around 7,900 XMR, but roughly **95% of that is crypto
@@ -520,11 +531,14 @@ zero. Fiat peer-to-peer involves a real person, chargeback exposure and delay, a
 reason a premium exists at all. Every figure here is the `XMR_USD` market unless stated otherwise, so
 it will read far smaller than the site-wide total, by design.
 
-**What these numbers are not.** The depth endpoint exposes price, amount and offer count, but **not
-the payment method** behind each offer. A Haveno offer settled by instant bank transfer and one
-settled by cash in the mail carry very different privacy (and very different premiums) yet appear
-identically here. The lowest ask is therefore not, on its own, the price of buying Monero privately;
-it is the price of the most competitive offer, whatever its payment rail. Note also that `XMR_USD`
+**What these numbers are not.** The aggregated series behind `/price/spread` carry price, amount and
+offer count, but **not the payment method** behind each offer, because the level-1 depth feed does not
+expose it. A Haveno offer settled by instant bank transfer and one settled by cash in the mail carry
+very different privacy (and very different premiums) yet appear identically in those series. The
+lowest ask is therefore not, on its own, the price of buying Monero privately; it is the price of the
+most competitive offer, whatever its payment rail. `/haveno/book` is the exception: it reads the
+level-2 feed, so each price level there does carry its payment methods and a `reversible` flag.
+Note also that `XMR_USD`
 is fiat US dollars: `haveno.markets` lists `USDT-ERC20`, `USDT-TRC20`, `USDC-ERC20` and `DAI-ERC20`
 as separate markets, so this pair is not a stablecoin quote.
 

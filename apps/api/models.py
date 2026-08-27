@@ -234,6 +234,12 @@ class PriceResponse(BaseModel):
     ask_avg_premium_pct: Optional[float] = None
     haveno_ask_amount: Optional[float] = None
     haveno_ask_offers: Optional[int] = None
+    haveno_bid_avg: Optional[float] = None
+    bid_premium_pct: Optional[float] = None
+    bid_avg_premium_pct: Optional[float] = None
+    haveno_bid_amount: Optional[float] = None
+    haveno_bid_offers: Optional[int] = None
+    round_trip_cost_pct: Optional[float] = None
     premium_note: Optional[str] = None
 
 
@@ -243,18 +249,26 @@ class SpreadPoint(BaseModel):
     haveno_bid: Optional[float] = None
     haveno_ask: Optional[float] = None
     haveno_ask_avg: Optional[float] = None
+    haveno_bid_avg: Optional[float] = None
     ask_premium_pct: Optional[float] = None
     ask_avg_premium_pct: Optional[float] = None
+    bid_premium_pct: Optional[float] = None
+    bid_avg_premium_pct: Optional[float] = None
     ask_amount: Optional[float] = None
     ask_offers: Optional[int] = None
+    bid_amount: Optional[float] = None
+    bid_offers: Optional[int] = None
 
 
 class SpreadResponse(BaseModel):
     """Haveno peer-to-peer quotes against the centralised spot reference.
 
     ask_premium_pct is what it actually costs to buy without KYC right now:
-    the lowest Haveno ask over the centralised spot. The last traded price is
-    reported too, but it is a past fill in a thin book and is not a live level.
+    the lowest Haveno ask over the centralised spot. bid_premium_pct is the
+    mirror image, what the best buyer pays you for XMR. The gap between the two
+    amount-weighted averages is round_trip_cost_pct: buying and selling back.
+    The last traded price is reported too, but it is a past fill in a thin book
+    and is not a live level.
     """
     window: str
     points: List[SpreadPoint] = []
@@ -264,6 +278,12 @@ class SpreadResponse(BaseModel):
     haveno_vol_24h: Optional[float] = None
     current_ask_amount: Optional[float] = None
     current_ask_offers: Optional[int] = None
+    current_bid_premium_pct: Optional[float] = None
+    current_bid_avg_premium_pct: Optional[float] = None
+    current_bid_amount: Optional[float] = None
+    current_bid_offers: Optional[int] = None
+    avg_bid_premium_pct: Optional[float] = None
+    current_round_trip_pct: Optional[float] = None
     samples: int = 0
 
 class ExternalUsageResponse(BaseModel):
@@ -355,3 +375,36 @@ class FeeHistoryResponse(BaseModel):
     reference_bytes: int
     points: List[FeePoint] = []
     samples: int = 0
+
+
+class BookLevel(BaseModel):
+    price: float
+    premium_pct: Optional[float] = None
+    amount: float
+    cumulative: float
+    offers: int = 1
+    payment_methods: List[str] = []
+    reversible: Optional[bool] = None
+
+
+class OrderBookResponse(BaseModel):
+    """The live Haveno order book for one pair, both sides, priced against spot.
+
+    `asks` are makers selling XMR, so taking one means buying; `bids` are makers
+    buying XMR, so taking one means selling. Levels are sorted outward from spot
+    and carry a running total, which is what a depth chart plots. `reversible`
+    flags a level whose payment rails let the buyer claw funds back after the
+    XMR is released; when a level aggregates several methods it is true if any
+    of them is reversible.
+    """
+    pair: str
+    official_usd: Optional[float] = None
+    asks: List[BookLevel] = []
+    bids: List[BookLevel] = []
+    ask_amount: Optional[float] = None
+    bid_amount: Optional[float] = None
+    ask_offers: int = 0
+    bid_offers: int = 0
+    ask_avg_premium_pct: Optional[float] = None
+    bid_avg_premium_pct: Optional[float] = None
+    round_trip_cost_pct: Optional[float] = None
