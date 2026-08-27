@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.11.1', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.12.1', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'

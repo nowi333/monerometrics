@@ -46,6 +46,7 @@ export default function SpreadChart() {
       seriesLabel={t('charts.spreadBest')}
       fill={false}
       bandFill
+      showLegend={false}
       windows={['24h', '7d', '30d', '90d']}
       defaultWindow="7d"
       fetcher={(w) => api.priceSpread(w)}
