@@ -396,8 +396,18 @@ class OrderBookResponse(BaseModel):
     flags a level whose payment rails let the buyer claw funds back after the
     XMR is released; when a level aggregates several methods it is true if any
     of them is reversible.
+
+    `observed_at` is when this book was actually read from the upstream feed and
+    `age_seconds` how old it is. They matter: in a book this thin a single offer
+    leaving moves the floor by several points, so a snapshot a few minutes old can
+    be badly wrong while looking exactly as clean as a fresh one. When the upstream
+    feed fails we serve the last book we know rather than an empty panel, and
+    `stale` is set so that is visible instead of silent.
     """
     pair: str
+    observed_at: Optional[int] = None
+    age_seconds: Optional[int] = None
+    stale: bool = False
     official_usd: Optional[float] = None
     asks: List[BookLevel] = []
     bids: List[BookLevel] = []

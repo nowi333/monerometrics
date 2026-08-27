@@ -701,13 +701,27 @@ def _reversible(method: str):
 _last_book = None
 
 
+def _with_age(book, stale=False):
+    """Re-date a book before serving it.
+
+    The age is recomputed on every request rather than stored, so a book held in
+    cache or reserved after an upstream failure reports how old it really is.
+    """
+    if book is None or book.observed_at is None:
+        return book
+    return book.model_copy(update={
+        'age_seconds': max(0, int(time.time()) - book.observed_at),
+        'stale': stale,
+    })
+
+
 @app.get('/haveno/book', response_model=OrderBookResponse)
 async def haveno_book():
     """The live Haveno order book for XMR/USD, both sides, priced against spot."""
     global _last_book
     cached = _agg_cache_get('book', 30)
     if cached is not None:
-        return cached
+        return _with_age(cached)
 
     official, _, _ = await _official_price()
     rows_by_side = {'asks': [], 'bids': []}
@@ -724,10 +738,10 @@ async def haveno_book():
             # Une coupure passagere en amont ne doit pas vider le panneau : on ressert
             # le dernier carnet connu plutot qu'un carnet vide.
             if _last_book is not None:
-                return _last_book
+                return _with_age(_last_book, stale=True)
             return OrderBookResponse(pair='XMR_USD', official_usd=round(official, 2) if official else None)
     if not rows_by_side['asks'] and not rows_by_side['bids'] and _last_book is not None:
-        return _last_book
+        return _with_age(_last_book, stale=True)
 
     def build(rows, ascending):
         grouped = {}
@@ -769,6 +783,8 @@ async def haveno_book():
     bid_avg, bid_amount = wavg(bids)
     result = OrderBookResponse(
         pair='XMR_USD',
+        observed_at=int(time.time()),
+        age_seconds=0,
         official_usd=round(official, 2) if official else None,
         asks=asks,
         bids=bids,
