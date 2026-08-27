@@ -233,7 +233,7 @@ export default function TimeSeriesChart({
       }
     },
     plugins: {
-      legend: { display: !!referenceY || !!extraSeries, labels: { color: '#8b9099', font: { size: 11 }, boxWidth: 12 } },
+      legend: { display: !!referenceY || !!extraSeries, labels: { color: '#8b9099', font: { size: 11 }, usePointStyle: true, pointStyle: 'line', boxWidth: 22, boxHeight: 2 } },
 
       crosshair: { format },
       tooltip: {
