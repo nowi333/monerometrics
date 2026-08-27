@@ -83,6 +83,40 @@ Each attributed block carries a source tag: viewkey_proof, pool_api,
 pool_api_unproven, or coinbase_heuristic, so the strength of every attribution is
 transparent.
 
+## How the peer-to-peer market is measured
+
+Alongside the chain itself, monerometrics tracks the Haveno (RetoSwap) XMR/USD market,
+the largest non-KYC venue for Monero against fiat, and prices it against centralized
+spot from CoinGecko with Kraken as fallback.
+
+Both sides of the order book are measured. Sell offers ("asks") are what it costs to
+buy XMR; buy offers ("bids") are what you are paid when you sell. For each side we
+report the best offer and the amount-weighted average of every offer, weighted by
+offer size so that a tiny offer at an unrealistic price does not move the average the
+way a large one does. Cumulative depth at a given price is the sum of every offer at
+least that good, which is what the order-book panel draws as a staircase.
+
+round_trip_cost_pct is the average ask divided by the average bid, minus one: the cost
+of buying XMR and selling it straight back with the price unmoved. It runs at roughly
+three times the headline premium, because the two sides of this book are not
+symmetrical. It is deliberately built from the averages rather than the best offer on
+each side, so it should be read as an upper bound: a small trade that never leaves the
+first price level does better, a trade that walks the book does not.
+
+Executed trades are also grouped by payment method. The premium tracks reversibility
+and convenience rather than privacy: rails that let a buyer claw funds back after the
+Monero is released (PayPal, Wise, Cash App, Venmo) carry the largest premiums, while
+irreversible rails (Zelle, cash by mail) sit near or below spot. Every one of those
+trades is equally non-KYC, so the spread between them is not the price of privacy.
+The reversible flag is our own classification, not a Haveno field.
+
+Limits: only the USD pair carries meaningful volume; Haveno offers are advertisements
+with differing payment methods rather than a matched order book, so nothing executes
+automatically and the best bid can sit at or above the best ask; each offer carries a
+minimum size, so a deep price level is not necessarily reachable in small amounts; and
+the premium history starts on 24 August 2026, when recording began, because no
+historical series is published upstream and it cannot be backfilled.
+
 ## Chain fork visualizer
 
 An interactive visualizer renders the canonical chain and competing orphan branches.
@@ -104,7 +138,13 @@ machine-readable description at /openapi.json.
 - GET /network/blocktime?window=... — block-time variance time series.
 - GET /network/mempool?window=... — mempool size time series.
 - GET /network/emission?window=... — block reward / emission time series.
-- GET /price — Monero price (official spot plus a Haveno decentralized-exchange reference).
+- GET /price — centralized spot (CoinGecko, Kraken fallback) plus both sides of the Haveno XMR/USD book: best and amount-weighted average offer on each side, resting depth, offer counts and round_trip_cost_pct.
+- GET /price/spread?window=24h|7d|30d|90d|1y — the same both-sided premium over time, sampled every 10 minutes.
+- GET /haveno/book — the live Haveno XMR/USD order book, both sides, as price levels with cumulative depth, offer count, payment methods and a reversible flag, each priced against spot.
+- GET /haveno/methods?window=&currency= — executed Haveno trades grouped by payment method, with average, median and standard deviation of the premium.
+- GET /haveno/liquidity?window=&currency= — XMR resting in open Haveno offers, hourly, back to November 2024.
+- GET /haveno/trades?limit=&currency= — recent executed Haveno trades with payment method, price and premium.
+- GET /network/fees — current Monero fee tiers; /network/fees/history?window= for the time series.
 - GET /reorgs — detected chain reorganizations.
 - GET /reorgs/stats — reorg counts, depth and affected transactions over windows.
 - GET /orphans/recent?limit= — recent orphan blocks with their canonical counterpart.

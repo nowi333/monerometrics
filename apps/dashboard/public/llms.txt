@@ -1,8 +1,9 @@
 # monerometrics
 
 > A free, reorg-aware observatory of the Monero (XMR) network. It measures chain
-> reorganizations, orphan blocks, network hashrate, block time, mempool state and
-> mining-pool centralization, and serves everything through a public read-only API.
+> reorganizations, orphan blocks, network hashrate, block time, mempool state,
+> mining-pool centralization and the peer-to-peer market on Haveno, and serves
+> everything through a public read-only API.
 
 monerometrics runs its own Monero node, indexes every block as it arrives, and
 detects chain reorganizations by re-checking a rolling window of recent blocks
@@ -15,6 +16,13 @@ no known pool are reported as `unknown`.
 The interactive chain fork visualizer covers the whole chain: you can search any
 block height or block hash and jump straight to it, all the way down to the
 genesis block, with lazy loading so it stays fast.
+
+It also tracks the peer-to-peer market. Both sides of the Haveno XMR/USD order
+book are priced against centralized spot: the best offer and the amount-weighted
+average on each side, the live book as cumulative depth with the payment method
+behind each price level, and the round-trip cost of buying and selling back,
+which is far larger than the headline premium because the two sides are not
+symmetrical.
 
 No account, no API key, no rate-limit tiers, no tracking, no ads.
 
@@ -34,6 +42,13 @@ No account, no API key, no rate-limit tiers, no tracking, no ads.
 - [Fork window](https://api.monerometrics.net/chain/fork-window): canonical chain plus competing orphan blocks
 - [Pool distribution](https://api.monerometrics.net/pools/distribution): mining-pool shares, largest-pool share, Nakamoto coefficient
 - [Pool sources](https://api.monerometrics.net/pools/sources): reachability of each pool API used for attribution
+- [Price](https://api.monerometrics.net/price): centralized spot plus both sides of the Haveno book, with the round-trip cost
+- [Premium over time](https://api.monerometrics.net/price/spread): Haveno bids and asks against spot, sampled every 10 minutes
+- [Order book](https://api.monerometrics.net/haveno/book): the live Haveno XMR/USD book, price levels with cumulative depth, payment methods and a reversible flag
+- [Premium by payment method](https://api.monerometrics.net/haveno/methods): executed Haveno trades grouped by payment rail
+- [Resting liquidity](https://api.monerometrics.net/haveno/liquidity): XMR sitting in open Haveno offers, hourly
+- [Recent trades](https://api.monerometrics.net/haveno/trades): executed Haveno trades with payment method and premium
+- [Fee estimate](https://api.monerometrics.net/network/fees): current Monero fee tiers, with history at /network/fees/history
 
 ## For AI agents
 

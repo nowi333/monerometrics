@@ -65,7 +65,7 @@ function rgba(hex, a) {
 export default function TimeSeriesChart({
   title, infoText, color, windows, defaultWindow,
   fetcher, mapPoints, format, currentValue, fill = true, referenceY = null, yMax = null, emptyText = null,
-  extraSeries = null, seriesLabel = null, footer = null, bandFill = false, headlineExtra = null, subtitle = null,
+  extraSeries = null, seriesLabel = null, footer = null, bandFill = false, headlineExtra = null, subtitle = null, showLegend = null,
 }) {
   const { t } = useTranslation()
   const [window, setWindow] = useState(defaultWindow)
@@ -125,7 +125,7 @@ export default function TimeSeriesChart({
           <p className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>{subtitle}</p>
         )}
         {status === 'ok' && current != null && (
-          <p className="text-2xl font-medium mt-1" style={{ color }}>
+          <p className="text-2xl font-medium mt-1 flex flex-wrap items-baseline" style={{ color }}>
             <span ref={readoutRef}>{format(current)}</span>
             {headlineExtra ? headlineExtra(data) : null}
           </p>
@@ -233,7 +233,7 @@ export default function TimeSeriesChart({
       }
     },
     plugins: {
-      legend: { display: !!referenceY || !!extraSeries, labels: { color: '#8b9099', font: { size: 11 }, usePointStyle: true, pointStyle: 'line', boxWidth: 22, boxHeight: 2 } },
+      legend: { display: showLegend != null ? showLegend : (!!referenceY || !!extraSeries), labels: { color: '#8b9099', font: { size: 11 }, usePointStyle: true, pointStyle: 'line', boxWidth: 22, boxHeight: 2 } },
 
       crosshair: { format },
       tooltip: {
