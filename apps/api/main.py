@@ -698,16 +698,20 @@ def _reversible(method: str):
     return None
 
 
+_last_book = None
+
+
 @app.get('/haveno/book', response_model=OrderBookResponse)
 async def haveno_book():
     """The live Haveno order book for XMR/USD, both sides, priced against spot."""
+    global _last_book
     cached = _agg_cache_get('book', 30)
     if cached is not None:
         return cached
 
     official, _, _ = await _official_price()
     rows_by_side = {'asks': [], 'bids': []}
-    async with httpx.AsyncClient(timeout=8) as client:
+    async with httpx.AsyncClient(timeout=12) as client:
         try:
             r = await client.get('https://haveno.markets/api/v1/depth/XMR_USD',
                                  params={'network': 'reto', 'level': 2})
@@ -717,7 +721,13 @@ async def haveno_book():
                 rows_by_side[k] = [x for x in (d.get(k) or []) if x.get('price') and x.get('amount')]
         except Exception as e:
             log.warning(f'haveno book failed: {e}')
+            # Une coupure passagere en amont ne doit pas vider le panneau : on ressert
+            # le dernier carnet connu plutot qu'un carnet vide.
+            if _last_book is not None:
+                return _last_book
             return OrderBookResponse(pair='XMR_USD', official_usd=round(official, 2) if official else None)
+    if not rows_by_side['asks'] and not rows_by_side['bids'] and _last_book is not None:
+        return _last_book
 
     def build(rows, ascending):
         grouped = {}
@@ -771,6 +781,7 @@ async def haveno_book():
         round_trip_cost_pct=round((ask_avg / bid_avg - 1) * 100, 2) if ask_avg and bid_avg else None,
     )
     _agg_cache_set('book', result)
+    _last_book = result
     return result
 
 
