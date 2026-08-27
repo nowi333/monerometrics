@@ -519,6 +519,13 @@ and it is the number that survives contact with reality: 21.9% at the time of wr
 depth against 44.6 XMR of buy depth, with the buy side averaging −11.2%. Quoting only the sell-side
 premium understates the real cost of using this market by more than a factor of two.
 
+It is deliberately built from the **amount-weighted averages rather than the best offer on each
+side**, so read it as an upper bound. Pairing the two best offers would produce a flattering number
+that no serious size can actually obtain: the best offer in this book has been backed by as little as
+1.49 XMR, around 650 USD. A small trade that never leaves the first price level does better than
+`round_trip_cost_pct`; a trade that walks the book does not. `/haveno/book` is where you see at which
+level the price starts to degrade.
+
 `premium_pct` compares the **last traded price** to spot; that fill may be hours old in a thin book,
 so it can overstate the premium by ten points or more, and it is kept only for backward compatibility.
 
