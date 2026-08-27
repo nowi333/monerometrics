@@ -20,6 +20,7 @@ const ENDPOINTS = [
   { m: 'GET', p: '/haveno/methods', k: 'havenoMethods', q: 'window=30d|90d|180d|1y|all&currency=USD|EUR' },
   { m: 'GET', p: '/haveno/liquidity', k: 'havenoLiquidity', q: 'window=24h|7d|30d|90d|1y|all&currency=USD|EUR|AUD|GBP' },
   { m: 'GET', p: '/haveno/trades', k: 'havenoTrades', q: 'limit=1..1000&currency=USD|EUR|AUD|GBP' },
+  { m: 'GET', p: '/haveno/book', k: 'havenoBook', q: '' },
   { m: 'GET', p: '/chain/window', k: 'chainWindow', q: 'from=INT&to=INT' },
   { m: 'GET', p: '/chain/fork-window', k: 'chainForkWindow', q: 'limit=10..500' },
   { m: 'GET', p: '/reorgs', k: 'reorgs', q: 'limit=1..1000' },
@@ -195,6 +196,7 @@ export default function Documentation() {
         <p className="text-sm mb-3 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.price.p1')}</p>
         <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.price.p2')}</p>
         <p className="text-sm leading-relaxed mt-3" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.price.p3')}</p>
+        <p className="text-sm leading-relaxed mt-3" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.price.p4')}</p>
       </section>
 
       <section className="rounded-lg border p-5 sm:p-6" style={card}>

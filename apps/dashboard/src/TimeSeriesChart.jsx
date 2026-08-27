@@ -204,7 +204,7 @@ export default function TimeSeriesChart({
         borderDash: serie.dash || undefined,
         pointRadius: 0,
         pointHoverRadius: 4,
-        fill: bandFill ? '-1' : false,
+        fill: serie.fill !== undefined ? serie.fill : (bandFill ? '-1' : false),
         tension: 0,
       })
     }

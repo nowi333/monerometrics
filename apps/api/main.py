@@ -13,7 +13,7 @@ import httpx
 import json
 import os
 import re
-from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse
+from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
 
@@ -504,32 +504,41 @@ async def network_fees_history(window: str=Query('30d', regex='^(24h|7d|30d|90d|
     return response
 
 
+def _book_side(rows):
+    """Aggregate one side of a depth response.
+
+    The level-1 endpoint groups offers by price and carries the real count in
+    `offer_count`; counting rows would count price levels instead of offers.
+    """
+    rows = [x for x in (rows or []) if x.get('price') and x.get('amount')]
+    if not rows:
+        return None, None, None, None
+    total = sum(float(x['amount']) for x in rows)
+    wavg = sum(float(x['price']) * float(x['amount']) for x in rows) / total
+    offers = sum(int(x.get('offer_count') or 1) for x in rows)
+    prices = [float(x['price']) for x in rows]
+    return prices, round(wavg, 2), round(total, 4), offers
+
+
 async def _haveno_depth():
-    """Best and amount-weighted average sell offer, straight from the order book."""
+    """Both sides of the order book: best, amount-weighted average, depth, count."""
     async with httpx.AsyncClient(timeout=8) as client:
         try:
             r = await client.get('https://haveno.markets/api/v1/depth/XMR_USD',
                                  params={'network': 'reto'})
             r.raise_for_status()
             d = r.json()
-
-            def side(rows):
-                rows = [x for x in (rows or []) if x.get('price') and x.get('amount')]
-                if not rows:
-                    return None, None, None
-                total = sum(float(x['amount']) for x in rows)
-                wavg = sum(float(x['price']) * float(x['amount']) for x in rows) / total
-                prices = [float(x['price']) for x in rows]
-                return prices, round(wavg, 2), round(total, 4)
-
-            ask_prices, ask_avg, ask_amount = side(d.get('asks'))
-            bid_prices, _, _ = side(d.get('bids'))
+            ask_prices, ask_avg, ask_amount, ask_offers = _book_side(d.get('asks'))
+            bid_prices, bid_avg, bid_amount, bid_offers = _book_side(d.get('bids'))
             return {
                 'best_ask': min(ask_prices) if ask_prices else None,
                 'best_bid': max(bid_prices) if bid_prices else None,
                 'ask_avg': ask_avg,
                 'ask_amount': ask_amount,
-                'ask_offers': len(ask_prices) if ask_prices else None,
+                'ask_offers': ask_offers,
+                'bid_avg': bid_avg,
+                'bid_amount': bid_amount,
+                'bid_offers': bid_offers,
             }
         except Exception as e:
             log.warning(f'haveno depth failed: {e}')
@@ -551,15 +560,25 @@ async def price():
     if book.get('best_bid') is not None:
         bid = book['best_bid']
     ask_avg = book.get('ask_avg')
+    bid_avg = book.get('bid_avg')
     premium = None
     ask_premium = None
     ask_avg_premium = None
+    bid_premium = None
+    bid_avg_premium = None
+    round_trip = None
     if official and haveno:
         premium = round((haveno / official - 1) * 100, 1)
     if official and ask:
         ask_premium = round((ask / official - 1) * 100, 2)
     if official and ask_avg:
         ask_avg_premium = round((ask_avg / official - 1) * 100, 2)
+    if official and bid:
+        bid_premium = round((bid / official - 1) * 100, 2)
+    if official and bid_avg:
+        bid_avg_premium = round((bid_avg / official - 1) * 100, 2)
+    if ask_avg and bid_avg:
+        round_trip = round((ask_avg / bid_avg - 1) * 100, 2)
 
     result = PriceResponse(
         official_usd=round(official, 2) if official else None,
@@ -574,6 +593,12 @@ async def price():
         ask_avg_premium_pct=ask_avg_premium,
         haveno_ask_amount=book.get('ask_amount'),
         haveno_ask_offers=book.get('ask_offers'),
+        haveno_bid_avg=bid_avg,
+        bid_premium_pct=bid_premium,
+        bid_avg_premium_pct=bid_avg_premium,
+        haveno_bid_amount=book.get('bid_amount'),
+        haveno_bid_offers=book.get('bid_offers'),
+        round_trip_cost_pct=round_trip,
         premium_note='premium_pct compares the last Haveno fill to live spot and can be stale in a thin book. Use ask_premium_pct for the real cost of buying without KYC.',
     )
     _agg_cache_set('price', result)
@@ -594,7 +619,8 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
             rows = await conn.fetch(f"""
                 SELECT EXTRACT(EPOCH FROM observed_at)::bigint AS timestamp_unix,
                        official_usd, haveno_bid, haveno_ask, haveno_vol_24h,
-                       haveno_ask_avg, haveno_ask_amount, haveno_ask_offers
+                       haveno_ask_avg, haveno_ask_amount, haveno_ask_offers,
+                       haveno_bid_avg, haveno_bid_amount, haveno_bid_offers
                 FROM price_snapshots
                 WHERE observed_at >= NOW() - INTERVAL '{interval}'
                 ORDER BY observed_at
@@ -606,18 +632,31 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
         official = float(r['official_usd']) if r['official_usd'] is not None else None
         ask = float(r['haveno_ask']) if r['haveno_ask'] is not None else None
         ask_avg = float(r['haveno_ask_avg']) if r['haveno_ask_avg'] is not None else None
+        bid = float(r['haveno_bid']) if r['haveno_bid'] is not None else None
+        bid_avg = float(r['haveno_bid_avg']) if r['haveno_bid_avg'] is not None else None
         points.append(SpreadPoint(
             timestamp_unix=r['timestamp_unix'],
             official_usd=official,
-            haveno_bid=float(r['haveno_bid']) if r['haveno_bid'] is not None else None,
+            haveno_bid=bid,
             haveno_ask=ask,
             haveno_ask_avg=ask_avg,
+            haveno_bid_avg=bid_avg,
             ask_premium_pct=round((ask / official - 1) * 100, 2) if official and ask else None,
             ask_avg_premium_pct=round((ask_avg / official - 1) * 100, 2) if official and ask_avg else None,
+            bid_premium_pct=round((bid / official - 1) * 100, 2) if official and bid else None,
+            bid_avg_premium_pct=round((bid_avg / official - 1) * 100, 2) if official and bid_avg else None,
             ask_amount=float(r['haveno_ask_amount']) if r['haveno_ask_amount'] is not None else None,
             ask_offers=r['haveno_ask_offers'],
+            bid_amount=float(r['haveno_bid_amount']) if r['haveno_bid_amount'] is not None else None,
+            bid_offers=r['haveno_bid_offers'],
         ))
     prem = [p.ask_premium_pct for p in points if p.ask_premium_pct is not None]
+    bprem = [p.bid_premium_pct for p in points if p.bid_premium_pct is not None]
+    last_ask_avg = next((p.ask_avg_premium_pct for p in reversed(points) if p.ask_avg_premium_pct is not None), None)
+    last_bid_avg = next((p.bid_avg_premium_pct for p in reversed(points) if p.bid_avg_premium_pct is not None), None)
+    round_trip = None
+    if last_ask_avg is not None and last_bid_avg is not None:
+        round_trip = round((100 + last_ask_avg) / (100 + last_bid_avg) * 100 - 100, 2)
     max_points = 1500
     kept = points
     if len(kept) > max_points:
@@ -627,9 +666,15 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
         window=window,
         points=kept,
         current_ask_premium_pct=prem[-1] if prem else None,
-        current_ask_avg_premium_pct=next((p.ask_avg_premium_pct for p in reversed(points) if p.ask_avg_premium_pct is not None), None),
+        current_ask_avg_premium_pct=last_ask_avg,
         current_ask_amount=next((p.ask_amount for p in reversed(points) if p.ask_amount is not None), None),
         current_ask_offers=next((p.ask_offers for p in reversed(points) if p.ask_offers is not None), None),
+        current_bid_premium_pct=bprem[-1] if bprem else None,
+        current_bid_avg_premium_pct=last_bid_avg,
+        current_bid_amount=next((p.bid_amount for p in reversed(points) if p.bid_amount is not None), None),
+        current_bid_offers=next((p.bid_offers for p in reversed(points) if p.bid_offers is not None), None),
+        avg_bid_premium_pct=round(sum(bprem) / len(bprem), 2) if bprem else None,
+        current_round_trip_pct=round_trip,
         avg_ask_premium_pct=round(sum(prem) / len(prem), 2) if prem else None,
         haveno_vol_24h=float(rows[-1]['haveno_vol_24h']) if rows and rows[-1]['haveno_vol_24h'] is not None else None,
         samples=len(points),
@@ -651,6 +696,82 @@ def _reversible(method: str):
     if method in IRREVERSIBLE_METHODS:
         return False
     return None
+
+
+@app.get('/haveno/book', response_model=OrderBookResponse)
+async def haveno_book():
+    """The live Haveno order book for XMR/USD, both sides, priced against spot."""
+    cached = _agg_cache_get('book', 30)
+    if cached is not None:
+        return cached
+
+    official, _, _ = await _official_price()
+    rows_by_side = {'asks': [], 'bids': []}
+    async with httpx.AsyncClient(timeout=8) as client:
+        try:
+            r = await client.get('https://haveno.markets/api/v1/depth/XMR_USD',
+                                 params={'network': 'reto', 'level': 2})
+            r.raise_for_status()
+            d = r.json()
+            for k in rows_by_side:
+                rows_by_side[k] = [x for x in (d.get(k) or []) if x.get('price') and x.get('amount')]
+        except Exception as e:
+            log.warning(f'haveno book failed: {e}')
+            return OrderBookResponse(pair='XMR_USD', official_usd=round(official, 2) if official else None)
+
+    def build(rows, ascending):
+        grouped = {}
+        for x in rows:
+            price = round(float(x['price']), 2)
+            g = grouped.setdefault(price, {'amount': 0.0, 'offers': 0, 'methods': set()})
+            g['amount'] += float(x['amount'])
+            g['offers'] += 1
+            if x.get('payment_method'):
+                g['methods'].add(x['payment_method'])
+        levels = []
+        running = 0.0
+        for price in sorted(grouped, reverse=not ascending):
+            g = grouped[price]
+            running += g['amount']
+            methods = sorted(g['methods'])
+            flags = [_reversible(m) for m in methods]
+            levels.append(BookLevel(
+                price=price,
+                premium_pct=round((price / official - 1) * 100, 2) if official else None,
+                amount=round(g['amount'], 4),
+                cumulative=round(running, 4),
+                offers=g['offers'],
+                payment_methods=methods,
+                reversible=True if any(f is True for f in flags) else (False if flags and all(f is False for f in flags) else None),
+            ))
+        return levels
+
+    asks = build(rows_by_side['asks'], True)
+    bids = build(rows_by_side['bids'], False)
+
+    def wavg(levels):
+        total = sum(l.amount for l in levels)
+        if not total:
+            return None, None
+        return round(sum(l.price * l.amount for l in levels) / total, 2), round(total, 4)
+
+    ask_avg, ask_amount = wavg(asks)
+    bid_avg, bid_amount = wavg(bids)
+    result = OrderBookResponse(
+        pair='XMR_USD',
+        official_usd=round(official, 2) if official else None,
+        asks=asks,
+        bids=bids,
+        ask_amount=ask_amount,
+        bid_amount=bid_amount,
+        ask_offers=sum(l.offers for l in asks),
+        bid_offers=sum(l.offers for l in bids),
+        ask_avg_premium_pct=round((ask_avg / official - 1) * 100, 2) if official and ask_avg else None,
+        bid_avg_premium_pct=round((bid_avg / official - 1) * 100, 2) if official and bid_avg else None,
+        round_trip_cost_pct=round((ask_avg / bid_avg - 1) * 100, 2) if ask_avg and bid_avg else None,
+    )
+    _agg_cache_set('book', result)
+    return result
 
 
 @app.get('/haveno/methods', response_model=HavenoMethodsResponse)
