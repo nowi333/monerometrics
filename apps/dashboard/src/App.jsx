@@ -161,7 +161,7 @@ export default function App() {
 
       <Section label={t('section.market')} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4 items-start">
         <Guard><SpreadChart /></Guard>
         <Guard><HavenoLiquidity /></Guard>
       </div>
