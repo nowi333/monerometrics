@@ -11,6 +11,7 @@ Chart.register(LineElement, PointElement, LinearScale, Tooltip, Filler)
 const BID = '#38bdf8'
 const ASK = '#f59e0b'
 const pct = (v) => v == null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(2)}%`
+const age = (s) => s == null ? null : (s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h`)
 const xmr = (v) => v == null ? '—' : `${v.toFixed(2)} XMR`
 
 const spotLine = {
@@ -54,7 +55,16 @@ export default function OrderBookDepth() {
           <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
             {t('haveno.book.title')}<InfoTooltip text={t('info.havenoBook')} />
           </h3>
-          <p className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>{t('haveno.book.lead')}</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>
+            {t('haveno.book.lead')}{' '}
+            {data?.age_seconds != null && (
+              <span className="ml-2" style={{ color: data.stale ? 'var(--color-danger)' : 'var(--color-dim)' }}>
+                · {data.stale
+                    ? t('haveno.book.stale', { age: age(data.age_seconds) })
+                    : t('haveno.book.age', { age: age(data.age_seconds) })}
+              </span>
+            )}
+          </p>
         </div>
       </div>
       {inner}
