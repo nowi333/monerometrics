@@ -63,10 +63,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen p-3 sm:p-6 max-w-6xl mx-auto">
+    <div className="min-h-screen">
+      <div className="border-b" style={{ borderColor: 'var(--color-border)' }}>
       <header
-        className="mb-8 flex items-center justify-between pb-4 border-b gap-2 sm:gap-3"
-        style={{ borderColor: 'var(--color-border)' }}
+        className="flex items-center justify-between p-3 sm:p-6 pb-4 sm:pb-4 max-w-6xl mx-auto gap-2 sm:gap-3"
       >
         <Logo onClick={() => { window.location.href = '/' }} />
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -108,7 +108,9 @@ export default function App() {
           <ThemeToggle />
         </div>
       </header>
+      </div>
 
+      <div className="p-3 sm:p-6 pt-8 max-w-6xl mx-auto">
       {view === 'docs' ? (
         <Suspense fallback={
           <div className="text-sm py-12 text-center" style={{ color: 'var(--color-dim)' }}>
@@ -262,6 +264,7 @@ export default function App() {
           </a>
         </div>
       </footer>
+      </div>
     </div>
   )
 }

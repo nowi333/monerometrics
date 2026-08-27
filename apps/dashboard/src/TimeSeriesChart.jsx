@@ -279,7 +279,7 @@ export default function TimeSeriesChart({
         )}
       </div>
       {footer ? (
-        <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-xs font-mono" style={{ color: 'var(--color-dim)' }}>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-5 gap-y-1 mt-3 text-xs font-mono" style={{ color: 'var(--color-dim)' }}>
           {footer(data)}
         </div>
       ) : stats && (
