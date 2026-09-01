@@ -10,7 +10,7 @@ const toUnix = (s) => (s ? Math.floor(Date.parse(s) / 1000) || null : null)
 export default function OrphansTable() {
   const { t } = useTranslation()
   const [selected, setSelected] = useState(null)
-  const { data, status, updatedAt } = usePolledData(() => api.orphansRecent(20), d => Array.isArray(d && d.orphans), [])
+  const { data, status } = usePolledData(() => api.orphansRecent(20), d => Array.isArray(d && d.orphans), [])
 
   const openOrphan = (o) => setSelected({
     block: {
@@ -32,7 +32,7 @@ export default function OrphansTable() {
   const viewOnChain = (o) => window.dispatchEvent(new CustomEvent('mm:focus-block', { detail: { height: o.height } }))
 
   const wrap = (inner) => (
-    <Panel title={t('orphans.title')} info={t('info.orphans')} updatedAt={updatedAt}
+    <Panel title={t('orphans.title')} info={t('info.orphans')}
       status={status} stateVariant="table" stateHeight={140}>{inner}</Panel>
   )
 

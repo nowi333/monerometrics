@@ -14,7 +14,7 @@ export default function PoolsDistribution() {
   const { t } = useTranslation()
   const [window, setWindow] = useState('24h')
 
-  const { data, status, updatedAt } = usePolledData(
+  const { data, status } = usePolledData(
     () => api.poolsDistribution(window),
     d => d && d.distribution && d.distribution.length > 0,
     [window],
@@ -25,7 +25,6 @@ export default function PoolsDistribution() {
       title={t('toppools.title')}
       info={t('info.pools')}
       subtitle={status === 'ok' ? t('toppools.total', { count: data.total_blocks }) : null}
-      updatedAt={updatedAt}
       status={status}
       stateVariant="chart"
       stateHeight={220}
