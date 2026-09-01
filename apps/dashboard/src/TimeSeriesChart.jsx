@@ -7,6 +7,7 @@ import {
 import zoomPlugin from 'chartjs-plugin-zoom'
 import InfoTooltip from './InfoTooltip'
 import PanelState from './PanelState'
+import { Updated } from './Panel'
 import { usePolledData } from './usePolledData'
 
 Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler, zoomPlugin)
@@ -76,7 +77,7 @@ export default function TimeSeriesChart({
   const chartRef = useRef(null)
   const readoutRef = useRef(null)
 
-  const { data, status } = usePolledData(
+  const { data, status, updatedAt } = usePolledData(
     () => fetcher(window),
     d => d && mapPoints(d, window).length > 0,
     [window],
@@ -133,6 +134,7 @@ export default function TimeSeriesChart({
         )}
       </div>
       <div className="flex items-center gap-1.5">
+        {updatedAt != null && <span className="mr-1.5"><Updated at={updatedAt} /></span>}
         <button onClick={zoomOut} className="p-1.5 rounded border" title={t('charts.zoomOut')}
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>

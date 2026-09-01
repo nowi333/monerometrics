@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from './api'
-import InfoTooltip from './InfoTooltip'
-import PanelState from './PanelState'
+import Panel from './Panel'
 import { usePolledData } from './usePolledData'
 
 const WINDOWS = ['90d', '180d', '1y', 'all']
@@ -11,41 +10,35 @@ export default function HavenoMethods() {
   const { t } = useTranslation()
   const [window, setWindow] = useState('180d')
 
-  const { data, status } = usePolledData(
+  const { data, status, updatedAt } = usePolledData(
     () => api.havenoMethods(window),
     d => d && d.methods && d.methods.length > 0,
     [window],
     300000,
   )
 
-  const header = (
-    <div className="flex justify-between items-start mb-4 gap-3">
-      <div>
-        <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
-          {t('haveno.methods.title')}<InfoTooltip text={t('info.havenoMethods')} />
-        </h3>
-        <p className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>
-          {status === 'ok'
-            ? t('haveno.methods.subtitle', { count: data.trades_total, source: data.spot_source || '—' })
-            : t('haveno.methods.lead')}
-        </p>
-      </div>
-      <select value={window} onChange={e => setWindow(e.target.value)}
-        className="bg-transparent border rounded px-3 py-1 text-sm shrink-0"
-        style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
-        {WINDOWS.map(w => <option key={w} value={w}>{w}</option>)}
-      </select>
-    </div>
-  )
-
   const wrap = (inner) => (
-    <div className="rounded-lg border p-4 sm:p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
-      {header}
-      {inner}
-    </div>
+    <Panel
+      title={t('haveno.methods.title')}
+      info={t('info.havenoMethods')}
+      subtitle={status === 'ok'
+        ? t('haveno.methods.subtitle', { count: data.trades_total, source: data.spot_source || '—' })
+        : t('haveno.methods.lead')}
+      updatedAt={updatedAt}
+      status={status}
+      emptyText={t('haveno.methods.empty')}
+      stateHeight={200}
+      control={
+        <select value={window} onChange={e => setWindow(e.target.value)}
+          className="bg-transparent border rounded px-3 py-1 text-sm shrink-0"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
+          {WINDOWS.map(w => <option key={w} value={w}>{w}</option>)}
+        </select>
+      }
+    >{inner}</Panel>
   )
 
-  if (status !== 'ok') return wrap(<PanelState status={status} height={200} emptyText={t('haveno.methods.empty')} />)
+  if (status !== 'ok') return wrap(null)
 
   const span = Math.max(...data.methods.map(m => Math.abs(m.avg_premium_pct ?? 0)), 1)
 

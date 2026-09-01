@@ -1,37 +1,25 @@
 import { useTranslation } from 'react-i18next'
 import { api } from './api'
-import InfoTooltip from './InfoTooltip'
-import PanelState from './PanelState'
+import Panel from './Panel'
 import { usePolledData } from './usePolledData'
 
 const TIER_COLOR = { slow: 'var(--color-success)', normal: 'var(--color-info)', fast: 'var(--color-warn)', fastest: 'var(--color-danger)' }
 
 export default function FeeEstimator() {
   const { t } = useTranslation()
-  const { data, status } = usePolledData(
+  const { data, status, updatedAt } = usePolledData(
     () => api.networkFees(),
     d => d && d.tiers && d.tiers.length > 0,
     [],
     60000,
   )
 
-  const header = (
-    <div className="mb-4">
-      <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
-        {t('fees.title')}<InfoTooltip text={t('info.fees')} />
-      </h3>
-      <p className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>{t('fees.subtitle')}</p>
-    </div>
-  )
-
   const wrap = (inner) => (
-    <div className="rounded-lg border p-4 sm:p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
-      {header}
-      {inner}
-    </div>
+    <Panel title={t('fees.title')} info={t('info.fees')} subtitle={t('fees.subtitle')}
+      updatedAt={updatedAt} status={status} stateHeight={160}>{inner}</Panel>
   )
 
-  if (status !== 'ok') return wrap(<PanelState status={status} height={160} />)
+  if (status !== 'ok') return wrap(null)
 
   const usd = (n) => n != null ? `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
 

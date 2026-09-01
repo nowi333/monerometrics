@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from './api'
 import BlockDetailModal from './BlockDetailModal'
-import InfoTooltip from './InfoTooltip'
-import PanelState from './PanelState'
+import Panel from './Panel'
 import { usePolledData } from './usePolledData'
 
 const toUnix = (s) => (s ? Math.floor(Date.parse(s) / 1000) || null : null)
@@ -11,7 +10,7 @@ const toUnix = (s) => (s ? Math.floor(Date.parse(s) / 1000) || null : null)
 export default function OrphansTable() {
   const { t } = useTranslation()
   const [selected, setSelected] = useState(null)
-  const { data, status } = usePolledData(() => api.orphansRecent(20), d => Array.isArray(d && d.orphans), [])
+  const { data, status, updatedAt } = usePolledData(() => api.orphansRecent(20), d => Array.isArray(d && d.orphans), [])
 
   const openOrphan = (o) => setSelected({
     block: {
@@ -32,20 +31,17 @@ export default function OrphansTable() {
   })
   const viewOnChain = (o) => window.dispatchEvent(new CustomEvent('mm:focus-block', { detail: { height: o.height } }))
 
-  if (status !== 'ok') {
-    return (
-      <div className="bg-[color:var(--color-card)] border border-[color:var(--color-border)] rounded-lg p-6">
-        <h3 className="text-base font-medium mb-4 flex items-center gap-2">{t('orphans.title')}<InfoTooltip text={t('info.orphans')} /></h3>
-        <PanelState status={status} variant="table" height={140} />
-      </div>
-    )
-  }
+  const wrap = (inner) => (
+    <Panel title={t('orphans.title')} info={t('info.orphans')} updatedAt={updatedAt}
+      status={status} stateVariant="table" stateHeight={140}>{inner}</Panel>
+  )
+
+  if (status !== 'ok') return wrap(null)
 
   const orphans = data.orphans
 
-  return (
-    <div className="bg-[color:var(--color-card)] border border-[color:var(--color-border)] rounded-lg p-6">
-      <h3 className="text-base font-medium mb-4 flex items-center gap-2">{t('orphans.title')}<InfoTooltip text={t('info.orphans')} /></h3>
+  return wrap(
+    <>
       {orphans.length === 0 ? (
         <div className="text-center text-[color:var(--color-dim)] py-8">
           {t('state.noOrphans')}
@@ -116,6 +112,6 @@ export default function OrphansTable() {
         </div>
       )}
       <BlockDetailModal selected={selected} onClose={() => setSelected(null)} />
-    </div>
+    </>
   )
 }

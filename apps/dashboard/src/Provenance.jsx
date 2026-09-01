@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from './api'
-import InfoTooltip from './InfoTooltip'
-import PanelState from './PanelState'
+import Panel from './Panel'
 import { usePolledData } from './usePolledData'
 
 const COLORS = {
@@ -17,32 +16,32 @@ export default function Provenance() {
   const { t } = useTranslation()
   const [window, setWindow] = useState('24h')
 
-  const { data, status } = usePolledData(
+  const { data, status, updatedAt } = usePolledData(
     () => api.chainProvenance(window),
     d => d && d.total_blocks > 0,
     [window],
   )
 
   const wrap = (inner) => (
-    <div className="rounded-lg border p-5 sm:p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
-      <div className="flex justify-between items-start mb-4 gap-2 flex-wrap">
-        <div>
-          <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
-            {t('prov.title')}<InfoTooltip text={t('prov.info')} />
-          </h3>
-          <p className="text-xs mt-1" style={{ color: 'var(--color-dim)', maxWidth: '62ch' }}>{t('prov.subtitle')}</p>
-        </div>
+    <Panel
+      title={t('prov.title')}
+      info={t('prov.info')}
+      subtitle={<span style={{ display: 'inline-block', maxWidth: '62ch' }}>{t('prov.subtitle')}</span>}
+      updatedAt={updatedAt}
+      status={status}
+      stateVariant="chart"
+      stateHeight={140}
+      control={
         <select value={window} onChange={e => setWindow(e.target.value)}
           className="bg-transparent border rounded px-3 py-1.5 text-sm cursor-pointer"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
           {['1h', '6h', '24h', '48h', '7d'].map(w => <option key={w} value={w}>{w}</option>)}
         </select>
-      </div>
-      {inner}
-    </div>
+      }
+    >{inner}</Panel>
   )
 
-  if (status !== 'ok') return wrap(<PanelState status={status} variant="chart" height={140} />)
+  if (status !== 'ok') return wrap(null)
 
   const shown = data.breakdown.filter(b => b.block_count > 0)
 

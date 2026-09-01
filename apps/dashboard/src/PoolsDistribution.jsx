@@ -4,7 +4,7 @@ import { Doughnut } from 'react-chartjs-2'
 import { Chart, ArcElement, Tooltip } from 'chart.js'
 import { api } from './api'
 import InfoTooltip from './InfoTooltip'
-import PanelState from './PanelState'
+import Panel from './Panel'
 import { usePolledData } from './usePolledData'
 import { poolColor } from './poolColors'
 
@@ -14,44 +14,32 @@ export default function PoolsDistribution() {
   const { t } = useTranslation()
   const [window, setWindow] = useState('24h')
 
-  const { data, status } = usePolledData(
+  const { data, status, updatedAt } = usePolledData(
     () => api.poolsDistribution(window),
     d => d && d.distribution && d.distribution.length > 0,
     [window],
   )
 
-  const header = (
-    <div className="flex justify-between items-center mb-4">
-      <div>
-        <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>{t('toppools.title')}<InfoTooltip text={t('info.pools')} /></h3>
-        {status === 'ok' && (
-          <p className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>
-            {t('toppools.total', { count: data.total_blocks })}
-          </p>
-        )}
-      </div>
-      <select value={window} onChange={e => setWindow(e.target.value)}
-        className="bg-transparent border rounded px-3 py-1 text-sm"
-        style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
-        <option value="1h">1h</option>
-        <option value="6h">6h</option>
-        <option value="24h">24h</option>
-        <option value="48h">48h</option>
-        <option value="7d">7d</option>
-      </select>
-    </div>
-  )
-
   const wrap = (inner) => (
-    <div className="rounded-lg border p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
-      {header}
-      {inner}
-    </div>
+    <Panel
+      title={t('toppools.title')}
+      info={t('info.pools')}
+      subtitle={status === 'ok' ? t('toppools.total', { count: data.total_blocks }) : null}
+      updatedAt={updatedAt}
+      status={status}
+      stateVariant="chart"
+      stateHeight={220}
+      control={
+        <select value={window} onChange={e => setWindow(e.target.value)}
+          className="bg-transparent border rounded px-3 py-1 text-sm"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
+          {['1h', '6h', '24h', '48h', '7d'].map(w => <option key={w} value={w}>{w}</option>)}
+        </select>
+      }
+    >{inner}</Panel>
   )
 
-  if (status !== 'ok') {
-    return wrap(<PanelState status={status} variant="chart" height={220} />)
-  }
+  if (status !== 'ok') return wrap(null)
 
   const chartData = {
     labels: data.distribution.map(p => p.pool),
