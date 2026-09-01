@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { makeDateFmt } from './chartDate'
 import { api } from './api'
 import TimeSeriesChart from './TimeSeriesChart'
+import ContextStrip from './ContextStrip'
 
 
 export default function MempoolChart() {
@@ -25,6 +26,7 @@ export default function MempoolChart() {
       mapPoints={(d, w) => d.points.map(p => ({ y: p.tx_count, label: fmtLabel(p.bucket, w), full: fmtFull(p.bucket) }))}
       format={(v) => `${Math.round(v)} ${t('kpi.txs')}`}
       currentValue={(d) => d.current}
+      context={(d) => <ContextStrip stats={d.stats} format={(v) => `${Math.round(v)} tx`} />}
     />
   )
 }

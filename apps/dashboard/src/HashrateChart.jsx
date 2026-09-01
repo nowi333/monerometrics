@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { makeDateFmt } from './chartDate'
 import { api, formatHashrate } from './api'
 import TimeSeriesChart from './TimeSeriesChart'
+import ContextStrip from './ContextStrip'
 
 
 export default function HashrateChart() {
@@ -24,6 +25,7 @@ export default function HashrateChart() {
       fetcher={(w) => api.networkHashrate(w)}
       mapPoints={(d, w) => d.points.map(p => ({ y: p.hashrate_h_s, label: fmtLabel(p.bucket, w), full: fmtFull(p.bucket) }))}
       format={formatHashrate}
+      context={(d) => <ContextStrip stats={d.stats} format={formatHashrate} />}
     />
   )
 }
