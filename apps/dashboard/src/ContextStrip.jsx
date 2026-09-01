@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import InfoTooltip from './InfoTooltip'
 
 const ORD = { en: (n) => `${n}th`, fr: (n) => `${n}e`, es: (n) => `${n}º` }
 
@@ -14,10 +15,12 @@ function band(pct) {
   return null
 }
 
-function Cell({ label, value, sub, color }) {
+function Cell({ label, value, sub, color, info }) {
   return (
     <div className="px-3 py-2.5" style={{ background: 'var(--color-card)' }}>
-      <div className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--color-dim)' }}>{label}</div>
+      <div className="text-[9px] uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'var(--color-dim)' }}>
+        {label}{info ? <InfoTooltip text={info} size={12} /> : null}
+      </div>
       <div className="font-mono text-[15px] font-semibold mt-1 flex items-center gap-1.5 flex-wrap"
         style={{ color: color || 'var(--color-text)' }}>{value}</div>
       <div className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--color-dim)' }}>{sub}</div>
@@ -51,6 +54,7 @@ export default function ContextStrip({ stats, format = (v) => v, signed = null }
         background: 'var(--color-border)', borderColor: 'var(--color-border)' }}>
       <Cell
         label={t('ctx.percentile')}
+        info={t('ctx.percentileInfo')}
         value={<>
           {ordinal(stats.percentile, i18n.language)}
           {b && <span className="text-[8.5px] font-medium px-1.5 py-0.5 rounded"
@@ -62,15 +66,15 @@ export default function ContextStrip({ stats, format = (v) => v, signed = null }
         color={b ? b.color : null}
       />
       {stats.z_robust != null && (
-        <Cell label={t('ctx.deviation')} value={`${stats.z_robust > 0 ? '+' : ''}${stats.z_robust.toFixed(1)}σ`}
+        <Cell label={t('ctx.deviation')} info={t('ctx.deviationInfo')} value={`${stats.z_robust > 0 ? '+' : ''}${stats.z_robust.toFixed(1)}σ`}
           sub={t('ctx.deviationSub', { median: format(stats.median) })} />
       )}
       {stats.change_pct != null && (
-        <Cell label={span ? t('ctx.changeOver', { span }) : t('ctx.change')} value={sig(stats.change_pct)}
+        <Cell label={span ? t('ctx.changeOver', { span }) : t('ctx.change')} info={t('ctx.changeInfo')} value={sig(stats.change_pct)}
           sub={t('ctx.changeSub', { from: format(stats.current / (1 + stats.change_pct / 100)) })}
           color={stats.change_pct >= 0 ? 'var(--color-success)' : 'var(--color-danger)'} />
       )}
-      <Cell label={t('ctx.range')} value={format(stats.maximum)}
+      <Cell label={t('ctx.range')} info={t('ctx.rangeInfo')} value={format(stats.maximum)}
         sub={t('ctx.rangeSub', { min: format(stats.minimum) })} />
     </div>
   )
