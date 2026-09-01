@@ -67,7 +67,7 @@ export default function TimeSeriesChart({
   title, infoText, color, windows, defaultWindow,
   fetcher, mapPoints, format, currentValue, fill = true, referenceY = null, yMax = null, emptyText = null,
   extraSeries = null, seriesLabel = null, footer = null, bandFill = false, headlineExtra = null, subtitle = null, showLegend = null,
-  headlineClass = 'text-2xl',
+  headlineClass = 'text-2xl', context = null,
 }) {
   const { t } = useTranslation()
   const [window, setWindow] = useState(defaultWindow)
@@ -280,6 +280,7 @@ export default function TimeSeriesChart({
           </div>
         )}
       </div>
+      {context ? context(data) : null}
       {footer ? (
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-5 gap-y-1 mt-3 text-xs font-mono" style={{ color: 'var(--color-dim)' }}>
           {footer(data)}

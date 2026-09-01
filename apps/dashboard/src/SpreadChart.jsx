@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { makeDateFmt } from './chartDate'
 import { api } from './api'
 import TimeSeriesChart from './TimeSeriesChart'
+import ContextStrip from './ContextStrip'
 
 const MIN_POINTS = 12
 const HOUR = 3600
@@ -96,6 +97,7 @@ export default function SpreadChart() {
         )
       }}
       emptyText={t('charts.spreadCollecting')}
+      context={(d) => <ContextStrip stats={d.stats} format={(v) => pct(v)} />}
       footer={(d) => (
         <>
           <span>

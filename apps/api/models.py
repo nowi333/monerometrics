@@ -83,6 +83,30 @@ class PoolSource(BaseModel):
 class PoolSourcesResponse(BaseModel):
     sources: list[PoolSource]
 
+class SeriesStats(BaseModel):
+    """Where the latest value sits inside the window being displayed.
+
+    A number on its own cannot be read: 161 XMR of resting liquidity is neither
+    good nor bad until you know that four fifths of the year sat higher. Every
+    field here is computed over the same window the caller asked for, so a wider
+    window means a longer baseline and never a hidden one.
+
+    `z_robust` uses the median absolute deviation rather than the standard
+    deviation. These series carry occasional spikes an order of magnitude above
+    the median, and a classical standard deviation would be inflated by them to
+    the point of calling everything normal.
+    """
+    samples: int
+    span_days: Optional[float] = None
+    current: Optional[float] = None
+    percentile: Optional[int] = None
+    median: Optional[float] = None
+    z_robust: Optional[float] = None
+    minimum: Optional[float] = None
+    maximum: Optional[float] = None
+    change_pct: Optional[float] = None
+
+
 class MempoolPoint(BaseModel):
     bucket: datetime
     tx_count: int
@@ -92,6 +116,7 @@ class MempoolResponse(BaseModel):
     bucket_size: str
     current: int
     points: list[MempoolPoint]
+    stats: Optional[SeriesStats] = None
 
 class EmissionPoint(BaseModel):
     bucket: datetime
@@ -136,6 +161,7 @@ class HashrateResponse(BaseModel):
     window: str
     bucket_size: str
     points: list[HashratePoint]
+    stats: Optional[SeriesStats] = None
 
 class BlocktimePoint(BaseModel):
     height: int
@@ -284,6 +310,7 @@ class SpreadResponse(BaseModel):
     current_bid_offers: Optional[int] = None
     avg_bid_premium_pct: Optional[float] = None
     current_round_trip_pct: Optional[float] = None
+    stats: Optional[SeriesStats] = None
     samples: int = 0
 
 class ExternalUsageResponse(BaseModel):
@@ -327,6 +354,7 @@ class HavenoLiquidityResponse(BaseModel):
     points: List[HavenoLiquidityPoint] = []
     current_liquidity: Optional[float] = None
     current_offers: Optional[int] = None
+    stats: Optional[SeriesStats] = None
     samples: int = 0
 
 

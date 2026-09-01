@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { makeDateFmt } from './chartDate'
 import { api } from './api'
 import TimeSeriesChart from './TimeSeriesChart'
+import ContextStrip from './ContextStrip'
 
 
 export default function HavenoLiquidity() {
@@ -26,6 +27,7 @@ export default function HavenoLiquidity() {
         .map(p => ({ y: p.max_liquidity, label: fmtLabel(p.timestamp_unix, w), full: fmtFull(p.timestamp_unix) }))}
       format={(v) => `${Math.round(v)} XMR`}
       currentValue={(d) => d.current_liquidity}
+      context={(d) => <ContextStrip stats={d.stats} format={(v) => `${Math.round(v)} XMR`} />}
     />
   )
 }

@@ -2,6 +2,7 @@ import logging
 import sys
 from contextlib import asynccontextmanager
 import time
+import statistics
 from collections import defaultdict, deque
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +14,7 @@ import httpx
 import json
 import os
 import re
-from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse
+from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse, SeriesStats
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
 
@@ -504,6 +505,38 @@ async def network_fees_history(window: str=Query('30d', regex='^(24h|7d|30d|90d|
     return response
 
 
+def _series_stats(values, timestamps=None, min_samples=24):
+    """Situate the latest value inside the series it belongs to.
+
+    Returns None below `min_samples`: a percentile over a handful of points
+    would look authoritative while meaning nothing, and a panel showing no
+    context is honest where one showing false context is not.
+    """
+    vals = [float(v) for v in values if v is not None]
+    if len(vals) < min_samples:
+        return None
+    current = vals[-1]
+    ordered = sorted(vals)
+    med = statistics.median(ordered)
+    mad = statistics.median([abs(v - med) for v in vals])
+    span = None
+    if timestamps and len(timestamps) > 1:
+        span = round((timestamps[-1] - timestamps[0]) / 86400, 2)
+    first = vals[0]
+    return SeriesStats(
+        samples=len(vals),
+        span_days=span,
+        current=round(current, 4),
+        percentile=round(sum(1 for v in ordered if v < current) / len(ordered) * 100),
+        median=round(med, 4),
+        # 1.4826 met l'ecart absolu median a l'echelle d'un ecart-type gaussien
+        z_robust=round((current - med) / (1.4826 * mad), 2) if mad else None,
+        minimum=round(ordered[0], 4),
+        maximum=round(ordered[-1], 4),
+        change_pct=round((current / first - 1) * 100, 2) if first else None,
+    )
+
+
 def _book_side(rows):
     """Aggregate one side of a depth response.
 
@@ -676,6 +709,12 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
         avg_bid_premium_pct=round(sum(bprem) / len(bprem), 2) if bprem else None,
         current_round_trip_pct=round_trip,
         avg_ask_premium_pct=round(sum(prem) / len(prem), 2) if prem else None,
+        stats=_series_stats(
+            [(100 + p.ask_avg_premium_pct) / (100 + p.bid_avg_premium_pct) * 100 - 100
+             for p in points
+             if p.ask_avg_premium_pct is not None and p.bid_avg_premium_pct is not None],
+            [p.timestamp_unix for p in points
+             if p.ask_avg_premium_pct is not None and p.bid_avg_premium_pct is not None]),
         haveno_vol_24h=float(rows[-1]['haveno_vol_24h']) if rows and rows[-1]['haveno_vol_24h'] is not None else None,
         samples=len(points),
     )
@@ -881,6 +920,8 @@ async def haveno_liquidity(window: str=Query('90d', regex='^(24h|7d|30d|90d|1y|a
         window=window, currency=currency, points=kept,
         current_liquidity=points[-1].max_liquidity if points else None,
         current_offers=points[-1].max_offers if points else None,
+        stats=_series_stats([p.max_liquidity for p in points],
+                            [p.timestamp_unix for p in points]),
         samples=total)
     _agg_cache_set(f'hvliq:{window}:{currency}', response)
     return response
@@ -1021,7 +1062,10 @@ async def network_hashrate(window: str=Query('30d', regex=WINDOW_REGEX)):
     async with pool.acquire() as conn:
         rows = await conn.fetch(f"\n            SELECT date_trunc('{grain}', timestamp_human) AS bucket,\n                   (AVG(difficulty) / 120)::bigint AS hashrate_h_s\n            FROM blocks\n            WHERE is_canonical = true\n              AND timestamp_unix > 0\n              AND timestamp_human >= NOW() - INTERVAL '{interval}'\n            GROUP BY bucket\n            ORDER BY bucket\n            ")
     points = [HashratePoint(bucket=r['bucket'], hashrate_h_s=r['hashrate_h_s'] or 0) for r in rows]
-    response = HashrateResponse(window=window, bucket_size=bucket_size, points=points)
+    response = HashrateResponse(
+        window=window, bucket_size=bucket_size, points=points,
+        stats=_series_stats([p.hashrate_h_s for p in points],
+                            [int(p.bucket.timestamp()) for p in points]))
     _agg_cache_set(f'hashrate:{window}', response)
     return response
 
@@ -1061,7 +1105,10 @@ async def network_mempool(window: str=Query('24h', regex=WINDOW_REGEX)):
         rows = await conn.fetch(f"\n            SELECT date_trunc('{grain}', observed_at) AS bucket,\n                   AVG(tx_count)::int AS tx_count\n            FROM mempool_snapshots\n            WHERE observed_at >= NOW() - INTERVAL '{interval}'\n            GROUP BY bucket\n            ORDER BY bucket\n            ")
         current = await conn.fetchval('SELECT tx_count FROM mempool_snapshots ORDER BY observed_at DESC LIMIT 1')
     points = [MempoolPoint(bucket=r['bucket'], tx_count=r['tx_count'] or 0) for r in rows]
-    response = MempoolResponse(window=window, bucket_size=f'1 {grain}', current=current or 0, points=points)
+    response = MempoolResponse(
+        window=window, bucket_size=f'1 {grain}', current=current or 0, points=points,
+        stats=_series_stats([p.tx_count for p in points],
+                            [int(p.bucket.timestamp()) for p in points]))
     _agg_cache_set(f'mempool:{window}', response)
     return response
 
