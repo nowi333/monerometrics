@@ -37,6 +37,7 @@ export default function Documentation() {
   const { t } = useTranslation()
   const card = { background: 'var(--color-card)', borderColor: 'var(--color-border)' }
   const [copied, setCopied] = useState(false)
+  const [copiedMail, setCopiedMail] = useState(false)
 
 
   const [sources, setSources] = useState(null)
@@ -73,6 +74,14 @@ export default function Documentation() {
       await navigator.clipboard.writeText('https://api.monerometrics.net/mcp')
       setMcpCopied(true)
       setTimeout(() => setMcpCopied(false), 2000)
+    } catch { }
+  }
+
+  const copyMail = async () => {
+    try {
+      await navigator.clipboard.writeText(CONTACT_EMAIL)
+      setCopiedMail(true)
+      setTimeout(() => setCopiedMail(false), 2000)
     } catch { }
   }
 
@@ -226,7 +235,7 @@ export default function Documentation() {
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>{e.m}</span>
                 <code className="text-sm font-mono break-all" style={{ color: 'var(--color-text)' }}>{e.p}</code>
-                {e.q && <code className="text-xs font-mono" style={{ color: 'var(--color-dim)' }}>?{e.q}</code>}
+                {e.q && <code className="text-xs font-mono break-all min-w-0" style={{ color: 'var(--color-dim)' }}>?{e.q}</code>}
               </div>
               <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.ep.' + e.k)}</p>
             </div>
@@ -300,14 +309,34 @@ export default function Documentation() {
           <h2 className="text-lg font-medium mb-1" style={{ color: 'var(--color-text)' }}>{t('doc.contact.title')}</h2>
           <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)', maxWidth: '52ch' }}>{t('doc.contact.text')}</p>
         </div>
-        <a
-          href={`mailto:${CONTACT_EMAIL}`}
-          className="shrink-0 inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-mono transition-colors hover:brightness-110"
-          style={{ borderColor: 'var(--color-border-strong)', color: 'var(--color-text)', background: 'var(--color-bg)' }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="shrink-0" style={{ color: 'var(--color-accent)' }}><path d={ICON_MAIL} /></svg>
-          {CONTACT_EMAIL}
-        </a>
+        <div className="shrink-0 flex items-stretch gap-2">
+          <a
+            href={`mailto:${CONTACT_EMAIL}`}
+            className="inline-flex items-center gap-2 rounded-lg border px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-mono transition-colors hover:brightness-110"
+            style={{ borderColor: 'var(--color-border-strong)', color: 'var(--color-text)', background: 'var(--color-bg)' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="shrink-0" style={{ color: 'var(--color-accent)' }}><path d={ICON_MAIL} /></svg>
+            {CONTACT_EMAIL}
+          </a>
+          <button
+            onClick={copyMail}
+            title={copiedMail ? t('doc.tor.copied') : t('doc.tor.copy')}
+            aria-label={copiedMail ? t('doc.tor.copied') : t('doc.tor.copy')}
+            className="shrink-0 inline-flex items-center justify-center w-11 rounded-lg border transition-colors hover:brightness-110"
+            style={{ borderColor: 'var(--color-border-strong)', background: 'var(--color-bg)', color: copiedMail ? 'var(--color-success)' : 'var(--color-dim)' }}
+          >
+            {copiedMail ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="11" height="11" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            )}
+          </button>
+        </div>
       </section>
 
       <section
