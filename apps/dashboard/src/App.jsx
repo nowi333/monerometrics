@@ -181,10 +181,12 @@ export default function App() {
 
       <Guard><Donation /></Guard>
       </>}
+      </div>
 
+      <div className="mt-8 border-t-2" style={{ borderColor: 'var(--color-border-strong)' }}>
       <footer
-        className="mt-8 pt-4 border-t text-center text-xs"
-        style={{ borderColor: 'var(--color-border)', color: 'var(--color-dim)' }}
+        className="pt-6 px-3 sm:px-6 pb-3 max-w-6xl mx-auto text-center text-xs"
+        style={{ color: 'var(--color-dim)' }}
       >
         <div className="flex items-center justify-center gap-4 mb-3">
           {[
