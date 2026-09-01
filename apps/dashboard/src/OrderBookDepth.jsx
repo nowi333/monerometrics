@@ -70,11 +70,31 @@ export default function OrderBookDepth() {
 
   if (status !== 'ok') return wrap(null)
 
-  const toXY = (levels) => levels
-    .filter(l => l.premium_pct != null)
-    .map(l => ({ x: l.premium_pct, y: l.cumulative }))
-  const bids = toXY(data.bids).sort((a, b) => a.x - b.x)
-  const asks = toXY(data.asks).sort((a, b) => a.x - b.x)
+  // La marche est tracee point par point plutot que confiee a `stepped`, dont la
+  // convention se prete a l'erreur : dessiner la mauvaise moitie de chaque marche
+  // ferait croire a de la profondeur disponible a un prix ou elle ne l'est pas.
+  //
+  // Vente : a un prix p, le cumul est celui de toutes les offres a prix <= p,
+  // donc la valeur du palier de GAUCHE tient l'intervalle.
+  // Achat : a un prix p, le cumul est celui des offres a prix >= p,
+  // donc c'est la valeur du palier de DROITE qui tient l'intervalle.
+  const staircase = (levels, carry) => {
+    const p = levels
+      .filter(l => l.premium_pct != null)
+      .map(l => ({ x: l.premium_pct, y: l.cumulative }))
+      .sort((a, b) => a.x - b.x)
+    if (!p.length) return []
+    const out = [{ x: p[0].x, y: p[0].y }]
+    for (let i = 0; i < p.length - 1; i++) {
+      const held = carry === 'left' ? p[i].y : p[i + 1].y
+      out.push({ x: p[i].x, y: held })
+      out.push({ x: p[i + 1].x, y: held })
+    }
+    out.push({ x: p[p.length - 1].x, y: p[p.length - 1].y })
+    return out
+  }
+  const bids = staircase(data.bids, 'right')
+  const asks = staircase(data.asks, 'left')
 
   const chartData = {
     datasets: [
@@ -84,7 +104,6 @@ export default function OrderBookDepth() {
         borderColor: BID,
         backgroundColor: 'rgba(56,189,248,0.14)',
         borderWidth: 1.8,
-        stepped: 'before',
         pointRadius: 0,
         pointHoverRadius: 4,
         fill: 'origin',
@@ -95,7 +114,6 @@ export default function OrderBookDepth() {
         borderColor: ASK,
         backgroundColor: 'rgba(245,158,11,0.14)',
         borderWidth: 1.8,
-        stepped: 'after',
         pointRadius: 0,
         pointHoverRadius: 4,
         fill: 'origin',
