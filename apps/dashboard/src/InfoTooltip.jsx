@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 const WIDTH = 240
 const MARGIN = 8
 
-export default function InfoTooltip({ text }) {
+export default function InfoTooltip({ text, size = 16 }) {
   const [show, setShow] = useState(false)
   const btnRef = useRef(null)
   const [pos, setPos] = useState({ top: 0, left: 0 })
@@ -26,10 +26,10 @@ export default function InfoTooltip({ text }) {
         onClick={() => setShow(s => !s)}
         className="inline-flex items-center justify-center rounded-full border text-xs leading-none cursor-help normal-case"
         style={{
-          width: '16px', height: '16px',
+          width: `${size}px`, height: `${size}px`,
           borderColor: 'var(--color-border-strong)',
           color: 'var(--color-dim)',
-          fontSize: '11px',
+          fontSize: `${Math.round(size * 0.69)}px`,
           textTransform: 'none',
         }}
         aria-label="info"
