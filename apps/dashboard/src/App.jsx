@@ -143,13 +143,19 @@ export default function App() {
 
       <Section label={t('section.network')} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div className="mb-4">
         <Guard><HashrateChart /></Guard>
+      </div>
+
+      <div className="mb-4">
         <Guard><BlocktimeChart /></Guard>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div className="mb-4">
         <Guard><MempoolChart /></Guard>
+      </div>
+
+      <div className="mb-4">
         <Guard><EmissionChart /></Guard>
       </div>
 
