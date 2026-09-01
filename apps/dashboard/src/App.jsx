@@ -7,6 +7,7 @@ import KPICards from './KPICards'
 import ChainForkVisualizer from './ChainForkVisualizer'
 import BlocktimeChart from './BlocktimeChart'
 import SpreadChart from './SpreadChart'
+import RefreshBadge from './RefreshBadge'
 import FeeEstimator from './FeeEstimator'
 import FeeHistory from './FeeHistory'
 import HavenoMethods from './HavenoMethods'
@@ -273,6 +274,7 @@ export default function App() {
         </div>
       </footer>
       </div>
+      <RefreshBadge />
     </div>
   )
 }

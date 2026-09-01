@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { markRefreshed } from './refreshStore'
 
 export function usePolledData(fetcher, ready, deps = [], interval = 30000) {
   const [data, setData] = useState(null)
@@ -22,7 +23,7 @@ export function usePolledData(fetcher, ready, deps = [], interval = 30000) {
       ref.current.fetcher()
         .then(d => {
           if (cancelled) return
-          if (ref.current.ready(d)) { hasData = true; setData(d); setStatus('ok'); setUpdatedAt(Date.now()) }
+          if (ref.current.ready(d)) { hasData = true; setData(d); setStatus('ok'); setUpdatedAt(Date.now()); markRefreshed() }
           else { hasData = false; setData(null); setStatus('empty') }
         })
         .catch(() => {

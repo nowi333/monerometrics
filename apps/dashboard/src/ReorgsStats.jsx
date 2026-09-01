@@ -5,10 +5,10 @@ import { usePolledData } from './usePolledData'
 
 export default function ReorgsStats() {
   const { t } = useTranslation()
-  const { data: stats, status, updatedAt } = usePolledData(() => api.reorgsStats(), d => !!(d && d.windows), [])
+  const { data: stats, status } = usePolledData(() => api.reorgsStats(), d => !!(d && d.windows), [])
 
   const wrap = (inner) => (
-    <Panel title={t('reorgs.title')} info={t('info.reorgs')} updatedAt={updatedAt}
+    <Panel title={t('reorgs.title')} info={t('info.reorgs')}
       status={status} stateVariant="table" stateHeight={150}>{inner}</Panel>
   )
 

@@ -10,7 +10,7 @@ export default function HavenoMethods() {
   const { t } = useTranslation()
   const [window, setWindow] = useState('180d')
 
-  const { data, status, updatedAt } = usePolledData(
+  const { data, status } = usePolledData(
     () => api.havenoMethods(window),
     d => d && d.methods && d.methods.length > 0,
     [window],
@@ -24,7 +24,6 @@ export default function HavenoMethods() {
       subtitle={status === 'ok'
         ? t('haveno.methods.subtitle', { count: data.trades_total, source: data.spot_source || '—' })
         : t('haveno.methods.lead')}
-      updatedAt={updatedAt}
       status={status}
       emptyText={t('haveno.methods.empty')}
       stateHeight={200}

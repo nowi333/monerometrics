@@ -7,7 +7,7 @@ const TIER_COLOR = { slow: 'var(--color-success)', normal: 'var(--color-info)', 
 
 export default function FeeEstimator() {
   const { t } = useTranslation()
-  const { data, status, updatedAt } = usePolledData(
+  const { data, status } = usePolledData(
     () => api.networkFees(),
     d => d && d.tiers && d.tiers.length > 0,
     [],
@@ -15,8 +15,7 @@ export default function FeeEstimator() {
   )
 
   const wrap = (inner) => (
-    <Panel title={t('fees.title')} info={t('info.fees')} subtitle={t('fees.subtitle')}
-      updatedAt={updatedAt} status={status} stateHeight={160}>{inner}</Panel>
+    <Panel title={t('fees.title')} info={t('info.fees')} subtitle={t('fees.subtitle')} status={status} stateHeight={160}>{inner}</Panel>
   )
 
   if (status !== 'ok') return wrap(null)

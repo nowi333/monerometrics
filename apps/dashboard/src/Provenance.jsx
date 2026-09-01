@@ -16,7 +16,7 @@ export default function Provenance() {
   const { t } = useTranslation()
   const [window, setWindow] = useState('24h')
 
-  const { data, status, updatedAt } = usePolledData(
+  const { data, status } = usePolledData(
     () => api.chainProvenance(window),
     d => d && d.total_blocks > 0,
     [window],
@@ -27,7 +27,6 @@ export default function Provenance() {
       title={t('prov.title')}
       info={t('prov.info')}
       subtitle={<span style={{ display: 'inline-block', maxWidth: '62ch' }}>{t('prov.subtitle')}</span>}
-      updatedAt={updatedAt}
       status={status}
       stateVariant="chart"
       stateHeight={140}
