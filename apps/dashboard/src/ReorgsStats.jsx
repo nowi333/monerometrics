@@ -1,25 +1,21 @@
 import { useTranslation } from 'react-i18next'
 import { api } from './api'
-import InfoTooltip from './InfoTooltip'
-import PanelState from './PanelState'
+import Panel from './Panel'
 import { usePolledData } from './usePolledData'
 
 export default function ReorgsStats() {
   const { t } = useTranslation()
-  const { data: stats, status } = usePolledData(() => api.reorgsStats(), d => !!(d && d.windows), [])
+  const { data: stats, status, updatedAt } = usePolledData(() => api.reorgsStats(), d => !!(d && d.windows), [])
 
-  if (status !== 'ok') {
-    return (
-      <div className="bg-[color:var(--color-card)] border border-[color:var(--color-border)] rounded-lg p-6">
-        <h3 className="text-base font-medium mb-4 flex items-center gap-2">{t('reorgs.title')}<InfoTooltip text={t('info.reorgs')} /></h3>
-        <PanelState status={status} variant="table" height={150} />
-      </div>
-    )
-  }
+  const wrap = (inner) => (
+    <Panel title={t('reorgs.title')} info={t('info.reorgs')} updatedAt={updatedAt}
+      status={status} stateVariant="table" stateHeight={150}>{inner}</Panel>
+  )
 
-  return (
-    <div className="bg-[color:var(--color-card)] border border-[color:var(--color-border)] rounded-lg p-6">
-      <h3 className="text-base font-medium mb-4 flex items-center gap-2">{t('reorgs.title')}<InfoTooltip text={t('info.reorgs')} /></h3>
+  if (status !== 'ok') return wrap(null)
+
+  return wrap(
+    <>
       <div className="overflow-x-auto">
         <table className="w-full sm:min-w-[460px] text-xs sm:text-sm">
           <thead>
@@ -44,6 +40,6 @@ export default function ReorgsStats() {
           </tbody>
         </table>
       </div>
-    </div>
+    </>
   )
 }

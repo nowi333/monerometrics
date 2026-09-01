@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 export function usePolledData(fetcher, ready, deps = [], interval = 30000) {
   const [data, setData] = useState(null)
   const [status, setStatus] = useState('loading')
+  // Horodatage de la derniere reponse exploitable : chaque panneau peut ainsi
+  // dater sa mesure sans refaire d'appel.
+  const [updatedAt, setUpdatedAt] = useState(null)
   const ref = useRef({ fetcher, ready })
 
 
@@ -19,7 +22,7 @@ export function usePolledData(fetcher, ready, deps = [], interval = 30000) {
       ref.current.fetcher()
         .then(d => {
           if (cancelled) return
-          if (ref.current.ready(d)) { hasData = true; setData(d); setStatus('ok') }
+          if (ref.current.ready(d)) { hasData = true; setData(d); setStatus('ok'); setUpdatedAt(Date.now()) }
           else { hasData = false; setData(null); setStatus('empty') }
         })
         .catch(() => {
@@ -49,5 +52,5 @@ export function usePolledData(fetcher, ready, deps = [], interval = 30000) {
 
   }, [interval, ...deps])
 
-  return { data, status }
+  return { data, status, updatedAt }
 }

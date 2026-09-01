@@ -4,6 +4,7 @@ import * as d3 from 'd3'
 import { api, timeAgo } from './api'
 import InfoTooltip from './InfoTooltip'
 import PanelState from './PanelState'
+import { Updated } from './Panel'
 import { poolColor } from './poolColors'
 import BlockDetailModal from './BlockDetailModal'
 
@@ -81,6 +82,7 @@ export default function ChainForkVisualizer() {
   const attemptedRef = useRef(new Set())
 
   const [status, setStatus] = useState('loading')
+  const [updatedAt, setUpdatedAt] = useState(null)
   const [version, setVersion] = useState(0)
   const [stats, setStats] = useState({ blocks: 0, reorgs: 0, hasOrphans: false, lanes: 0 })
   const [tooltip, setTooltip] = useState(null)
@@ -123,6 +125,7 @@ export default function ChainForkVisualizer() {
           for (const e of blocksRef.current.values()) { if (e.orphans.length) { orphans = true; break } }
           setStats({ blocks: blocksRef.current.size, reorgs: reorgsRef.current.size, hasOrphans: orphans, lanes: countLanes(blocksRef.current) })
           setStatus('ok')
+          setUpdatedAt(Date.now())
           bump()
         } else if (blocksRef.current.size === 0) {
           setStatus('empty')
@@ -522,6 +525,7 @@ export default function ChainForkVisualizer() {
 
         {status === 'ok' && (
           <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-wrap sm:justify-end">
+            {updatedAt != null && <span className="hidden sm:inline"><Updated at={updatedAt} /></span>}
             <form onSubmit={handleSearch} className="flex items-center gap-1 flex-1 sm:flex-none min-w-0">
               <div className="relative flex-1 min-w-0">
                 <input

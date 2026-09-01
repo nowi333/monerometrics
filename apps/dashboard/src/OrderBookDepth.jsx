@@ -2,8 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Line } from 'react-chartjs-2'
 import { Chart, LineElement, PointElement, LinearScale, Tooltip, Filler } from 'chart.js'
 import { api } from './api'
-import InfoTooltip from './InfoTooltip'
-import PanelState from './PanelState'
+import Panel from './Panel'
 import { usePolledData } from './usePolledData'
 
 Chart.register(LineElement, PointElement, LinearScale, Tooltip, Filler)
@@ -49,29 +48,27 @@ export default function OrderBookDepth() {
   )
 
   const wrap = (inner) => (
-    <div className="rounded-lg border p-4 sm:p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
-      <div className="flex justify-between items-start mb-4 gap-3">
-        <div>
-          <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
-            {t('haveno.book.title')}<InfoTooltip text={t('info.havenoBook')} />
-          </h3>
-          <p className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>
-            {t('haveno.book.lead')}{' '}
-            {data?.age_seconds != null && (
-              <span className="ml-2" style={{ color: data.stale ? 'var(--color-danger)' : 'var(--color-dim)' }}>
-                · {data.stale
-                    ? t('haveno.book.stale', { age: age(data.age_seconds) })
-                    : t('haveno.book.age', { age: age(data.age_seconds) })}
-              </span>
-            )}
-          </p>
-        </div>
-      </div>
-      {inner}
-    </div>
+    <Panel
+      title={t('haveno.book.title')}
+      info={t('info.havenoBook')}
+      subtitle={
+        <>
+          {t('haveno.book.lead')}
+          {data?.age_seconds != null && (
+            <span className="ml-2" style={{ color: data.stale ? 'var(--color-danger)' : 'var(--color-dim)' }}>
+              · {data.stale
+                  ? t('haveno.book.stale', { age: age(data.age_seconds) })
+                  : t('haveno.book.age', { age: age(data.age_seconds) })}
+            </span>
+          )}
+        </>
+      }
+      status={status}
+      emptyText={t('haveno.book.empty')}
+    >{inner}</Panel>
   )
 
-  if (status !== 'ok') return wrap(<PanelState status={status} height={240} emptyText={t('haveno.book.empty')} />)
+  if (status !== 'ok') return wrap(null)
 
   const toXY = (levels) => levels
     .filter(l => l.premium_pct != null)
