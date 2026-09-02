@@ -13,7 +13,11 @@ async function fetchJSON(path) {
     headers: { Accept: 'application/json' },
   })
   if (!response.ok) {
-    throw new Error(`API ${path} returned ${response.status}`)
+    const err = new Error(`API ${path} returned ${response.status}`)
+    // Le code permet a l'appelant de distinguer un refus passager (429, 5xx)
+    // d'une vraie erreur, et de reessayer plutot que de vider le panneau.
+    err.status = response.status
+    throw err
   }
   return response.json()
 }
