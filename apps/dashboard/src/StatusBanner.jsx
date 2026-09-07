@@ -22,8 +22,16 @@ export default function StatusBanner() {
 
   const seuils = data.signals.map(s => `${s.label} — ${s.threshold}`).join('\n')
 
+  const tone = COLOR[data.chain === 'ok' && data.concentration === 'ok' ? 'ok' : (data.concentration === 'alert' || data.chain === 'alert' ? 'alert' : 'watch')]
+
   return (
-    <div className="mb-6 pb-5 border-b" style={{ borderColor: 'var(--color-border)' }}>
+    <div
+      className="mb-6 rounded-2xl border px-4 py-3.5 sm:px-5 sm:py-4"
+      style={{
+        background: `linear-gradient(180deg, color-mix(in srgb, ${tone} 9%, var(--color-card)) 0%, var(--color-card) 100%)`,
+        borderColor: `color-mix(in srgb, ${tone} 30%, var(--color-border))`,
+      }}
+    >
       <div className="flex items-center gap-3 flex-wrap">
         <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
           style={{ background: COLOR[data.chain], boxShadow: `0 0 0 4px color-mix(in srgb, ${COLOR[data.chain]} 18%, transparent)` }}
@@ -37,8 +45,8 @@ export default function StatusBanner() {
         </span>
         <InfoTooltip text={`${t('status.info')}\n\n${seuils}`} size={14} />
       </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] font-mono"
-        style={{ color: 'var(--color-dim)' }}>
+      <div className="mt-3 pt-3 border-t flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] font-mono"
+        style={{ color: 'var(--color-dim)', borderColor: `color-mix(in srgb, ${tone} 18%, var(--color-border))` }}>
         {data.signals.map(s => (
           <span key={s.key}>
             {t(`status.sig.${s.key}`)}{' '}
