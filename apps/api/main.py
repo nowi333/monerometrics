@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.15.0', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.15.1', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -884,7 +884,7 @@ NEWS_FEED = 'https://www.getmonero.org/feed.xml'
 # d'autres (community, dev) qui relevent du suivi courant, pas de l'annonce.
 NEWS_CATEGORIES = {'releases', 'announcements'}
 NEWS_MAX_BYTES = 2_000_000
-NEWS_LIMIT = 5
+NEWS_LIMIT = 10
 _ATOM = '{http://www.w3.org/2005/Atom}'
 _last_news = None
 

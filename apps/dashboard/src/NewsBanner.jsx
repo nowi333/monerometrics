@@ -45,14 +45,14 @@ export default function NewsBanner() {
 
   return (
     <div
-      className="mb-5 rounded-lg border flex items-center gap-2 px-3 py-2 overflow-hidden"
+      className="mb-5 border flex items-center gap-2 px-3 py-2 overflow-hidden"
       style={{
         background: 'color-mix(in srgb, var(--color-success) 7%, var(--color-card))',
         borderColor: 'color-mix(in srgb, var(--color-success) 28%, var(--color-border))',
       }}
     >
       <span
-        className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded shrink-0"
+        className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 shrink-0"
         style={{ background: 'color-mix(in srgb, var(--color-success) 16%, transparent)', color: 'var(--color-success)' }}
       >{t('news.label')}</span>
 
