@@ -38,7 +38,7 @@ def _agent_card() -> dict:
             {'url': BASE, 'transport': 'HTTP+JSON'},
         ],
         'provider': {'organization': 'monerometrics', 'url': SITE},
-        'version': '0.13.0',
+        'version': '0.13.2',
         'documentationUrl': f'{BASE}/docs',
         'capabilities': {'streaming': False, 'pushNotifications': False, 'stateTransitionHistory': False},
         'defaultInputModes': ['text/plain', 'application/json'],
@@ -77,7 +77,7 @@ def _mcp_manifest() -> dict:
             {
                 'name': 'io.github.nowi333/monerometrics',
                 'description': SUMMARY,
-                'version': '0.1.1',
+                'version': '0.2.0',
                 'transport': {'type': 'streamable-http', 'url': f'{BASE}/mcp'},
                 'authentication': {'type': 'none'},
                 'repository': REPO,
@@ -91,7 +91,7 @@ def _openrpc() -> dict:
         'openrpc': '1.3.2',
         'info': {
             'title': 'monerometrics MCP',
-            'version': '0.1.1',
+            'version': '0.2.0',
             'description': f'JSON-RPC 2.0 endpoint implementing the Model Context Protocol. {SUMMARY}',
             'license': {'name': 'MIT'},
         },

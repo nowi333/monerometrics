@@ -21,7 +21,7 @@ i18n
 
           'charts.hashrateTitle': 'Network hashrate',
           'charts.hashrate': 'Hashrate',
-          'charts.blocktimeTitle': 'Block time variance',
+          'charts.blocktimeTitle': 'Block time variance, mean',
           'charts.spreadTitle': 'Haveno premium over spot · XMR/USD',
           'charts.havenoLiquidityTitle': 'Haveno fiat liquidity · XMR/USD',
           'haveno.methods.title': 'Premium by payment method · fiat only',
@@ -198,7 +198,7 @@ i18n
           'kpi.priceTitle': 'XMR price',
           'kpi.lastBlock': 'Last block',
           'kpi.difficulty': 'Difficulty',
-          'kpi.blockTime': 'Block time',
+          'kpi.blockTime': 'Block time, median',
           'kpi.havenoStreet': 'Haveno',
           'kpi.havenoAsk': 'Haveno · lowest ask',
           'kpi.havenoBook': 'Haveno',
@@ -377,9 +377,9 @@ i18n
 
 
           'info.mempool': 'Number of unconfirmed transactions waiting in the node mempool. Reflects current pending demand on the network. Limit: live snapshot from the node, not a historical average.',
-          'info.blocktime': 'Time elapsed between consecutive canonical blocks. Monero targets 120s; variance reflects hashrate fluctuations. Limit: per-block measurement, short windows only (up to 30d).',
+          'info.blocktime': 'Time elapsed between consecutive canonical blocks. Monero targets 120s; variance reflects hashrate fluctuations. Mining is a Poisson process, so intervals are exponentially distributed and the mean sits well above the median: the KPI tile shows the median, this panel the mean, and both are correct. A minimum of 0s is genuine, not a broken reading — Monero block timestamps are set by miners within a tolerance and are not strictly monotonic, so a handful of intervals come out null or negative. Limit: per-block measurement, short windows only (up to 30d).',
           'info.pools': 'Share of canonical blocks mined per pool over the window, a decentralization indicator. Limit: pools are identified via their public APIs, so attribution is reliable only on recent windows; unidentified blocks (solo miners, untracked pools) appear as unknown.',
-          'info.nakamoto': 'Minimum number of mining pools that together control more than 50% of recently mined blocks (identified pools only, excluding solo/unknown). Lower means more centralized: a single pool above 50% is the 51% risk.',
+          'info.nakamoto': 'Minimum number of identified mining pools that together control more than 50% of recently mined blocks. Lower means more centralized: a single pool above 50% is the 51% risk. Unattributed blocks stay in the denominator but are credited to no pool, so the figure is a ceiling: if those blocks belong to pools already listed, the true coefficient can only be lower, never higher.',
           'info.reorgs': 'Reorganizations are events where the chain replaces recently accepted blocks with a competing longer branch. Counted over 24h, 7d and 30d. Limit: only reorgs observed since this node started indexing are recorded.',
           'info.orphans': 'Orphan blocks are valid blocks that were replaced during a reorganization and left out of the canonical chain. Limit: shows the most recent orphans only, and depends on what this node observed.',
           'info.fork': 'Visual map of the chain: canonical blocks and orphan branches, color-coded by mining pool. The whole chain is browsable. Pan to load more on demand, or search a height or block hash to jump anywhere down to genesis. Pool attribution and reorg detection only exist from where live indexing began; older blocks are shown as history, so they appear unattributed and without past forks.',
@@ -407,7 +407,7 @@ i18n
 
           'charts.hashrateTitle': 'Hashrate réseau',
           'charts.hashrate': 'Hashrate',
-          'charts.blocktimeTitle': 'Variance temps de bloc',
+          'charts.blocktimeTitle': 'Variance temps de bloc, moyenne',
           'charts.spreadTitle': 'Prime Haveno sur le spot · XMR/USD',
           'charts.havenoLiquidityTitle': 'Liquidité fiat Haveno · XMR/USD',
           'haveno.methods.title': 'Prime par moyen de paiement · fiat uniquement',
@@ -584,7 +584,7 @@ i18n
           'kpi.priceTitle': 'Prix XMR',
           'kpi.lastBlock': 'Dernier bloc',
           'kpi.difficulty': 'Difficulté',
-          'kpi.blockTime': 'Temps de bloc',
+          'kpi.blockTime': 'Temps de bloc, médiane',
           'kpi.havenoStreet': 'Haveno',
           'kpi.havenoAsk': 'Haveno · meilleure offre',
           'kpi.havenoBook': 'Haveno',
@@ -763,9 +763,9 @@ i18n
 
 
           'info.mempool': 'Nombre de transactions non confirmées en attente dans le mempool du nœud. Reflète la demande en attente sur le réseau. Limite : instantané en direct du nœud, pas une moyenne historique.',
-          'info.blocktime': 'Temps écoulé entre blocs canoniques consécutifs. Monero cible 120s ; la variance reflète les fluctuations de hashrate. Limite : mesure par bloc, fenêtres courtes uniquement (jusqu’à 30j).',
+          'info.blocktime': 'Temps écoulé entre blocs canoniques consécutifs. Monero cible 120s ; la variance reflète les fluctuations de hashrate. Le minage est un processus de Poisson, les intervalles suivent donc une loi exponentielle et la moyenne dépasse largement la médiane : la tuile affiche la médiane, ce panneau la moyenne, et les deux sont justes. Un minimum à 0s est réel, pas une donnée cassée — les horodatages de blocs Monero sont posés par les mineurs à l\u2019intérieur d\u2019une tolérance et ne sont pas strictement monotones, quelques intervalles ressortent donc nuls ou négatifs. Limite : mesure par bloc, fenêtres courtes uniquement (jusqu\u2019à 30j).',
           'info.pools': 'Part des blocs canoniques minés par pool sur la fenêtre, un indicateur de décentralisation. Limite : les pools sont identifiés via leurs API publiques, donc l’attribution est fiable seulement sur les fenêtres récentes ; les blocs non identifiés (mineurs solo, pools non suivis) apparaissent en unknown.',
-          'info.nakamoto': 'Nombre minimal de pools de minage qui contrôlent ensemble plus de 50 % des blocs récents (pools identifiés seulement, hors solo/unknown). Plus il est bas, plus c’est centralisé : un seul pool au-dessus de 50 % est le risque des 51 %.',
+          'info.nakamoto': 'Nombre minimal de pools de minage identifiés qui contrôlent ensemble plus de 50 % des blocs récents. Plus il est bas, plus c\u2019est centralisé : un seul pool au-dessus de 50 % est le risque des 51 %. Les blocs non attribués restent au dénominateur mais ne sont crédités à aucun pool ; le chiffre est donc un plafond : si ces blocs appartiennent à des pools déjà listés, le vrai coefficient ne peut être que plus bas, jamais plus haut.',
           'info.reorgs': 'Les réorganisations sont des événements où la chaîne remplace des blocs récemment acceptés par une branche concurrente plus longue. Comptées sur 24h, 7j et 30j. Limite : seules les reorgs observées depuis le démarrage de l’indexation de ce nœud sont enregistrées.',
           'info.orphans': 'Les blocs orphelins sont des blocs valides remplacés lors d’une réorganisation et exclus de la chaîne canonique. Limite : affiche uniquement les orphelins les plus récents, et dépend de ce que ce nœud a observé.',
           'info.fork': 'Carte visuelle de la chaîne : blocs canoniques et branches orphelines, colorés par pool de minage. Toute la chaîne est navigable. Pannez pour charger plus à la demande, ou cherchez une hauteur ou un hash de bloc pour aller n’importe où jusqu’au genesis. L’attribution de pool et la détection de reorgs n’existent qu’à partir du début de l’indexation live ; les blocs plus anciens sont affichés comme historique, donc sans pool ni forks passés.',
@@ -793,7 +793,7 @@ i18n
 
           'charts.hashrateTitle': 'Hashrate de la red',
           'charts.hashrate': 'Hashrate',
-          'charts.blocktimeTitle': 'Varianza del tiempo de bloque',
+          'charts.blocktimeTitle': 'Varianza del tiempo de bloque, media',
           'charts.spreadTitle': 'Prima Haveno sobre el spot · XMR/USD',
           'charts.havenoLiquidityTitle': 'Liquidez fiat de Haveno · XMR/USD',
           'haveno.methods.title': 'Prima por método de pago · solo fiat',
@@ -970,7 +970,7 @@ i18n
           'kpi.priceTitle': 'Precio XMR',
           'kpi.lastBlock': 'Último bloque',
           'kpi.difficulty': 'Dificultad',
-          'kpi.blockTime': 'Tiempo de bloque',
+          'kpi.blockTime': 'Tiempo de bloque, mediana',
           'kpi.havenoStreet': 'Haveno',
           'kpi.havenoAsk': 'Haveno · mejor oferta',
           'kpi.havenoBook': 'Haveno',
@@ -1149,9 +1149,9 @@ i18n
 
 
           'info.mempool': 'Número de transacciones no confirmadas en espera en el mempool del nodo. Refleja la demanda pendiente actual en la red. Límite: instantánea en vivo del nodo, no un promedio histórico.',
-          'info.blocktime': 'Tiempo transcurrido entre bloques canónicos consecutivos. Monero apunta a 120s; la varianza refleja las fluctuaciones del hashrate. Límite: medición por bloque, solo ventanas cortas (hasta 30d).',
+          'info.blocktime': 'Tiempo transcurrido entre bloques canónicos consecutivos. Monero apunta a 120s; la varianza refleja las fluctuaciones del hashrate. La minería es un proceso de Poisson, así que los intervalos siguen una ley exponencial y la media queda muy por encima de la mediana: la tarjeta muestra la mediana, este panel la media, y ambas son correctas. Un mínimo de 0s es real, no un dato roto — las marcas de tiempo de los bloques de Monero las fijan los mineros dentro de una tolerancia y no son estrictamente monótonas, así que algunos intervalos salen nulos o negativos. Límite: medición por bloque, solo ventanas cortas (hasta 30d).',
           'info.pools': 'Cuota de bloques canónicos minados por pool en la ventana, un indicador de descentralización. Límite: los pools se identifican mediante sus API públicas, por lo que la atribución es fiable solo en ventanas recientes; los bloques no identificados (mineros solo, pools no rastreados) aparecen como unknown.',
-          'info.nakamoto': 'Número mínimo de pools de minería que juntas controlan más del 50 % de los bloques recientes (solo pools identificadas, excluyendo solo/unknown). Cuanto más bajo, más centralizado: una sola pool por encima del 50 % es el riesgo del 51 %.',
+          'info.nakamoto': 'Número mínimo de pools de minería identificadas que juntas controlan más del 50 % de los bloques recientes. Cuanto más bajo, más centralizado: una sola pool por encima del 50 % es el riesgo del 51 %. Los bloques sin atribuir siguen en el denominador pero no se acreditan a ninguna pool, así que la cifra es un techo: si esos bloques pertenecen a pools ya listadas, el coeficiente real solo puede ser menor, nunca mayor.',
           'info.reorgs': 'Las reorganizaciones son eventos en los que la cadena reemplaza bloques aceptados recientemente por una rama competidora más larga. Contadas en 24h, 7d y 30d. Límite: solo se registran las reorgs observadas desde que este nodo comenzó a indexar.',
           'info.orphans': 'Los bloques huérfanos son bloques válidos reemplazados durante una reorganización y excluidos de la cadena canónica. Límite: muestra solo los huérfanos más recientes, y depende de lo que este nodo observó.',
           'info.fork': 'Mapa visual de la cadena: bloques canónicos y ramas huérfanas, coloreados por pool de minería. Toda la cadena es navegable. Desplázate para cargar más bajo demanda, o busca una altura o un hash de bloque para ir a cualquier punto hasta el génesis. La atribución de pool y la detección de reorgs solo existen desde el inicio de la indexación en vivo; los bloques más antiguos se muestran como historial, por lo que aparecen sin pool ni forks pasados.',

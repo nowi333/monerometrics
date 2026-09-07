@@ -19,4 +19,8 @@ USER api
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Le module servi est pilote par APP_MODULE, et non par un `command` dans le
+# manifeste : `kubectl apply` remplace un `command` de facon atomique alors
+# qu'il fusionne les variables d'environnement par nom. Une surcharge posee sur
+# le cluster survit donc a un apply, au lieu d'etre silencieusement effacee.
+CMD ["sh", "-c", "exec uvicorn ${APP_MODULE:-main}:app --host 0.0.0.0 --port 8000"]

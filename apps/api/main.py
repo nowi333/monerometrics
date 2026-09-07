@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.12.1', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.13.2', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -723,8 +723,13 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
 
 
 HAVENO_WINDOWS = {'30d': '30 days', '90d': '90 days', '180d': '180 days', '1y': '365 days', 'all': '3650 days'}
-REVERSIBLE_METHODS = {'PAYPAL', 'VENMO', 'CASH_APP', 'TRANSFERWISE_USD', 'TRANSFERWISE', 'REVOLUT', 'WISE', 'ZELLE_REVERSIBLE'}
-IRREVERSIBLE_METHODS = {'PAY_BY_MAIL', 'US_POSTAL_MONEY_ORDER', 'CASH_DEPOSIT', 'ZELLE', 'F2F', 'MONEY_GRAM', 'WESTERN_UNION'}
+# Notre classification, pas un champ de Haveno. Reversible = l'acheteur peut
+# recuperer ses fonds apres la liberation du Monero, ce que le vendeur facture.
+# ACH_TRANSFER est reversible : NACHA laisse jusqu'a 60 jours pour contester un
+# debit non autorise. SWIFT est definitif : un rappel exige l'accord du
+# beneficiaire, la banque emettrice ne peut pas l'imposer.
+REVERSIBLE_METHODS = {'PAYPAL', 'VENMO', 'CASH_APP', 'TRANSFERWISE_USD', 'TRANSFERWISE', 'REVOLUT', 'WISE', 'ZELLE_REVERSIBLE', 'ACH_TRANSFER'}
+IRREVERSIBLE_METHODS = {'PAY_BY_MAIL', 'US_POSTAL_MONEY_ORDER', 'CASH_DEPOSIT', 'ZELLE', 'F2F', 'MONEY_GRAM', 'WESTERN_UNION', 'SWIFT'}
 
 
 def _reversible(method: str):
