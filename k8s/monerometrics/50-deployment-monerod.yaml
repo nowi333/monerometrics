@@ -18,6 +18,9 @@ spec:
       labels:
         app: monerod
     spec:
+      # 30 s (defaut) peut ne pas suffire a vider les 250 Mo d'ecritures
+      # differees de db-sync-mode=fast:async avant le SIGKILL.
+      terminationGracePeriodSeconds: 180
       containers:
         - name: monerod
           image: sethsimmons/simple-monerod:v0.18.3.4
@@ -40,7 +43,11 @@ spec:
               memory: 2Gi
             limits:
               cpu: 3000m
-              memory: 5Gi
+              # 3Gi et non 5Gi : la consommation reelle est de 1,2Gi, la marge
+              # reste superieure a 150 %, et la somme des limites du noeud
+              # repasse sous sa capacite physique. Au-dela, le noyau pouvait
+              # tuer arbitrairement un conteneur en cas de pic simultane.
+              memory: 3Gi
           readinessProbe:
             httpGet:
               path: /get_info
