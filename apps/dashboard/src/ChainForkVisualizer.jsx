@@ -509,12 +509,7 @@ export default function ChainForkVisualizer({ hero = false }) {
     <div
       ref={containerRef}
       className="rounded-lg border p-4 sm:p-6 mb-4"
-      style={{
-        background: 'var(--color-card)',
-        borderColor: hero
-          ? 'color-mix(in srgb, var(--color-accent) 26%, var(--color-border))'
-          : 'var(--color-border)',
-      }}
+      style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
     >
       <div className="flex justify-between items-center mb-4 flex-wrap gap-2 gap-y-3">
         <div>
