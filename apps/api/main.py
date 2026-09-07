@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.15.1', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.16.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -815,8 +815,11 @@ def _with_age(book, stale=False):
 STATUS_THRESHOLDS = {
     'top_pool_watch': 33.0,   # un tiers des blocs : au-dela, un pool pese sur le consensus
     'top_pool_alert': 50.0,   # majorite : c'est la definition du risque des 51 %
-    'nakamoto_watch': 3,      # trois entites suffisent a s'entendre
-    'nakamoto_alert': 2,      # deux suffisent
+    # La part cumulee des deux premiers pools, plutot que le coefficient de
+    # Nakamoto : le coefficient est un entier qui ne dit ni 51 % ni 57 %, et
+    # reste fige sur 2 pendant des mois alors que la part, elle, bouge.
+    'top2_watch': 45.0,
+    'top2_alert': 50.0,
     'reorg_depth_watch': 2,   # au-dela d'un bloc, les confirmations rapides deviennent fragiles
     'reorg_depth_alert': 5,
     'stale_tip_seconds': 1800,  # aucun bloc depuis 30 min : le noeud ou le reseau decroche
@@ -846,10 +849,11 @@ async def status():
     add('top_pool', 'largest pool', round(share, 2), f'{share:.1f}%', lvl,
         f">= {T['top_pool_watch']}% watch, >= {T['top_pool_alert']}% alert")
 
-    nak = pools.nakamoto_coefficient or 0
-    lvl = 'alert' if nak and nak <= T['nakamoto_alert'] else 'watch' if nak and nak <= T['nakamoto_watch'] else 'ok'
-    add('nakamoto', 'nakamoto coefficient', nak, str(nak), lvl,
-        f"<= {T['nakamoto_watch']} watch, <= {T['nakamoto_alert']} alert")
+    named = sorted((d.percentage for d in pools.distribution if d.pool != 'unknown'), reverse=True)
+    top2 = round(sum(named[:2]), 2)
+    lvl = 'alert' if top2 >= T['top2_alert'] else 'watch' if top2 >= T['top2_watch'] else 'ok'
+    add('top2', 'two largest pools', top2, f'{top2:.1f}%', lvl,
+        f">= {T['top2_watch']}% watch, >= {T['top2_alert']}% alert")
 
     w24 = next((w for w in stats.windows if w.window == '24h'), None)
     depth = (w24.max_depth or 0) if w24 else 0
@@ -865,7 +869,7 @@ async def status():
         f">= {T['stale_tip_seconds']}s alert")
 
     chain_sigs = [x for x in signals if x.key in ('reorgs', 'tip')]
-    conc_sigs = [x for x in signals if x.key in ('top_pool', 'nakamoto')]
+    conc_sigs = [x for x in signals if x.key in ('top_pool', 'top2')]
     worst = lambda xs: max((x.level for x in xs), key=lambda l: _LEVEL_RANK[l])
 
     result = StatusResponse(
