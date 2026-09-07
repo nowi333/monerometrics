@@ -154,11 +154,11 @@ export default function App() {
       <Guard><ChainForkVisualizer hero /></Guard>
 
       <div className="mb-4">
-        <Guard><ReorgsStats /></Guard>
+        <Guard><OrphansTable /></Guard>
       </div>
 
       <div className="mb-4">
-        <Guard><OrphansTable /></Guard>
+        <Guard><ReorgsStats /></Guard>
       </div>
 
       <Section id="mining" label={t('section.mining')} />
