@@ -89,7 +89,7 @@ export default function App() {
     <div className="min-h-screen">
       <div className="border-b" style={{ borderColor: 'var(--color-border)' }}>
       <header
-        className="flex items-center justify-between p-3 sm:p-6 max-w-6xl mx-auto gap-2 sm:gap-3"
+        className="flex items-center justify-between p-2.5 sm:p-5 max-w-6xl mx-auto gap-2 sm:gap-3"
       >
         <Logo onClick={() => { window.location.href = '/' }} />
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
