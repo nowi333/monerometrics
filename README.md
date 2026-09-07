@@ -210,6 +210,16 @@ synced, runs **two passes** against the database:
    work, plain forward-only indexing never revisits the past, so it would silently miss every
    reorg that rewrites already-indexed heights.
 
+   **The window is also the detection ceiling.** A reorganization deeper than
+   `CONFIRMATION_WINDOW` rewrites heights the rescan never looks at, so it would be missed
+   entirely rather than reported with a wrong depth. At 60 blocks the margin is wide: the
+   deepest Monero reorg on record, 14 September 2025, was 18 blocks. But the limit is
+   structural, not a tuning detail, and the counts published here are only complete up to
+   that depth. Raising it costs one larger header call per poll.
+
+   The transaction count is `num_txes` from the block header, which excludes the coinbase, so
+   it counts transactions users actually broadcast rather than the miner's own output.
+
 2. **Forward indexing.** It then fetches the new blocks above the last indexed height. Close to
    the tip it pulls **full blocks** one by one for accurate pool attribution; when it is far
    behind (fresh deploy), it switches to a **fast header backfill** (`get_block_headers_range`,
@@ -449,7 +459,7 @@ can be consumed from anywhere. No key, no account, no tracking.
 
 | Endpoint | Description |
 |---|---|
-| `GET /pools/distribution?window=` | Block share per pool over the window, plus decentralization metrics: largest-pool share and **Nakamoto coefficient**. `window` = `1h\|6h\|24h\|48h\|7d`. |
+| `GET /pools/distribution?window=` | Block share per pool over the window, plus decentralization metrics: largest-pool share and **Nakamoto coefficient**. Unattributed blocks stay in the denominator but are credited to no pool, so the coefficient is a ceiling: if they belong to pools already listed, the true value can only be lower. `window` = `1h\|6h\|24h\|48h\|7d`. |
 | `GET /pools/sources` | Reachability of each pool API used for attribution (status measured by the indexer, not by your browser). |
 
 **Market**

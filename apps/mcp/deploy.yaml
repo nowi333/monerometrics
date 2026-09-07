@@ -19,7 +19,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: mcp
-          image: ghcr.io/nowi333/monerometrics-mcp:0.1.1
+          image: ghcr.io/nowi333/monerometrics-mcp:0.2.0
           env:
             - name: MM_API_BASE
               value: "https://api.monerometrics.net"

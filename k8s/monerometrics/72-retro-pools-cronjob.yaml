@@ -34,7 +34,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: retro-pools
-              image: ghcr.io/nowi333/monerometrics-worker:0.9.1
+              image: ghcr.io/nowi333/monerometrics-worker:0.11.0
               command: ["python", "-u", "retro_pools.py"]
               env:
                 - name: PG_HOST

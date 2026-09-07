@@ -32,7 +32,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: api
-          image: ghcr.io/nowi333/monerometrics-api:0.10.0
+          image: ghcr.io/nowi333/monerometrics-api:0.13.2
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsNonRoot: true
@@ -43,7 +43,6 @@ spec:
               drop: ["ALL"]
             seccompProfile:
               type: RuntimeDefault
-          command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
           env:
             - name: RATE_LIMIT_PER_MIN
               value: "300"
