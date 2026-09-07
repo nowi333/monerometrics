@@ -432,6 +432,32 @@ class StatusResponse(BaseModel):
     generated_unix: int
 
 
+class NewsItem(BaseModel):
+    id: str
+    title: str
+    url: str
+    published_unix: int
+    categories: List[str] = []
+
+
+class NewsResponse(BaseModel):
+    """Announcements from the Monero project's own blog, nothing else.
+
+    The source is deliberately narrow. Aggregators and newsletters would turn
+    this into a news feed, and the point is the opposite: only what the project
+    itself publishes as a release or an announcement. Entries land here roughly
+    every two weeks, so each one carries its date — a banner that looks live
+    while showing a month-old item is worse than no banner.
+
+    Fetched server-side and cached, so a visitor's browser never contacts
+    getmonero.org and no IP leaks to a third party.
+    """
+    source: str = 'getmonero.org'
+    items: List[NewsItem] = []
+    fetched_unix: Optional[int] = None
+    stale: bool = False
+
+
 class BookLevel(BaseModel):
     price: float
     premium_pct: Optional[float] = None

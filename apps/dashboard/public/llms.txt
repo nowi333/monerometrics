@@ -49,6 +49,8 @@ No account, no API key, no rate-limit tiers, no tracking, no ads.
 - [Resting liquidity](https://api.monerometrics.net/haveno/liquidity): XMR sitting in open Haveno offers, hourly
 - [Recent trades](https://api.monerometrics.net/haveno/trades): executed Haveno trades with payment method and premium
 - [Fee estimate](https://api.monerometrics.net/network/fees): current Monero fee tiers, with history at /network/fees/history
+- [Status](https://api.monerometrics.net/status): one-line health verdict with every threshold that produced it
+- [News](https://api.monerometrics.net/news): releases and announcements from the Monero project's own blog
 
 ## For AI agents
 

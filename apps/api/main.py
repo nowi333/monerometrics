@@ -3,6 +3,8 @@ import sys
 from contextlib import asynccontextmanager
 import time
 import statistics
+from xml.etree import ElementTree
+from datetime import datetime
 from collections import defaultdict, deque
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +16,7 @@ import httpx
 import json
 import os
 import re
-from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse, SeriesStats, StatusSignal, StatusResponse
+from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse, SeriesStats, StatusSignal, StatusResponse, NewsItem, NewsResponse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
 
@@ -38,7 +40,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.14.1', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.15.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -874,6 +876,74 @@ async def status():
         generated_unix=int(time.time()),
     )
     _agg_cache_set('status', result)
+    return result
+
+
+NEWS_FEED = 'https://www.getmonero.org/feed.xml'
+# Seules ces categories comptent comme « important ». Le flux officiel en porte
+# d'autres (community, dev) qui relevent du suivi courant, pas de l'annonce.
+NEWS_CATEGORIES = {'releases', 'announcements'}
+NEWS_MAX_BYTES = 2_000_000
+NEWS_LIMIT = 5
+_ATOM = '{http://www.w3.org/2005/Atom}'
+_last_news = None
+
+
+@app.get('/news', response_model=NewsResponse)
+async def news():
+    """Releases and announcements from the Monero project's own blog."""
+    global _last_news
+    cached = _agg_cache_get('news', 1800)
+    if cached is not None:
+        return cached
+
+    try:
+        async with httpx.AsyncClient(timeout=12, follow_redirects=True) as client:
+            r = await client.get(NEWS_FEED, headers={'User-Agent': 'monerometrics/1.0'})
+            r.raise_for_status()
+            raw = r.content[:NEWS_MAX_BYTES]
+        root = ElementTree.fromstring(raw)
+    except Exception as e:
+        log.warning(f'news feed failed: {e}')
+        # Une coupure passagere ne doit pas faire disparaitre le bandeau ; on
+        # ressert la derniere version connue en la signalant comme telle.
+        if _last_news is not None:
+            return _last_news.model_copy(update={'stale': True})
+        return NewsResponse()
+
+    items = []
+    for entry in root.findall(f'{_ATOM}entry'):
+        cats = {c.get('term') for c in entry.findall(f'{_ATOM}category') if c.get('term')}
+        if not (cats & NEWS_CATEGORIES):
+            continue
+        title = (entry.findtext(f'{_ATOM}title') or '').strip()
+        link = ''
+        for lk in entry.findall(f'{_ATOM}link'):
+            if lk.get('rel') in (None, 'alternate') and lk.get('href'):
+                link = lk.get('href')
+                break
+        # On ne republie que des liens vers la source elle-meme : un flux
+        # compromis ne doit pas pouvoir pointer nos visiteurs ailleurs.
+        if not title or not link.startswith('https://www.getmonero.org/'):
+            continue
+        stamp = entry.findtext(f'{_ATOM}updated') or entry.findtext(f'{_ATOM}published') or ''
+        try:
+            published = int(datetime.fromisoformat(stamp.replace('Z', '+00:00')).timestamp())
+        except ValueError:
+            continue
+        items.append(NewsItem(
+            id=(entry.findtext(f'{_ATOM}id') or link)[:200],
+            title=title[:200],
+            url=link,
+            published_unix=published,
+            categories=sorted(cats & NEWS_CATEGORIES),
+        ))
+
+    items.sort(key=lambda x: x.published_unix, reverse=True)
+    result = NewsResponse(items=items[:NEWS_LIMIT], fetched_unix=int(time.time()))
+    if result.items:
+        _agg_cache_set('news', result)
+        _last_news = result
     return result
 
 

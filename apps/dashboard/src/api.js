@@ -61,6 +61,7 @@ export const api = {
   havenoTrades: (limit = 100, currency = 'USD') => fetchJSON(`/haveno/trades?limit=${limit}&currency=${currency}`),
   havenoBook: () => fetchJSON('/haveno/book'),
   status: () => fetchJSON('/status'),
+  news: () => fetchJSON('/news'),
   networkFees: () => fetchJSON('/network/fees'),
   networkFeesHistory: (window = '30d') => fetchJSON(`/network/fees/history?window=${window}`),
 }

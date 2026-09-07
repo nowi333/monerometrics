@@ -471,6 +471,8 @@ can be consumed from anywhere. No key, no account, no tracking.
 | `GET /haveno/methods?window=&currency=` | Executed Haveno trades grouped by **payment method**, with average, median and standard deviation of the premium over centralized spot. `window` accepts `30d`, `90d`, `180d`, `1y`, `all`; `currency` accepts `USD`, `EUR`. |
 | `GET /haveno/liquidity?window=&currency=` | XMR resting in open Haveno offers, hourly, back to November 2024. `currency` accepts `USD`, `EUR`, `AUD`, `GBP`. |
 | `GET /haveno/trades?limit=&currency=` | Recent executed Haveno trades with payment method, price and premium. |
+| `GET /news` | Releases and announcements from the Monero project's own blog, fetched server-side and cached 30 min. Only the `releases` and `announcements` categories; aggregators and newsletters are deliberately excluded, and links outside `getmonero.org` are dropped so a compromised feed cannot redirect visitors. Entries appear roughly every two weeks, so each carries its date. |
+| `GET /status` | One-line health verdict — chain and mining concentration — computed from the largest-pool share, the Nakamoto coefficient, 24h reorg depth and tip age. Returns **every threshold that produced it**: nothing in the protocol defines a pool share as high, so ours are published rather than implied. |
 | `GET /haveno/book` | The **live order book** for `XMR_USD`, both sides, as price levels with cumulative depth, offer count, payment methods and a `reversible` flag, each priced against spot. Also returns the amount-weighted average of each side and `round_trip_cost_pct`. Cached ~30 s. |
 
 **Discovery.** Beyond the documented API, the service answers the agent-discovery conventions crawlers

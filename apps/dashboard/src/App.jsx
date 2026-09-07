@@ -9,6 +9,7 @@ import BlocktimeChart from './BlocktimeChart'
 import SpreadChart from './SpreadChart'
 import RefreshBadge from './RefreshBadge'
 import StatusBanner from './StatusBanner'
+import NewsBanner from './NewsBanner'
 import SectionNav from './SectionNav'
 import FeeEstimator from './FeeEstimator'
 import FeeHistory from './FeeHistory'
@@ -143,6 +144,7 @@ export default function App() {
           <Documentation />
         </Suspense>
       ) : <>
+      <Guard><NewsBanner /></Guard>
       <Guard><StatusBanner /></Guard>
       <Guard><KPICards /></Guard>
 
