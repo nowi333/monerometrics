@@ -30,10 +30,12 @@ export default function RefreshBadge() {
 
   if (closed || at == null) return null
 
-  // Seize panneaux sondent en continu : en marche normale l'ecart est toujours
-  // de quelques secondes. Le chrono n'a d'interet que lorsque les rafraichissements
-  // cessent — onglet en arriere-plan, API muette, reseau coupe.
-  const fresh = secs < 20
+  // Les panneaux sondent toutes les 30 s et restent synchronises entre eux : ils
+  // se rafraichissent en grappe, puis rien pendant une trentaine de secondes. Un
+  // seuil sous cet intervalle ferait clignoter la pilule sans qu'il ne se passe
+  // rien. A 90 s elle ne s'allume que si le sondage a reellement cesse — onglet
+  // en arriere-plan, API muette, reseau coupe.
+  const fresh = secs < 90
   const clock = new Date(at).toLocaleTimeString(i18n.language || undefined,
     { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
