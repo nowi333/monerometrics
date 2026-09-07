@@ -5,10 +5,14 @@ on:
     branches: [main]
     paths:
       - 'apps/worker/**'
+      - 'apps/api/**'
+      - 'apps/dashboard/src/**'
       - '.github/workflows/tests.yml'
   pull_request:
     paths:
       - 'apps/worker/**'
+      - 'apps/api/**'
+      - 'apps/dashboard/src/**'
   workflow_dispatch:
 
 permissions:
@@ -27,3 +31,28 @@ jobs:
           python-version: '3.13'
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest tests/ -q
+
+  api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install pytest
+      - run: python -m pytest tests/ -q
+
+  dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test 'src/**/*.test.js'

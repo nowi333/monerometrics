@@ -16,6 +16,7 @@ import httpx
 import json
 import os
 import re
+from pricing import round_trip_cost
 from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse, SeriesStats, StatusSignal, StatusResponse, NewsItem, NewsResponse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
@@ -40,7 +41,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.16.0', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.16.2', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -661,7 +662,7 @@ async def price():
     if official and bid_avg:
         bid_avg_premium = round((bid_avg / official - 1) * 100, 2)
     if ask_avg and bid_avg:
-        round_trip = round((ask_avg / bid_avg - 1) * 100, 2)
+        round_trip = round_trip_cost(ask_avg, bid_avg)
 
     result = PriceResponse(
         official_usd=round(official, 2) if official else None,
@@ -739,7 +740,17 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
     last_bid_avg = next((p.bid_avg_premium_pct for p in reversed(points) if p.bid_avg_premium_pct is not None), None)
     round_trip = None
     if last_ask_avg is not None and last_bid_avg is not None:
-        round_trip = round((100 + last_ask_avg) / (100 + last_bid_avg) * 100 - 100, 2)
+        round_trip = round_trip_cost(100 + last_ask_avg, 100 + last_bid_avg)
+    # Valeurs et horodatages construits ensemble : deux comprehensions filtrees
+    # separement se desalignent des qu'un des deux filtres laisse passer autre chose.
+    rt_series = []
+    for p in points:
+        if p.ask_avg_premium_pct is None or p.bid_avg_premium_pct is None:
+            continue
+        v = round_trip_cost(100 + p.ask_avg_premium_pct, 100 + p.bid_avg_premium_pct)
+        if v is not None:
+            rt_series.append((p.timestamp_unix, v))
+
     max_points = 1500
     kept = points
     if len(kept) > max_points:
@@ -759,12 +770,7 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
         avg_bid_premium_pct=round(sum(bprem) / len(bprem), 2) if bprem else None,
         current_round_trip_pct=round_trip,
         avg_ask_premium_pct=round(sum(prem) / len(prem), 2) if prem else None,
-        stats=_series_stats(
-            [(100 + p.ask_avg_premium_pct) / (100 + p.bid_avg_premium_pct) * 100 - 100
-             for p in points
-             if p.ask_avg_premium_pct is not None and p.bid_avg_premium_pct is not None],
-            [p.timestamp_unix for p in points
-             if p.ask_avg_premium_pct is not None and p.bid_avg_premium_pct is not None]),
+        stats=_series_stats([v for _t, v in rt_series], [t for t, _v in rt_series]),
         haveno_vol_24h=float(rows[-1]['haveno_vol_24h']) if rows and rows[-1]['haveno_vol_24h'] is not None else None,
         samples=len(points),
     )
@@ -1030,7 +1036,7 @@ async def haveno_book():
         bid_offers=sum(l.offers for l in bids),
         ask_avg_premium_pct=round((ask_avg / official - 1) * 100, 2) if official and ask_avg else None,
         bid_avg_premium_pct=round((bid_avg / official - 1) * 100, 2) if official and bid_avg else None,
-        round_trip_cost_pct=round((ask_avg / bid_avg - 1) * 100, 2) if ask_avg and bid_avg else None,
+        round_trip_cost_pct=round_trip_cost(ask_avg, bid_avg),
     )
     _agg_cache_set('book', result)
     _last_book = result
