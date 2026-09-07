@@ -175,16 +175,8 @@ export default function ChainForkVisualizer({ hero = false }) {
     svg.attr('viewBox', `0 0 ${W} ${H}`)
 
     const g = svg.append('g')
-    const labels = g.append('g')
     const content = g.append('g')
     contentRef.current = content
-
-    labels.append('text').attr('class', 'row-label-c')
-      .attr('fill', 'var(--color-success)').attr('font-size', '11px').attr('font-weight', '600')
-      .text(t('fork.canonical'))
-    labels.append('text').attr('class', 'row-label-o')
-      .attr('fill', 'var(--color-danger)').attr('font-size', '11px').attr('font-weight', '600')
-      .text(t('fork.orphans'))
 
     const drawBlock = (block, y, isOrphan) => {
       const x = worldX(block.height)
@@ -371,10 +363,6 @@ export default function ChainForkVisualizer({ hero = false }) {
         const y = laneY(br.lane)
         for (const orphan of br.blocks) drawBlock(orphan, y, true)
       }
-
-      const labelX = Math.max(worldX(lo) + 4, visMinX + 6)
-      labels.select('.row-label-c').attr('x', labelX).attr('y', CANONICAL_Y - 8)
-      labels.select('.row-label-o').attr('x', labelX).attr('y', FORK_Y - 8).attr('opacity', hasOrphans ? 1 : 0)
     }
 
     const kMin = W / (MAX_VISIBLE * STEP)
@@ -418,7 +406,7 @@ export default function ChainForkVisualizer({ hero = false }) {
     }
     svg.call(zoom.transform, T)
     drawCulled(T)
-  }, [t, isFullscreen, hasOrphans, panelH, contentTop, contentBottom, fetchChunk])
+  }, [t, isFullscreen, panelH, contentTop, contentBottom, fetchChunk])
 
   useEffect(() => { render() }, [render, version])
 

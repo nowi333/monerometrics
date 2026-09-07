@@ -46,7 +46,7 @@ export default function StatusBanner() {
         </div>
         <div className="mt-3 pt-3 border-t flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] font-mono"
           style={{ borderColor: 'var(--color-border)' }}>
-          {['13em', '16.5em', '18em', '14em'].map(w => <span key={w}>{bar(w)}</span>)}
+          {['13em', '16.5em', '18em', '14em'].map((w, i) => <span key={i}>{bar(w)}</span>)}
         </div>
       </div>,
       'var(--color-border-strong)',

@@ -80,7 +80,6 @@ i18n
           'charts.spreadRoundTrip': 'Round trip',
           'haveno.book.title': 'Order book depth · XMR/USD',
           'haveno.book.lead': 'Live offers, cumulative volume, priced against spot',
-          'haveno.book.age': 'read {{age}} ago',
           'haveno.book.stale': 'upstream feed down, last book from {{age}} ago',
           'haveno.book.empty': 'Order book unavailable',
           'haveno.book.bids': 'Bids · you sell XMR',
@@ -138,7 +137,6 @@ i18n
 
 
           'fork.title': 'Chain visualizer',
-          'fork.canonical': 'Canonical chain',
           'fork.orphans': 'Orphan blocks',
           'fork.branchDepth': 'competing branch, {{count}} blocks',
           'fork.legendTitle': 'Dot = how the pool was established',
@@ -480,7 +478,6 @@ i18n
           'charts.spreadRoundTrip': 'Aller-retour',
           'haveno.book.title': 'Profondeur du carnet · XMR/USD',
           'haveno.book.lead': 'Offres en direct, volume cumulé, comparé au spot',
-          'haveno.book.age': 'relevé il y a {{age}}',
           'haveno.book.stale': 'flux amont coupé, dernier carnet d\u2019il y a {{age}}',
           'haveno.book.empty': 'Carnet indisponible',
           'haveno.book.bids': 'Achats · vous vendez du XMR',
@@ -538,7 +535,6 @@ i18n
 
 
           'fork.title': 'Visualiseur de chain',
-          'fork.canonical': 'Chaîne canonique',
           'fork.orphans': 'Blocs orphelins',
           'fork.branchDepth': 'branche concurrente, {{count}} blocs',
           'fork.legendTitle': 'Puce = comment le pool a été établi',
@@ -880,7 +876,6 @@ i18n
           'charts.spreadRoundTrip': 'Ida y vuelta',
           'haveno.book.title': 'Profundidad del libro · XMR/USD',
           'haveno.book.lead': 'Ofertas en vivo, volumen acumulado, frente al spot',
-          'haveno.book.age': 'leído hace {{age}}',
           'haveno.book.stale': 'flujo de origen caído, último libro de hace {{age}}',
           'haveno.book.empty': 'Libro no disponible',
           'haveno.book.bids': 'Compras · tú vendes XMR',
@@ -938,7 +933,6 @@ i18n
 
 
           'fork.title': 'Visualizador de cadena',
-          'fork.canonical': 'Cadena canónica',
           'fork.orphans': 'Bloques huérfanos',
           'fork.branchDepth': 'rama competidora, {{count}} bloques',
           'fork.legendTitle': 'Punto = cómo se estableció la pool',
