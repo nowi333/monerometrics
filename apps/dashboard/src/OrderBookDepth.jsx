@@ -16,6 +16,9 @@ const age = (s) => s == null ? null : (s < 60 ? `${s}s` : s < 3600 ? `${Math.flo
 const xmr = (v) => v == null ? '—' : `${v.toFixed(2)} XMR`
 const usd = (v) => v == null ? '—' : `$${v.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`
 
+// Greffons locaux, passes au graphique plutot qu'enregistres globalement :
+// `Chart.register` les appliquait a tous les graphiques de la page, et le
+// repere « spot » se dessinait jusque sur la courbe de hashrate.
 const spotLine = {
   id: 'spotLine',
   afterDatasetsDraw(chart) {
@@ -65,7 +68,6 @@ const crosshair = {
     ctx.restore()
   },
 }
-Chart.register(spotLine, crosshair)
 
 export default function OrderBookDepth() {
   const { t } = useTranslation()
@@ -219,7 +221,7 @@ export default function OrderBookDepth() {
         onTouchMove={(e) => track(e.touches[0].clientX, e.currentTarget.getBoundingClientRect())}
         onTouchEnd={clear}
       >
-        <Line ref={chartRef} data={chartData} options={options} />
+        <Line ref={chartRef} data={chartData} options={options} plugins={[spotLine, crosshair]} />
         {hover && (hover.bid || hover.ask) && (
           <div
             className="absolute top-1 pointer-events-none rounded-md border px-2.5 py-2 text-xs shadow-lg"

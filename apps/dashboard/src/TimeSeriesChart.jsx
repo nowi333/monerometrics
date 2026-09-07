@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { tooltipPlugin } from './chartTooltip'
 import { Line } from 'react-chartjs-2'
 import {
   Chart, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler,
@@ -239,9 +240,11 @@ export default function TimeSeriesChart({
 
       crosshair: { format },
       tooltip: {
+        ...tooltipPlugin,
         callbacks: {
           title: (items) => items.length ? (points[items[0].dataIndex]?.full ?? '') : '',
-          label: (ctx) => `${ctx.dataset.label}: ${format(ctx.parsed.y)}`,
+          // Deux entrees : l'intitule passe au-dessus, la valeur en dessous.
+          label: (ctx) => [ctx.dataset.label, format(ctx.parsed.y)],
         },
       },
       zoom: {
