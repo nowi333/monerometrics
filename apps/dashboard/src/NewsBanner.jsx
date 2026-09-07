@@ -45,7 +45,7 @@ export default function NewsBanner() {
 
   return (
     <div
-      className="mt-5 border-b overflow-hidden"
+      className="mt-5 border-t border-b overflow-hidden"
       style={{
         background: 'color-mix(in srgb, var(--color-success) 7%, var(--color-card))',
         borderColor: 'color-mix(in srgb, var(--color-success) 28%, var(--color-border))',
