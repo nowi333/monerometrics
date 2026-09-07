@@ -11,6 +11,7 @@ const SECTIONS = ['consensus', 'mining', 'network', 'market']
 export default function SectionNav({ view }) {
   const { t } = useTranslation()
   const [active, setActive] = useState(null)
+  const [hovered, setHovered] = useState(null)
   // Destination d'un clic en cours. Tant qu'elle est posee, l'observateur se
   // tait : sans cela, les sections traversees pendant le defilement
   // deplaceraient le trait au passage avant qu'il n'arrive a bon port.
@@ -77,10 +78,19 @@ export default function SectionNav({ view }) {
             key={id}
             href={`#${id}`}
             onClick={e => go(e, id)}
+            onMouseEnter={() => setHovered(id)}
+            onMouseLeave={() => setHovered(prev => (prev === id ? null : prev))}
             className="px-3 py-2.5 text-xs whitespace-nowrap border-b-2 transition-colors"
             style={{
               color: active === id ? 'var(--color-text)' : 'var(--color-dim)',
-              borderColor: active === id ? 'var(--color-accent)' : 'transparent',
+              // Le survol s'annonce dans le meme orange, simplement eclairci :
+              // la section ou l'on est garde le trait plein, celle que l'on
+              // pointe n'en recoit qu'une esquisse.
+              borderColor: active === id
+                ? 'var(--color-accent)'
+                : hovered === id
+                  ? 'color-mix(in srgb, var(--color-accent) 45%, transparent)'
+                  : 'transparent',
             }}
           >{t(`section.${id}`)}</a>
         ))}
