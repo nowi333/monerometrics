@@ -27,6 +27,7 @@ export default function HavenoMethods() {
       status={status}
       emptyText={t('haveno.methods.empty')}
       stateHeight={200}
+      apiPath={`/haveno/methods?window=${window}&currency=USD`}
       control={
         <select value={window} onChange={e => setWindow(e.target.value)}
           className="bg-transparent border rounded px-3 py-1 text-sm shrink-0"

@@ -65,6 +65,7 @@ export default function OrderBookDepth() {
       }
       status={status}
       emptyText={t('haveno.book.empty')}
+      apiPath="/haveno/book"
     >{inner}</Panel>
   )
 

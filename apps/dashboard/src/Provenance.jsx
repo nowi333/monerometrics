@@ -30,6 +30,7 @@ export default function Provenance() {
       status={status}
       stateVariant="chart"
       stateHeight={140}
+      apiPath={`/chain/provenance?window=${window}`}
       control={
         <select value={window} onChange={e => setWindow(e.target.value)}
           className="bg-transparent border rounded px-3 py-1.5 text-sm cursor-pointer"

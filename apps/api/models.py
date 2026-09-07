@@ -60,29 +60,6 @@ class ReorgStatsWindow(BaseModel):
 class ReorgStatsResponse(BaseModel):
     windows: list[ReorgStatsWindow]
 
-class PoolShare(BaseModel):
-    pool: str
-    block_count: int
-    percentage: float
-
-class PoolDistributionResponse(BaseModel):
-    window: str
-    total_blocks: int
-    top_pool: Optional[str] = None
-    top_pool_share: float = 0.0
-    nakamoto_coefficient: int = 0
-    distribution: list[PoolShare]
-
-class PoolSource(BaseModel):
-    pool: str
-    url: str
-    ok: bool
-    blocks: int
-    checked_at: Optional[str] = None
-
-class PoolSourcesResponse(BaseModel):
-    sources: list[PoolSource]
-
 class SeriesStats(BaseModel):
     """Where the latest value sits inside the window being displayed.
 
@@ -106,6 +83,30 @@ class SeriesStats(BaseModel):
     maximum: Optional[float] = None
     change_pct: Optional[float] = None
 
+
+class PoolShare(BaseModel):
+    pool: str
+    block_count: int
+    percentage: float
+
+class PoolDistributionResponse(BaseModel):
+    window: str
+    total_blocks: int
+    top_pool: Optional[str] = None
+    top_pool_share: float = 0.0
+    nakamoto_coefficient: int = 0
+    distribution: list[PoolShare]
+    stats: Optional[SeriesStats] = None
+
+class PoolSource(BaseModel):
+    pool: str
+    url: str
+    ok: bool
+    blocks: int
+    checked_at: Optional[str] = None
+
+class PoolSourcesResponse(BaseModel):
+    sources: list[PoolSource]
 
 class MempoolPoint(BaseModel):
     bucket: datetime
@@ -402,7 +403,33 @@ class FeeHistoryResponse(BaseModel):
     window: str
     reference_bytes: int
     points: List[FeePoint] = []
+    stats: Optional[SeriesStats] = None
     samples: int = 0
+
+
+class StatusSignal(BaseModel):
+    """One reading behind the verdict, with the threshold that qualified it."""
+    key: str
+    label: str
+    value: Optional[float] = None
+    display: Optional[str] = None
+    level: str = 'ok'
+    threshold: Optional[str] = None
+
+
+class StatusResponse(BaseModel):
+    """A one-line answer to the only question the dashboard exists to settle:
+    is the chain healthy right now, and is it decentralised right now.
+
+    `level` is the worst of the signals: ok, watch, or alert. Every threshold
+    that produced it is returned alongside, because a verdict nobody can audit
+    is an opinion. Thresholds are ours and stated, not inherited from anywhere.
+    """
+    level: str
+    chain: str
+    concentration: str
+    signals: List[StatusSignal] = []
+    generated_unix: int
 
 
 class BookLevel(BaseModel):

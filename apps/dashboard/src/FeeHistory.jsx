@@ -30,6 +30,6 @@ export default function FeeHistory() {
       }}
       format={(v) => `${Math.round(v)} nXMR`}
       emptyText={t('fees.collecting')}
-    />
+      apiPath={(w) => `/network/fees/history?window=${w}`}    />
   )
 }

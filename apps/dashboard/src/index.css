@@ -6,9 +6,13 @@
 }
 
 :root {
-  --color-bg: #0b0d12;
-  --color-bg-elevated: #161922;
-  --color-card: #11141b;
+  /* L'ecart entre le fond et les cartes etait de six unites, sans ombre : la
+     page se lisait comme un aplat uniforme. Fond assombri, cartes eclaircies,
+     et une ombre discrete pour poser les cartes sur la surface. */
+  --color-bg: #0a0c12;
+  --color-bg-elevated: #1a1f2a;
+  --color-card: #151922;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .16);
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-strong: rgba(255, 255, 255, 0.16);
   --color-text: #e6e8eb;
@@ -34,6 +38,7 @@
   --color-bg: #e8eaf0;
   --color-bg-elevated: #f2f4f8;
   --color-card: #ffffff;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, .06), 0 8px 24px rgba(0, 0, 0, .05);
   --color-border: rgba(0, 0, 0, 0.14);
   --color-border-strong: rgba(0, 0, 0, 0.26);
   --color-text: #0a0c11;
@@ -260,3 +265,10 @@ button:not(:disabled),
 .mm-lang-opt { transition: background 0.15s ease; }
 .mm-lang-opt:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
 .mm-lang-opt.is-active { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+
+/* Ombre portee sur les cartes de panneau, jamais sur les elements imbriques :
+   deux niveaux d'ombre donnent un rendu de gabarit. */
+.rounded-lg.border { box-shadow: var(--shadow-card); }
+.rounded-lg.border .rounded-lg.border,
+.rounded-lg.border .rounded,
+.mm-node { box-shadow: none; }

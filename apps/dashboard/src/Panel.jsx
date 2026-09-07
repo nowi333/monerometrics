@@ -1,5 +1,6 @@
 import InfoTooltip from './InfoTooltip'
 import PanelState from './PanelState'
+import ApiCall from './ApiCall'
 
 /**
  * Coquille commune a tous les panneaux : carte, en-tete et etat de chargement.
@@ -9,7 +10,7 @@ import PanelState from './PanelState'
 export default function Panel({
   title, info = null, subtitle = null, control = null,
   status = null, emptyText = null, stateHeight = 240, stateVariant = 'block',
-  footer = null, className = '', children,
+  footer = null, apiPath = null, className = '', children,
 }) {
   const showState = status != null && status !== 'ok'
   return (
@@ -32,6 +33,7 @@ export default function Panel({
         ? <PanelState status={status} height={stateHeight} variant={stateVariant} emptyText={emptyText} />
         : children}
       {!showState && footer}
+      {!showState && <ApiCall path={apiPath} />}
     </div>
   )
 }

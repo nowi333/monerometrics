@@ -28,6 +28,6 @@ export default function HavenoLiquidity() {
       format={(v) => `${Math.round(v)} XMR`}
       currentValue={(d) => d.current_liquidity}
       context={(d) => <ContextStrip stats={d.stats} format={(v) => `${Math.round(v)} XMR`} />}
-    />
+      apiPath={(w) => `/haveno/liquidity?window=${w}&currency=USD`}    />
   )
 }

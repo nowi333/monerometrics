@@ -109,6 +109,13 @@ server {
         try_files $uri $uri/ =404;
     }
 
+    # Vue documentation du SPA. Une regle ciblee plutot qu'un repli general vers
+    # index.html : ce dernier transformerait toute URL inexistante en 200, ce qui
+    # trompe les moteurs et les agents autant que les visiteurs.
+    location = /docs {
+        try_files /index.html =404;
+    }
+
     location = /.well-known/api-catalog {
         default_type application/linkset+json;
     }
