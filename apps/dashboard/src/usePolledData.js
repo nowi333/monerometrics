@@ -7,7 +7,7 @@ import { markRefreshed } from './refreshStore'
 const RETRIES = [1200, 3500]
 const JITTER_MS = 700
 
-export function usePolledData(fetcher, ready, deps = [], interval = 30000) {
+export function usePolledData(fetcher, ready, deps = [], interval = 30000, jitterMs = JITTER_MS) {
   const [data, setData] = useState(null)
   const [status, setStatus] = useState('loading')
   // Horodatage de la derniere reponse exploitable : chaque panneau peut ainsi
@@ -63,8 +63,9 @@ export function usePolledData(fetcher, ready, deps = [], interval = 30000) {
 
     // Seize panneaux qui demarrent ensemble envoyaient dix-sept requetes dans la
     // meme seconde. Un decalage aleatoire etale la rafale sans retarder
-    // perceptiblement l'affichage.
-    firstId = setTimeout(() => load(), Math.random() * JITTER_MS)
+    // perceptiblement l'affichage. Les deux bandeaux de tete en sont dispenses :
+    // ils sont les premiers vus, et deux requetes de plus ne font pas la rafale.
+    firstId = setTimeout(() => load(), jitterMs ? Math.random() * jitterMs : 0)
     start()
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
@@ -75,7 +76,7 @@ export function usePolledData(fetcher, ready, deps = [], interval = 30000) {
       document.removeEventListener('visibilitychange', onVisibility)
     }
 
-  }, [interval, ...deps])
+  }, [interval, jitterMs, ...deps])
 
   return { data, status, updatedAt }
 }

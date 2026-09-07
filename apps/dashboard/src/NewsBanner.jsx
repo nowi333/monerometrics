@@ -21,7 +21,21 @@ export default function NewsBanner() {
     d => d && d.items && d.items.length > 0,
     [],
     1800000,
+    0,
   )
+  // La bande garde sa place pendant le chargement : sans cela elle apparaissait
+  // apres le reste et poussait toute la page vers le bas.
+  const band = (inner) => (
+    <div
+      className="mt-5 border-t border-b overflow-hidden"
+      style={{
+        background: 'color-mix(in srgb, var(--color-success) 7%, var(--color-card))',
+        borderColor: 'color-mix(in srgb, var(--color-success) 28%, var(--color-border))',
+      }}
+    >{inner}</div>
+  )
+
+  if (status === 'loading') return band(<div className="py-2 text-[13px] leading-6">&nbsp;</div>)
   if (status !== 'ok') return null
   const items = data.items
   if (!items.length) return null
@@ -43,14 +57,7 @@ export default function NewsBanner() {
     </a>
   )
 
-  return (
-    <div
-      className="mt-5 border-t border-b overflow-hidden"
-      style={{
-        background: 'color-mix(in srgb, var(--color-success) 7%, var(--color-card))',
-        borderColor: 'color-mix(in srgb, var(--color-success) 28%, var(--color-border))',
-      }}
-    >
+  return band(
       <div className="mm-ticker py-2 overflow-hidden">
         <div
           className="mm-ticker-track"
@@ -60,8 +67,6 @@ export default function NewsBanner() {
           {items.map((it, i) => entry(it, `a${i}`))}
           {items.map((it, i) => entry(it, `b${i}`))}
         </div>
-      </div>
-
-    </div>
+      </div>,
   )
 }
