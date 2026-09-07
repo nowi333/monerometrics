@@ -40,10 +40,14 @@ export default function StatusBanner() {
           {t(`status.chain.${data.chain}`)}
         </span>
         <span style={{ color: 'var(--color-border-strong)' }}>·</span>
-        <span className="text-lg sm:text-xl font-medium" style={{ color: COLOR[data.concentration] }}>
-          {t(`status.conc.${data.concentration}`)}
+        {/* Le point d'interrogation reste solidaire du verdict : seul, il
+            tombait sur une ligne a lui des que la largeur manquait. */}
+        <span className="inline-flex items-center gap-2">
+          <span className="text-lg sm:text-xl font-medium" style={{ color: COLOR[data.concentration] }}>
+            {t(`status.conc.${data.concentration}`)}
+          </span>
+          <InfoTooltip text={`${t('status.info')}\n\n${seuils}`} size={14} />
         </span>
-        <InfoTooltip text={`${t('status.info')}\n\n${seuils}`} size={14} />
       </div>
       <div className="mt-3 pt-3 border-t flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] font-mono"
         style={{ color: 'var(--color-dim)', borderColor: `color-mix(in srgb, ${tone} 18%, var(--color-border))` }}>
