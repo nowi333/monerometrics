@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Line } from 'react-chartjs-2'
 import { Chart, LineElement, PointElement, LinearScale, Tooltip, Filler } from 'chart.js'
@@ -12,6 +13,7 @@ const ASK = '#f59e0b'
 const pct = (v) => v == null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(2)}%`
 const age = (s) => s == null ? null : (s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h`)
 const xmr = (v) => v == null ? '—' : `${v.toFixed(2)} XMR`
+const usd = (v) => v == null ? '—' : `$${v.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`
 
 const spotLine = {
   id: 'spotLine',
@@ -36,10 +38,38 @@ const spotLine = {
     ctx.restore()
   },
 }
-Chart.register(spotLine)
+
+// Le survol est lu au pixel, pas au point le plus proche : la courbe est une
+// marche a paliers rares, et se caler sur ses points fait sauter la lecture
+// d'un palier a l'autre au lieu de suivre le curseur.
+const crosshair = {
+  id: 'obCrosshair',
+  afterDatasetsDraw(chart) {
+    const { ctx, chartArea } = chart
+    const x = chart.$obHoverX
+    if (!chartArea || x == null || x < chartArea.left || x > chartArea.right) return
+    ctx.save()
+    ctx.strokeStyle = 'rgba(139,144,153,0.45)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(x, chartArea.top)
+    ctx.lineTo(x, chartArea.bottom)
+    ctx.stroke()
+    for (const dot of chart.$obHoverDots || []) {
+      ctx.beginPath()
+      ctx.arc(x, dot.y, 3.5, 0, Math.PI * 2)
+      ctx.fillStyle = dot.color
+      ctx.fill()
+    }
+    ctx.restore()
+  },
+}
+Chart.register(spotLine, crosshair)
 
 export default function OrderBookDepth() {
   const { t } = useTranslation()
+  const chartRef = useRef(null)
+  const [hover, setHover] = useState(null)
   const { data, status } = usePolledData(
     () => api.havenoBook(),
     d => d && ((d.asks && d.asks.length) || (d.bids && d.bids.length)),
@@ -97,6 +127,19 @@ export default function OrderBookDepth() {
   const bids = staircase(data.bids, 'right')
   const asks = staircase(data.asks, 'left')
 
+  const usable = (side) => (side || []).filter(l => l.premium_pct != null)
+
+  // Profondeur exacte au prix survole, en sommant les paliers atteints, plutot
+  // qu'en interpolant entre deux points de la courbe.
+  const reach = (levels, direction, p) => {
+    const hit = levels.filter(l => direction === 'up' ? l.premium_pct <= p : l.premium_pct >= p)
+    if (!hit.length) return null
+    return {
+      cumulative: Math.max(...hit.map(l => l.cumulative)),
+      offers: hit.reduce((n, l) => n + (l.offers || 0), 0),
+    }
+  }
+
   const chartData = {
     datasets: [
       {
@@ -106,7 +149,7 @@ export default function OrderBookDepth() {
         backgroundColor: 'rgba(56,189,248,0.14)',
         borderWidth: 1.8,
         pointRadius: 0,
-        pointHoverRadius: 4,
+        pointHoverRadius: 0,
         fill: 'origin',
       },
       {
@@ -116,7 +159,7 @@ export default function OrderBookDepth() {
         backgroundColor: 'rgba(245,158,11,0.14)',
         borderWidth: 1.8,
         pointRadius: 0,
-        pointHoverRadius: 4,
+        pointHoverRadius: 0,
         fill: 'origin',
       },
     ],
@@ -126,15 +169,10 @@ export default function OrderBookDepth() {
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
-    interaction: { mode: 'nearest', intersect: false },
+    events: [],
     plugins: {
       legend: { display: false },
-      tooltip: {
-        callbacks: {
-          title: (items) => pct(items[0].parsed.x),
-          label: (item) => `${item.dataset.label} · ${xmr(item.parsed.y)}`,
-        },
-      },
+      tooltip: { enabled: false },
     },
     scales: {
       x: {
@@ -152,6 +190,52 @@ export default function OrderBookDepth() {
     },
   }
 
+  const track = (clientX, box) => {
+    const chart = chartRef.current
+    if (!chart?.chartArea) return
+    const area = chart.chartArea
+    const px = Math.min(Math.max(clientX - box.left, area.left), area.right)
+    const p = chart.scales.x.getValueForPixel(px)
+    const b = reach(usable(data.bids), 'down', p)
+    const a = reach(usable(data.asks), 'up', p)
+    const dots = []
+    if (b) dots.push({ y: chart.scales.y.getPixelForValue(b.cumulative), color: BID })
+    if (a) dots.push({ y: chart.scales.y.getPixelForValue(a.cumulative), color: ASK })
+    chart.$obHoverX = px
+    chart.$obHoverDots = dots
+    chart.draw()
+    setHover({
+      px,
+      tipLeft: Math.min(Math.max(px > box.width - 210 ? px - 206 : px + 10, 2), Math.max(box.width - 198, 2)),
+      premium: p,
+      price: data.official_usd != null ? data.official_usd * (1 + p / 100) : null,
+      bid: b,
+      ask: a,
+    })
+  }
+
+  const clear = () => {
+    const chart = chartRef.current
+    if (chart) {
+      chart.$obHoverX = null
+      chart.$obHoverDots = []
+      chart.draw()
+    }
+    setHover(null)
+  }
+
+  const row = (label, color, hit) => hit && (
+    <div className="flex items-start gap-2">
+      <span className="inline-block w-2 h-2 rounded-full shrink-0 mt-1" style={{ background: color }} />
+      <span className="min-w-0">
+        <span className="block leading-tight" style={{ color: 'var(--color-dim)' }}>{label}</span>
+        <span className="block font-mono leading-tight" style={{ color: 'var(--color-text)' }}>
+          {xmr(hit.cumulative)} · {t('haveno.book.tipOffers', { n: hit.offers })}
+        </span>
+      </span>
+    </div>
+  )
+
   const stat = (label, value, color) => (
     <div>
       <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-dim)' }}>{label}</div>
@@ -161,8 +245,37 @@ export default function OrderBookDepth() {
 
   return wrap(
     <>
-      <div className="h-56 sm:h-64">
-        <Line data={chartData} options={options} />
+      <div
+        className="h-56 sm:h-64 relative"
+        onMouseMove={(e) => track(e.clientX, e.currentTarget.getBoundingClientRect())}
+        onMouseLeave={clear}
+        onTouchStart={(e) => track(e.touches[0].clientX, e.currentTarget.getBoundingClientRect())}
+        onTouchMove={(e) => track(e.touches[0].clientX, e.currentTarget.getBoundingClientRect())}
+        onTouchEnd={clear}
+      >
+        <Line ref={chartRef} data={chartData} options={options} />
+        {hover && (hover.bid || hover.ask) && (
+          <div
+            className="absolute top-1 pointer-events-none rounded-md border px-2.5 py-2 text-xs shadow-lg"
+            style={{
+              left: `${Math.round(hover.tipLeft)}px`,
+              background: 'var(--color-card)',
+              borderColor: 'var(--color-border)',
+              width: '196px',
+            }}
+          >
+            <div className="font-mono mb-1.5" style={{ color: 'var(--color-text)' }}>
+              {pct(hover.premium)}
+              {hover.price != null && (
+                <span className="ml-2" style={{ color: 'var(--color-dim)' }}>{usd(hover.price)}</span>
+              )}
+            </div>
+            <div className="space-y-1">
+              {row(t('haveno.book.bids'), BID, hover.bid)}
+              {row(t('haveno.book.asks'), ASK, hover.ask)}
+            </div>
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
         {stat(t('haveno.book.sellSide'), `${xmr(data.bid_amount)} · ${data.bid_offers}`, BID)}
