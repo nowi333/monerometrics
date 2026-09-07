@@ -33,7 +33,7 @@ export default function OrphansTable() {
 
   const wrap = (inner) => (
     <Panel title={t('orphans.title')} info={t('info.orphans')}
-      status={status} stateVariant="table" stateHeight={140}>{inner}</Panel>
+      status={status} stateVariant="table" stateHeight={140} apiPath="/orphans/recent?limit=20">{inner}</Panel>
   )
 
   if (status !== 'ok') return wrap(null)

@@ -61,7 +61,7 @@ const countLanes = (map) => {
   return laneEnd.length
 }
 
-export default function ChainForkVisualizer() {
+export default function ChainForkVisualizer({ hero = false }) {
   const { t } = useTranslation()
   const svgRef = useRef(null)
   const containerRef = useRef(null)
@@ -152,7 +152,10 @@ export default function ChainForkVisualizer() {
   const contentBottom = hasOrphans
     ? FORK_Y + Math.max(0, stats.lanes - 1) * LANE_H + BLOCK_H + 14
     : CANONICAL_Y + BLOCK_H + 42
-  const panelH = Math.max(210, contentBottom - contentTop + 48)
+  // En mode heros le panneau respire davantage : c'est l'objet le plus
+  // distinctif du site, et quinze cartes de meme hauteur ne disent pas au
+  // visiteur ce qui compte.
+  const panelH = Math.max(hero ? 420 : 210, contentBottom - contentTop + 48)
 
   const render = useCallback(() => {
     const node = svgRef.current
@@ -506,7 +509,12 @@ export default function ChainForkVisualizer() {
     <div
       ref={containerRef}
       className="rounded-lg border p-4 sm:p-6 mb-4"
-      style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
+      style={{
+        background: 'var(--color-card)',
+        borderColor: hero
+          ? 'color-mix(in srgb, var(--color-accent) 26%, var(--color-border))'
+          : 'var(--color-border)',
+      }}
     >
       <div className="flex justify-between items-center mb-4 flex-wrap gap-2 gap-y-3">
         <div>

@@ -7,6 +7,7 @@ import {
 import zoomPlugin from 'chartjs-plugin-zoom'
 import InfoTooltip from './InfoTooltip'
 import PanelState from './PanelState'
+import ApiCall from './ApiCall'
 import { usePolledData } from './usePolledData'
 
 Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler, zoomPlugin)
@@ -66,7 +67,7 @@ export default function TimeSeriesChart({
   title, infoText, color, windows, defaultWindow,
   fetcher, mapPoints, format, currentValue, fill = true, referenceY = null, yMax = null, emptyText = null,
   extraSeries = null, seriesLabel = null, footer = null, bandFill = false, headlineExtra = null, subtitle = null, showLegend = null,
-  headlineClass = 'text-2xl', context = null,
+  headlineClass = 'text-2xl', context = null, apiPath = null,
 }) {
   const { t } = useTranslation()
   const [window, setWindow] = useState(defaultWindow)
@@ -290,6 +291,7 @@ export default function TimeSeriesChart({
           <span>{t('charts.max')} <span style={{ color: 'var(--color-text-secondary)' }}>{format(stats.max)}</span></span>
         </div>
       )}
+      {apiPath ? <ApiCall path={typeof apiPath === 'function' ? apiPath(window) : apiPath} /> : null}
     </>
   )
 }

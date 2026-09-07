@@ -14,7 +14,7 @@ import httpx
 import json
 import os
 import re
-from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse, SeriesStats
+from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse, SeriesStats, StatusSignal, StatusResponse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
 
@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.13.2', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.14.1', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -216,7 +216,47 @@ async def pools_distribution(window: str=Query('24h', regex='^(1h|6h|24h|48h|7d)
             nakamoto += 1
             if cumulative * 100.0 / total > 50:
                 break
-    response = PoolDistributionResponse(window=window, total_blocks=total, top_pool=top_pool, top_pool_share=top_pool_share, nakamoto_coefficient=nakamoto, distribution=distribution)
+    # Le percentile a besoin d'une serie, pas d'un instantane : on recalcule la
+    # part du plus gros pool jour par jour sur un an. Le denominateur inclut les
+    # blocs non attribues, exactement comme la valeur courante, sinon les deux
+    # chiffres ne seraient pas comparables.
+    daily = []
+    try:
+        async with pool_obj.acquire() as conn:
+            drows = await conn.fetch('''
+                WITH per_pool AS (
+                    SELECT date_trunc('day', timestamp_human) AS day,
+                           COALESCE(miner_pool, 'unknown') AS p,
+                           COUNT(*) AS n
+                    FROM blocks
+                    WHERE is_canonical = true
+                      AND timestamp_human >= NOW() - INTERVAL '365 days'
+                    GROUP BY 1, 2
+                ),
+                totals AS (
+                    SELECT day, SUM(n) AS all_blocks
+                    FROM per_pool GROUP BY day
+                ),
+                named AS (
+                    SELECT day, MAX(n) AS top_named
+                    FROM per_pool WHERE p <> 'unknown' GROUP BY day
+                )
+                SELECT t.day, n.top_named * 100.0 / t.all_blocks AS share
+                FROM totals t JOIN named n USING (day)
+                WHERE t.all_blocks > 0
+                ORDER BY t.day
+            ''')
+        daily = [(int(r['day'].timestamp()), float(r['share'])) for r in drows]
+    except Exception as e:
+        log.warning(f'pool daily series failed: {e}')
+
+    stats = None
+    if daily:
+        vals = [v for _t, v in daily]
+        vals[-1] = top_pool_share
+        stats = _series_stats(vals, [t for t, _v in daily])
+
+    response = PoolDistributionResponse(window=window, total_blocks=total, top_pool=top_pool, top_pool_share=top_pool_share, nakamoto_coefficient=nakamoto, distribution=distribution, stats=stats)
     _agg_cache_set(f'pools:{window}', response)
     return response
 
@@ -500,7 +540,10 @@ async def network_fees_history(window: str=Query('30d', regex='^(24h|7d|30d|90d|
     if len(points) > 1500:
         step = len(points) / 1500
         points = [points[int(i * step)] for i in range(1500)]
-    response = FeeHistoryResponse(window=window, reference_bytes=FEE_REFERENCE_BYTES, points=points, samples=total)
+    response = FeeHistoryResponse(
+        window=window, reference_bytes=FEE_REFERENCE_BYTES, points=points, samples=total,
+        stats=_series_stats([p.normal_xmr for p in points],
+                            [p.timestamp_unix for p in points]))
     _agg_cache_set(f'fees:{window}', response)
     return response
 
@@ -517,6 +560,11 @@ def _series_stats(values, timestamps=None, min_samples=24):
         return None
     current = vals[-1]
     ordered = sorted(vals)
+    # Serie plate : un percentile et un ecart a la normale n'y veulent rien dire.
+    # C'est le cas du frais de base, fige depuis des annees — l'infobulle du
+    # panneau explique pourquoi, la bande de contexte n'a rien a ajouter.
+    if ordered[0] == ordered[-1]:
+        return None
     med = statistics.median(ordered)
     mad = statistics.median([abs(v - med) for v in vals])
     span = None
@@ -757,6 +805,76 @@ def _with_age(book, stale=False):
         'age_seconds': max(0, int(time.time()) - book.observed_at),
         'stale': stale,
     })
+
+
+# Seuils du verdict. Ils sont ici, en clair, parce qu'un verdict dont personne ne
+# peut auditer les seuils n'est pas une mesure mais une opinion. Ce sont les
+# notres : rien dans le protocole Monero ne definit une part de pool « elevee ».
+STATUS_THRESHOLDS = {
+    'top_pool_watch': 33.0,   # un tiers des blocs : au-dela, un pool pese sur le consensus
+    'top_pool_alert': 50.0,   # majorite : c'est la definition du risque des 51 %
+    'nakamoto_watch': 3,      # trois entites suffisent a s'entendre
+    'nakamoto_alert': 2,      # deux suffisent
+    'reorg_depth_watch': 2,   # au-dela d'un bloc, les confirmations rapides deviennent fragiles
+    'reorg_depth_alert': 5,
+    'stale_tip_seconds': 1800,  # aucun bloc depuis 30 min : le noeud ou le reseau decroche
+}
+_LEVEL_RANK = {'ok': 0, 'watch': 1, 'alert': 2}
+
+
+@app.get('/status', response_model=StatusResponse)
+async def status():
+    """One-line health verdict, with every threshold that produced it."""
+    cached = _agg_cache_get('status', 30)
+    if cached is not None:
+        return cached
+
+    pools = await pools_distribution('24h')
+    stats = await reorgs_stats()
+    net = await network_info()
+    T = STATUS_THRESHOLDS
+    signals = []
+
+    def add(key, label, value, display, level, threshold):
+        signals.append(StatusSignal(key=key, label=label, value=value,
+                                    display=display, level=level, threshold=threshold))
+
+    share = pools.top_pool_share or 0.0
+    lvl = 'alert' if share >= T['top_pool_alert'] else 'watch' if share >= T['top_pool_watch'] else 'ok'
+    add('top_pool', 'largest pool', round(share, 2), f'{share:.1f}%', lvl,
+        f">= {T['top_pool_watch']}% watch, >= {T['top_pool_alert']}% alert")
+
+    nak = pools.nakamoto_coefficient or 0
+    lvl = 'alert' if nak and nak <= T['nakamoto_alert'] else 'watch' if nak and nak <= T['nakamoto_watch'] else 'ok'
+    add('nakamoto', 'nakamoto coefficient', nak, str(nak), lvl,
+        f"<= {T['nakamoto_watch']} watch, <= {T['nakamoto_alert']} alert")
+
+    w24 = next((w for w in stats.windows if w.window == '24h'), None)
+    depth = (w24.max_depth or 0) if w24 else 0
+    count = (w24.count or 0) if w24 else 0
+    lvl = 'alert' if depth >= T['reorg_depth_alert'] else 'watch' if depth >= T['reorg_depth_watch'] else 'ok'
+    add('reorgs', 'reorganisations, 24h', count,
+        f'{count} · max depth {depth}' if count else 'none', lvl,
+        f"depth >= {T['reorg_depth_watch']} watch, >= {T['reorg_depth_alert']} alert")
+
+    age = net.last_block_age_seconds or 0
+    lvl = 'alert' if age >= T['stale_tip_seconds'] else 'ok'
+    add('tip', 'last block', age, f'{age}s ago', lvl,
+        f">= {T['stale_tip_seconds']}s alert")
+
+    chain_sigs = [x for x in signals if x.key in ('reorgs', 'tip')]
+    conc_sigs = [x for x in signals if x.key in ('top_pool', 'nakamoto')]
+    worst = lambda xs: max((x.level for x in xs), key=lambda l: _LEVEL_RANK[l])
+
+    result = StatusResponse(
+        level=worst(signals),
+        chain=worst(chain_sigs),
+        concentration=worst(conc_sigs),
+        signals=signals,
+        generated_unix=int(time.time()),
+    )
+    _agg_cache_set('status', result)
+    return result
 
 
 @app.get('/haveno/book', response_model=OrderBookResponse)

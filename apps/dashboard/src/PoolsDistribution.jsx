@@ -5,6 +5,7 @@ import { Chart, ArcElement, Tooltip } from 'chart.js'
 import { api } from './api'
 import InfoTooltip from './InfoTooltip'
 import Panel from './Panel'
+import ContextStrip from './ContextStrip'
 import { usePolledData } from './usePolledData'
 import { poolColor } from './poolColors'
 
@@ -28,6 +29,7 @@ export default function PoolsDistribution() {
       status={status}
       stateVariant="chart"
       stateHeight={220}
+      apiPath={`/pools/distribution?window=${window}`}
       control={
         <select value={window} onChange={e => setWindow(e.target.value)}
           className="bg-transparent border rounded px-3 py-1 text-sm"
@@ -35,7 +37,7 @@ export default function PoolsDistribution() {
           {['1h', '6h', '24h', '48h', '7d'].map(w => <option key={w} value={w}>{w}</option>)}
         </select>
       }
-    >{inner}</Panel>
+    >{inner}{status === 'ok' && <ContextStrip stats={data.stats} format={(v) => `${v.toFixed(1)}%`} />}</Panel>
   )
 
   if (status !== 'ok') return wrap(null)

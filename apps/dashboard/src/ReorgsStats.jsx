@@ -9,7 +9,7 @@ export default function ReorgsStats() {
 
   const wrap = (inner) => (
     <Panel title={t('reorgs.title')} info={t('info.reorgs')}
-      status={status} stateVariant="table" stateHeight={150}>{inner}</Panel>
+      status={status} stateVariant="table" stateHeight={150} apiPath="/reorgs/stats">{inner}</Panel>
   )
 
   if (status !== 'ok') return wrap(null)

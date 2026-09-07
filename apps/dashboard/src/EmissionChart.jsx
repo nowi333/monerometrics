@@ -24,6 +24,6 @@ export default function EmissionChart() {
       fetcher={(w) => api.networkEmission(w)}
       mapPoints={(d, w) => d.points.map(p => ({ y: Number(p.avg_reward_xmr), label: fmtLabel(p.bucket, w), full: fmtFull(p.bucket) }))}
       format={(v) => `${Number(v).toFixed(4)} XMR`}
-    />
+      apiPath={(w) => `/network/emission?window=${w}`}    />
   )
 }

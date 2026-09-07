@@ -27,6 +27,6 @@ export default function MempoolChart() {
       format={(v) => `${Math.round(v)} ${t('kpi.txs')}`}
       currentValue={(d) => d.current}
       context={(d) => <ContextStrip stats={d.stats} format={(v) => `${Math.round(v)} tx`} />}
-    />
+      apiPath={(w) => `/network/mempool?window=${w}`}    />
   )
 }

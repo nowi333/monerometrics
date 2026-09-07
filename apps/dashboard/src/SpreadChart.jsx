@@ -128,6 +128,6 @@ export default function SpreadChart() {
           )}
         </>
       )}
-    />
+      apiPath={(w) => `/price/spread?window=${w}`}    />
   )
 }

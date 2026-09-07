@@ -27,6 +27,6 @@ export default function BlocktimeChart() {
       currentValue={(d) => d.avg_delta}
       referenceY={{ value: 120, label: t('charts.target') }}
       yMax={1200}
-    />
+      apiPath={(w) => `/network/blocktime?window=${w}`}    />
   )
 }

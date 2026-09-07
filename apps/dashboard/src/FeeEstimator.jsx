@@ -15,7 +15,7 @@ export default function FeeEstimator() {
   )
 
   const wrap = (inner) => (
-    <Panel title={t('fees.title')} info={t('info.fees')} subtitle={t('fees.subtitle')} status={status} stateHeight={160}>{inner}</Panel>
+    <Panel title={t('fees.title')} info={t('info.fees')} subtitle={t('fees.subtitle')} status={status} stateHeight={160} apiPath="/network/fees">{inner}</Panel>
   )
 
   if (status !== 'ok') return wrap(null)

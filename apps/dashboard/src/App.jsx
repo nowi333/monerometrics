@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
@@ -8,6 +8,8 @@ import ChainForkVisualizer from './ChainForkVisualizer'
 import BlocktimeChart from './BlocktimeChart'
 import SpreadChart from './SpreadChart'
 import RefreshBadge from './RefreshBadge'
+import StatusBanner from './StatusBanner'
+import SectionNav from './SectionNav'
 import FeeEstimator from './FeeEstimator'
 import FeeHistory from './FeeHistory'
 import HavenoMethods from './HavenoMethods'
@@ -42,9 +44,10 @@ function Guard({ children }) {
   return <ErrorBoundary label={t('state.panelError')} retryLabel={t('state.retry')}>{children}</ErrorBoundary>
 }
 
-function Section({ label }) {
+function Section({ id, label }) {
   return (
-    <div className="flex items-center gap-3 mt-8 mb-3">
+    // scroll-mt compense la barre collante : sans lui l'ancre atterrit sous elle.
+    <div id={id} className="flex items-center gap-3 mt-10 mb-3 scroll-mt-16">
       <span className="text-[10px] uppercase tracking-[0.16em] shrink-0" style={{ color: 'var(--color-dim)' }}>{label}</span>
       <span className="h-px flex-1" style={{ background: 'var(--color-border)' }} />
     </div>
@@ -53,11 +56,29 @@ function Section({ label }) {
 
 export default function App() {
   const { t } = useTranslation()
-  const [view, setView] = useState('dashboard')
+  // La vue est portee par l'URL : sans cela le bouton retour ne fonctionne pas,
+  // la documentation ne peut pas etre mise en favori ni partagee, et un lien
+  // vers une section n'existe pas.
+  const [view, setView] = useState(() =>
+    typeof window !== 'undefined' && window.location.pathname.replace(/\/$/, '') === '/docs' ? 'docs' : 'dashboard')
+
+  useEffect(() => {
+    const onPop = () => setView(window.location.pathname.replace(/\/$/, '') === '/docs' ? 'docs' : 'dashboard')
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  const navigate = (next) => {
+    setView(next)
+    const path = next === 'docs' ? '/docs' : '/'
+    if (window.location.pathname.replace(/\/$/, '') !== path.replace(/\/$/, '')) {
+      window.history.pushState({ view: next }, '', path + window.location.hash)
+    }
+  }
 
 
   const goToDonation = () => {
-    setView('dashboard')
+    navigate('dashboard')
     setTimeout(() => {
       document.getElementById('donation')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
@@ -72,7 +93,7 @@ export default function App() {
         <Logo onClick={() => { window.location.href = '/' }} />
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
-            onClick={() => setView(view === 'dashboard' ? 'docs' : 'dashboard')}
+            onClick={() => navigate(view === 'dashboard' ? 'docs' : 'dashboard')}
             title={view === 'dashboard' ? t('doc.nav') : t('doc.backToDashboard')}
             aria-label={view === 'dashboard' ? t('doc.nav') : t('doc.backToDashboard')}
             className="h-10 w-10 inline-flex items-center justify-center rounded-lg border hover:opacity-80 transition-opacity"
@@ -111,7 +132,8 @@ export default function App() {
       </header>
       </div>
 
-      <div className="p-3 sm:p-6 pt-8 max-w-6xl mx-auto">
+      <div className="p-3 sm:p-6 pt-4 max-w-6xl mx-auto">
+      <SectionNav view={view} />
       {view === 'docs' ? (
         <Suspense fallback={
           <div className="text-sm py-12 text-center" style={{ color: 'var(--color-dim)' }}>
@@ -121,18 +143,19 @@ export default function App() {
           <Documentation />
         </Suspense>
       ) : <>
+      <Guard><StatusBanner /></Guard>
       <Guard><KPICards /></Guard>
 
-      <Section label={t('section.consensus')} />
+      <Section id="consensus" label={t('section.consensus')} />
 
-      <Guard><ChainForkVisualizer /></Guard>
+      <Guard><ChainForkVisualizer hero /></Guard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <Guard><ReorgsStats /></Guard>
         <Guard><OrphansTable /></Guard>
       </div>
 
-      <Section label={t('section.mining')} />
+      <Section id="mining" label={t('section.mining')} />
 
       <div className="mb-4">
         <Guard><PoolsDistribution /></Guard>
@@ -142,7 +165,7 @@ export default function App() {
         <Guard><Provenance /></Guard>
       </div>
 
-      <Section label={t('section.network')} />
+      <Section id="network" label={t('section.network')} />
 
       <div className="mb-4">
         <Guard><HashrateChart /></Guard>
@@ -168,7 +191,7 @@ export default function App() {
         <Guard><FeeHistory /></Guard>
       </div>
 
-      <Section label={t('section.market')} />
+      <Section id="market" label={t('section.market')} />
 
       <div className="mb-4">
         <Guard><SpreadChart /></Guard>

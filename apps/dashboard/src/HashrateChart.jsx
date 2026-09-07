@@ -26,6 +26,6 @@ export default function HashrateChart() {
       mapPoints={(d, w) => d.points.map(p => ({ y: p.hashrate_h_s, label: fmtLabel(p.bucket, w), full: fmtFull(p.bucket) }))}
       format={formatHashrate}
       context={(d) => <ContextStrip stats={d.stats} format={formatHashrate} />}
-    />
+      apiPath={(w) => `/network/hashrate?window=${w}`}    />
   )
 }
