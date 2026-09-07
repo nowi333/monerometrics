@@ -153,8 +153,11 @@ export default function App() {
 
       <Guard><ChainForkVisualizer hero /></Guard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div className="mb-4">
         <Guard><ReorgsStats /></Guard>
+      </div>
+
+      <div className="mb-4">
         <Guard><OrphansTable /></Guard>
       </div>
 
