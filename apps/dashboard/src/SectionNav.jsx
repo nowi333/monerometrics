@@ -37,7 +37,7 @@ export default function SectionNav({ view }) {
 
   return (
     <nav
-      className="sticky top-0 z-30 -mx-3 sm:-mx-6 mb-2 px-3 sm:px-6 border-b overflow-x-auto"
+      className="sticky top-0 z-30 border-b"
       style={{
         background: 'color-mix(in srgb, var(--color-bg) 88%, transparent)',
         borderColor: 'var(--color-border)',
@@ -45,7 +45,9 @@ export default function SectionNav({ view }) {
       }}
       aria-label={t('nav.sections')}
     >
-      <div className="flex gap-1">
+      {/* Le trait court d'un bord a l'autre ; seuls les liens restent alignes
+          sur le contenu, comme l'en-tete et le pied de page. */}
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 overflow-x-auto flex gap-1">
         {SECTIONS.map(id => (
           <a
             key={id}

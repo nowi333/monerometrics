@@ -14,7 +14,7 @@ const SECONDS_PER_ITEM = 9
  * deux semaines et qu'un billet d'un mois ne doit pas passer pour du direct.
  */
 export default function NewsBanner() {
-  const { t, i18n } = useTranslation()
+  const { i18n } = useTranslation()
   const D = makeDateFmt(i18n.language)
   const { data, status } = usePolledData(
     () => api.news(),
@@ -45,18 +45,13 @@ export default function NewsBanner() {
 
   return (
     <div
-      className="mb-5 border-t border-b flex items-center gap-2 px-3 py-2 overflow-hidden"
+      className="border-b overflow-hidden"
       style={{
         background: 'color-mix(in srgb, var(--color-success) 7%, var(--color-card))',
         borderColor: 'color-mix(in srgb, var(--color-success) 28%, var(--color-border))',
       }}
     >
-      <span
-        className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 shrink-0"
-        style={{ background: 'color-mix(in srgb, var(--color-success) 16%, transparent)', color: 'var(--color-success)' }}
-      >{t('news.label')}</span>
-
-      <div className="mm-ticker flex-1 min-w-0 overflow-hidden">
+      <div className="mm-ticker py-2 overflow-hidden">
         <div
           className="mm-ticker-track"
           style={{ '--mm-ticker-duration': `${items.length * SECONDS_PER_ITEM * 2}s` }}
