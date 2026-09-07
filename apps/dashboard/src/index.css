@@ -272,3 +272,25 @@ button:not(:disabled),
 .rounded-lg.border .rounded-lg.border,
 .rounded-lg.border .rounded,
 .mm-node { box-shadow: none; }
+
+/* Bandeau de news defilant. La duree est portee par une variable pour que la
+   vitesse reste constante quel que soit le nombre d'entrees. */
+@keyframes mm-ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.mm-ticker-track {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  will-change: transform;
+  animation: mm-ticker var(--mm-ticker-duration, 60s) linear infinite;
+}
+/* Une cible qui bouge ne se clique pas : le defilement s'arrete au survol et
+   au focus clavier. */
+.mm-ticker:hover .mm-ticker-track,
+.mm-ticker:focus-within .mm-ticker-track { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-ticker-track { animation: none; transform: none; }
+}
