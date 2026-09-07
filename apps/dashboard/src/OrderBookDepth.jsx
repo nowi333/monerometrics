@@ -144,7 +144,7 @@ export default function OrderBookDepth() {
         min: xMin,
         max: xMax,
         title: { display: true, text: t('haveno.book.axisX'), color: '#8b9099', font: { size: 10 } },
-        ticks: { color: '#8b9099', font: { size: 10 }, callback: (v) => `${v > 0 ? '+' : ''}${v}%` },
+        ticks: { color: '#8b9099', font: { size: 10 }, callback: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 10) / 10}%` },
         grid: { color: 'rgba(139,144,153,0.10)' },
       },
       y: {

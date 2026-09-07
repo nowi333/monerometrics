@@ -53,6 +53,15 @@ test('aucun achat au-dessus du meilleur achat, aucune vente sous la meilleure', 
   assert.equal(reach(book.asks, 'up', -30), null)
 })
 
+// Les bornes servent d'etiquettes d'axe : une valeur flottante bruitee comme
+// -28.446800000000003 s'affichait telle quelle sous le graphique.
+test('les bornes de l\'axe sont des entiers', () => {
+  const { xMin, xMax } = curves(book.bids, book.asks)
+  assert.equal(xMin, Math.trunc(xMin))
+  assert.equal(xMax, Math.trunc(xMax))
+  assert.ok(xMin < -25.97 && xMax > 30.65)
+})
+
 test('un carnet vide ne casse rien', () => {
   const c = curves([], [])
   assert.deepEqual(c.bids, [])
