@@ -87,11 +87,11 @@ export default function OrderBookDepth() {
       subtitle={
         <>
           {t('haveno.book.lead')}
-          {data?.age_seconds != null && (
-            <span className="ml-2" style={{ color: data.stale ? 'var(--color-danger)' : 'var(--color-dim)' }}>
-              · {data.stale
-                  ? t('haveno.book.stale', { age: age(data.age_seconds) })
-                  : t('haveno.book.age', { age: age(data.age_seconds) })}
+          {/* L'age courant est du bruit : le carnet se relit chaque minute. On
+              ne parle que du cas ou le flux amont est coupe. */}
+          {data?.stale && data.age_seconds != null && (
+            <span className="ml-2" style={{ color: 'var(--color-danger)' }}>
+              · {t('haveno.book.stale', { age: age(data.age_seconds) })}
             </span>
           )}
         </>
