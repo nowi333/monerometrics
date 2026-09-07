@@ -89,7 +89,7 @@ export default function App() {
     <div className="min-h-screen">
       <div className="border-b" style={{ borderColor: 'var(--color-border)' }}>
       <header
-        className="flex items-center justify-between p-3 sm:p-6 pb-4 sm:pb-4 max-w-6xl mx-auto gap-2 sm:gap-3"
+        className="flex items-center justify-between p-3 sm:p-6 pb-2.5 sm:pb-3 max-w-6xl mx-auto gap-2 sm:gap-3"
       >
         <Logo onClick={() => { window.location.href = '/' }} />
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -133,8 +133,10 @@ export default function App() {
       </header>
       </div>
 
-      <div className="p-3 sm:p-6 pt-4 max-w-6xl mx-auto">
       <SectionNav view={view} />
+      {view === 'dashboard' && <Guard><NewsBanner /></Guard>}
+
+      <div className="p-3 sm:p-6 pt-5 max-w-6xl mx-auto">
       {view === 'docs' ? (
         <Suspense fallback={
           <div className="text-sm py-12 text-center" style={{ color: 'var(--color-dim)' }}>
@@ -144,7 +146,6 @@ export default function App() {
           <Documentation />
         </Suspense>
       ) : <>
-      <Guard><NewsBanner /></Guard>
       <Guard><StatusBanner /></Guard>
       <Guard><KPICards /></Guard>
 
