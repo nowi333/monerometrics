@@ -35,7 +35,10 @@ export const axisBounds = (bids, asks) => {
   const lo = all.length ? Math.min(...all) : -1
   const hi = all.length ? Math.max(...all) : 1
   const pad = Math.max((hi - lo) * 0.04, 0.5)
-  return { xMin: lo - pad, xMax: hi + pad }
+  // Arrondi au pourcent entier vers l'exterieur : Chart.js gradue jusqu'aux
+  // bornes exactes, et une borne comme -28.446800000000003 s'affichait telle
+  // quelle sur l'axe. Elargir ne casse rien, les paliers restent couverts.
+  return { xMin: Math.floor(lo - pad), xMax: Math.ceil(hi + pad) }
 }
 
 // Sous l'offre d'achat la plus basse, toutes les offres restent preneuses : la
