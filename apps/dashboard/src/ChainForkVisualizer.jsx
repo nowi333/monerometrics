@@ -621,30 +621,39 @@ export default function ChainForkVisualizer({ hero = false }) {
 
       {tooltip && (
         <div
-          className="fixed z-50 rounded-lg border p-3 text-xs pointer-events-none shadow-lg"
+          className="fixed z-50 rounded-md border px-2.5 py-2 text-xs pointer-events-none shadow-lg"
           style={{
             left: tooltip.x + 12,
             top: tooltip.y + 12,
-            background: 'var(--color-bg-elevated)',
-            borderColor: 'var(--color-border-strong)',
-            color: 'var(--color-text)',
-            fontFamily: 'var(--font-mono)',
+            background: 'var(--color-card)',
+            borderColor: 'var(--color-border)',
             maxWidth: '260px',
           }}
         >
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-2 h-2 rounded-sm" style={{ background: poolColor(tooltip.block.miner_pool) }} />
-            <span style={{ color: tooltip.isOrphan ? 'var(--color-danger)' : 'var(--color-success)', fontWeight: 600 }}>
+          <div className="font-mono mb-1.5" style={{ color: 'var(--color-text)' }}>
+            {tooltip.block.height.toLocaleString()}
+            <span className="ml-2" style={{ color: tooltip.isOrphan ? 'var(--color-danger)' : 'var(--color-success)' }}>
               {tooltip.isOrphan ? t('fork.orphanBlock') : t('fork.canonicalBlock')}
             </span>
           </div>
-          <div>{t('fork.tipHeight')}: {tooltip.block.height.toLocaleString()}</div>
-          <div className="truncate">{t('fork.tipHash')}: {tooltip.block.hash.slice(0, 16)}...</div>
-          <div>{t('fork.tipPool')}: {tooltip.block.miner_pool || 'unknown'}</div>
-          <div>{t('fork.tipTx')}: {tooltip.block.tx_count}</div>
-          <div>{t('fork.tipTime')}: {timeAgo(tooltip.agoSeconds)}</div>
+          <div className="space-y-1">
+            {[
+              [t('fork.tipPool'), tooltip.block.miner_pool || 'unknown', poolColor(tooltip.block.miner_pool)],
+              [t('fork.tipHash'), `${tooltip.block.hash.slice(0, 16)}...`, 'var(--color-dim)'],
+              [t('fork.tipTx'), String(tooltip.block.tx_count), 'var(--color-dim)'],
+              [t('fork.tipTime'), timeAgo(tooltip.agoSeconds), 'var(--color-dim)'],
+            ].map(([label, value, dot]) => (
+              <div key={label} className="flex items-start gap-2">
+                <span className="inline-block w-2 h-2 rounded-full shrink-0 mt-1" style={{ background: dot }} />
+                <span className="min-w-0">
+                  <span className="block leading-tight" style={{ color: 'var(--color-dim)' }}>{label}</span>
+                  <span className="block font-mono leading-tight truncate" style={{ color: 'var(--color-text)' }}>{value}</span>
+                </span>
+              </div>
+            ))}
+          </div>
           {tooltip.block.merge_mining > 0 && (
-            <div>{t('fork.tipMerge')}</div>
+            <div className="mt-1.5" style={{ color: 'var(--color-dim)' }}>{t('fork.tipMerge')}</div>
           )}
         </div>
       )}

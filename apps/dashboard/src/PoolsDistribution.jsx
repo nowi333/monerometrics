@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { tooltipPlugin } from './chartTooltip'
 import { Doughnut } from 'react-chartjs-2'
 import { Chart, ArcElement, Tooltip } from 'chart.js'
 import { api } from './api'
@@ -65,19 +66,12 @@ export default function PoolsDistribution() {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: 'var(--color-bg-elevated)',
-        titleColor: 'var(--color-text)',
-        bodyColor: 'var(--color-text-secondary)',
-        borderColor: 'var(--color-border-strong)',
-        borderWidth: 1,
-        padding: 10,
-        cornerRadius: 8,
-        displayColors: true,
-        boxPadding: 4,
+        ...tooltipPlugin,
         callbacks: {
+          title: () => '',
           label: (ctx) => {
             const p = data.distribution[ctx.dataIndex]
-            return `${p.pool}: ${p.block_count} (${p.percentage.toFixed(1)}%)`
+            return [p.pool, `${p.block_count} · ${p.percentage.toFixed(1)}%`]
           },
         },
       },
