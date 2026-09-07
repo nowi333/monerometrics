@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const SECTIONS = ['consensus', 'mining', 'network', 'market']
@@ -11,6 +11,11 @@ const SECTIONS = ['consensus', 'mining', 'network', 'market']
 export default function SectionNav({ view }) {
   const { t } = useTranslation()
   const [active, setActive] = useState(null)
+  // Destination d'un clic en cours. Tant qu'elle est posee, l'observateur se
+  // tait : sans cela, les sections traversees pendant le defilement
+  // deplaceraient le trait au passage avant qu'il n'arrive a bon port.
+  const goingTo = useRef(null)
+  const release = useRef(null)
 
   useEffect(() => {
     if (view !== 'dashboard') return
@@ -19,20 +24,39 @@ export default function SectionNav({ view }) {
     const obs = new IntersectionObserver(
       entries => {
         const seen = entries.filter(e => e.isIntersecting)
-        if (seen.length) setActive(seen[0].target.id)
+        if (!seen.length) return
+        const id = seen[0].target.id
+        if (goingTo.current) {
+          if (id === goingTo.current) goingTo.current = null
+          return
+        }
+        setActive(id)
       },
       { rootMargin: '-64px 0px -70% 0px' },
     )
     els.forEach(el => obs.observe(el))
-    return () => obs.disconnect()
+    return () => {
+      obs.disconnect()
+      if (release.current) clearTimeout(release.current)
+    }
   }, [view])
 
   if (view !== 'dashboard') return null
 
   const go = (e, id) => {
     e.preventDefault()
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // Le trait d'abord, le defilement ensuite : on souligne, on laisse une
+    // image au navigateur pour le peindre, puis seulement la page bouge.
+    setActive(id)
+    goingTo.current = id
     window.history.replaceState(null, '', `#${id}`)
+    if (release.current) clearTimeout(release.current)
+    // Filet de securite : si la section visee ne declenche jamais
+    // l'observateur, le trait resterait fige sur ce choix.
+    release.current = setTimeout(() => { goingTo.current = null }, 1500)
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
   }
 
   return (
