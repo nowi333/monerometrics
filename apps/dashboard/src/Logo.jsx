@@ -9,19 +9,28 @@ export function LogoMark({ size = 32, className = '' }) {
       className={className}
       style={{ color: 'var(--color-accent)' }}
     >
-      <rect x="10" y="40" width="20" height="20" stroke="currentColor" strokeWidth="6" rx="2"/>
-      <line x1="30" y1="50" x2="40" y2="50" stroke="currentColor" strokeWidth="6"/>
-      <rect x="40" y="40" width="20" height="20" stroke="currentColor" strokeWidth="6" rx="2"/>
-      <line x1="60" y1="50" x2="70" y2="50" stroke="currentColor" strokeWidth="6"/>
-      <rect x="70" y="40" width="20" height="20" stroke="currentColor" strokeWidth="6" rx="2"/>
-      <line x1="90" y1="50" x2="105" y2="25" stroke="currentColor" strokeWidth="6"/>
-      <line x1="90" y1="50" x2="105" y2="75" stroke="currentColor" strokeWidth="6"/>
-      <rect x="105" y="15" width="20" height="20" stroke="currentColor" strokeWidth="6" rx="2"/>
-      <line x1="125" y1="25" x2="135" y2="25" stroke="currentColor" strokeWidth="6"/>
-      <rect x="135" y="15" width="20" height="20" stroke="currentColor" strokeWidth="6" rx="2"/>
-      <rect x="105" y="65" width="20" height="20" stroke="currentColor" strokeWidth="6" rx="2"/>
-      <line x1="125" y1="75" x2="135" y2="75" stroke="currentColor" strokeWidth="6"/>
-      <rect x="135" y="65" width="20" height="20" stroke="currentColor" strokeWidth="6" rx="2"/>
+      {/* Traits sous les blocs, mordant dans leur contour : bout a bout,
+          la jonction laissait une encoche. La bifurcation part et arrive a
+          l'horizontale plutot que d'aborder les blocs en biais. */}
+      <g stroke="currentColor" strokeWidth="5.5" strokeLinejoin="round">
+        <g strokeLinecap="butt">
+          <path d="M26 50 H40"/>
+          <path d="M60 50 H74"/>
+          <path d="M144 24 H158"/>
+          <path d="M144 76 H158"/>
+        </g>
+        <g strokeLinecap="round">
+          <path d="M93 50 C104 50 105 24 125 24"/>
+          <path d="M93 50 C104 50 105 76 125 76"/>
+        </g>
+        <rect x="6" y="40" width="20" height="20" rx="4"/>
+        <rect x="40" y="40" width="20" height="20" rx="4"/>
+        <rect x="74" y="40" width="20" height="20" rx="4"/>
+        <rect x="124" y="14" width="20" height="20" rx="4"/>
+        <rect x="158" y="14" width="20" height="20" rx="4"/>
+        <rect x="124" y="66" width="20" height="20" rx="4"/>
+        <rect x="158" y="66" width="20" height="20" rx="4"/>
+      </g>
     </svg>
   )
 }
