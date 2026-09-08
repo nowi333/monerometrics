@@ -9,20 +9,16 @@ export function LogoMark({ size = 32, className = '' }) {
       className={className}
       style={{ color: 'var(--color-accent)' }}
     >
-      {/* Traits sous les blocs, mordant dans leur contour : bout a bout,
-          la jonction laissait une encoche. La bifurcation part et arrive a
-          l'horizontale plutot que d'aborder les blocs en biais. */}
-      <g stroke="currentColor" strokeWidth="5.5" strokeLinejoin="round">
-        <g strokeLinecap="butt">
-          <path d="M26 50 H40"/>
-          <path d="M60 50 H74"/>
-          <path d="M144 24 H158"/>
-          <path d="M144 76 H158"/>
-        </g>
-        <g strokeLinecap="round">
-          <path d="M93 50 C104 50 105 24 125 24"/>
-          <path d="M93 50 C104 50 105 76 125 76"/>
-        </g>
+      {/* Les traits s'arretent dans l'epaisseur du contour, jamais au-dela :
+          ils comblent la jonction sans entrer dans le vide du bloc. Extremites
+          plates, une extremite arrondie depassait. */}
+      <g stroke="currentColor" strokeWidth="5.5" strokeLinecap="butt" strokeLinejoin="round">
+        <path d="M27 50 H39"/>
+        <path d="M61 50 H73"/>
+        <path d="M145 24 H157"/>
+        <path d="M145 76 H157"/>
+        <path d="M95 50 C107 50 109 24 123 24"/>
+        <path d="M95 50 C107 50 109 76 123 76"/>
         <rect x="6" y="40" width="20" height="20" rx="4"/>
         <rect x="40" y="40" width="20" height="20" rx="4"/>
         <rect x="74" y="40" width="20" height="20" rx="4"/>
