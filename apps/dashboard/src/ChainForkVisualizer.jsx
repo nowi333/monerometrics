@@ -457,7 +457,7 @@ export default function ChainForkVisualizer({ hero = false }) {
       // meme quand il n'est pas trouve.
       try {
         const d = await api.search(q)
-        if (d.kind === 'tx') { setTxResult(d.tx); return }
+        if (d.kind === 'tx') { setTxResult({ tx: d.tx, at: Date.now() }); return }
         height = d.height
       } catch (err) {
         setSearchError(err?.status === 404 || err?.status === 400 ? t('fork.searchNotFound') : t('tx.unavailable'))
@@ -564,7 +564,7 @@ export default function ChainForkVisualizer({ hero = false }) {
       )}
 
       {txResult && (
-        <TxResult tx={txResult} onClose={() => setTxResult(null)} onShowBlock={(h) => { setTxResult(null); goToHeight(h) }} />
+        <TxResult tx={txResult.tx} seenAt={txResult.at} onClose={() => setTxResult(null)} onShowBlock={(h) => { setTxResult(null); goToHeight(h) }} />
       )}
 
       {status === 'ok' ? (
