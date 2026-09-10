@@ -6,6 +6,7 @@ import InfoTooltip from './InfoTooltip'
 import PanelState from './PanelState'
 import { poolColor } from './poolColors'
 import BlockDetailModal from './BlockDetailModal'
+import TxResult from './TxResult'
 
 const SOURCE_STROKE = {
   viewkey_proof: 'var(--color-success)',
@@ -90,6 +91,7 @@ export default function ChainForkVisualizer({ hero = false }) {
   const [loadingMore, setLoadingMore] = useState(false)
   const [query, setQuery] = useState('')
   const [searchError, setSearchError] = useState('')
+  const [txResult, setTxResult] = useState(null)
 
   const bump = () => setVersion(v => v + 1)
 
@@ -445,11 +447,22 @@ export default function ChainForkVisualizer({ hero = false }) {
     const q = query.trim()
     if (!q) return
     setSearchError('')
+    setTxResult(null)
     let height
     if (/^\d+$/.test(q)) {
       height = parseInt(q, 10)
     } else if (/^[0-9a-fA-F]{64}$/.test(q)) {
-      try { const d = await api.blockDetail(q); height = d.height } catch { setSearchError(t('fork.searchNotFound')); return }
+      // Un hash de 64 caracteres designe un bloc ou une transaction. Une seule
+      // requete en POST tranche les deux : le hash ne passe jamais par une URL,
+      // meme quand il n'est pas trouve.
+      try {
+        const d = await api.search(q)
+        if (d.kind === 'tx') { setTxResult(d.tx); return }
+        height = d.height
+      } catch (err) {
+        setSearchError(err?.status === 404 || err?.status === 400 ? t('fork.searchNotFound') : t('tx.unavailable'))
+        return
+      }
     } else {
       setSearchError(t('fork.searchInvalid')); return
     }
@@ -520,7 +533,7 @@ export default function ChainForkVisualizer({ hero = false }) {
                   onChange={e => { setQuery(e.target.value); if (searchError) setSearchError('') }}
                   placeholder={t('fork.searchPlaceholder')}
                   spellCheck={false}
-                  className="text-xs rounded border pl-2 pr-2 py-1.5 w-full sm:w-52 outline-none focus:ring-1"
+                  className="text-xs rounded border pl-2 pr-2 py-1.5 w-full sm:w-60 outline-none focus:ring-1"
                   style={{ background: 'var(--color-bg)', borderColor: searchError ? 'var(--color-danger)' : 'var(--color-border)', color: 'var(--color-text)', fontFamily: 'var(--font-mono)' }}
                 />
               </div>
@@ -548,6 +561,10 @@ export default function ChainForkVisualizer({ hero = false }) {
 
       {searchError && (
         <p className="text-xs mb-2" style={{ color: 'var(--color-danger)' }}>{searchError}</p>
+      )}
+
+      {txResult && (
+        <TxResult tx={txResult} onClose={() => setTxResult(null)} onShowBlock={(h) => { setTxResult(null); goToHeight(h) }} />
       )}
 
       {status === 'ok' ? (

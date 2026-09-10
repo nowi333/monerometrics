@@ -499,3 +499,50 @@ class OrderBookResponse(BaseModel):
     ask_avg_premium_pct: Optional[float] = None
     bid_avg_premium_pct: Optional[float] = None
     round_trip_cost_pct: Optional[float] = None
+
+
+class SearchRequest(BaseModel):
+    """A 64-character hash, sent in the body so it never appears in a URL."""
+    query: str
+
+
+class TxReorgExposure(BaseModel):
+    """What monerometrics knows about the height a transaction was included at."""
+    contested: bool = False
+    reorgs_touching: int = 0
+    max_reorg_depth: Optional[int] = None
+
+
+class TxDetailResponse(BaseModel):
+    """What a transaction makes public. No amount, sender or recipient: the
+    protocol encrypts them."""
+    tx_hash: str
+    in_pool: bool
+    block_height: Optional[int] = None
+    block_hash: Optional[str] = None
+    block_timestamp: Optional[int] = None
+    confirmations: Optional[int] = None
+    spendable: bool = False
+    lock_blocks: int = 10
+    double_spend_seen: bool = False
+    version: Optional[int] = None
+    unlock_time: Optional[int] = None
+    coinbase: bool = False
+    input_count: int = 0
+    output_count: int = 0
+    ring_size: Optional[int] = None
+    rct_type: Optional[str] = None
+    fee_xmr: Optional[str] = None
+    fee_per_byte: Optional[int] = None
+    size_bytes: Optional[int] = None
+    miner_pool: Optional[str] = None
+    pool_source: Optional[str] = None
+    reorg: TxReorgExposure = TxReorgExposure()
+
+
+class SearchResponse(BaseModel):
+    """A hash resolved to a transaction or to a block."""
+    kind: str
+    tx: Optional[TxDetailResponse] = None
+    height: Optional[int] = None
+    hash: Optional[str] = None

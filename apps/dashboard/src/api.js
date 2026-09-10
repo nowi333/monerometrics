@@ -22,6 +22,22 @@ async function fetchJSON(path) {
   return response.json()
 }
 
+// Le hash d'une recherche voyage dans le corps, jamais dans l'URL : il
+// n'apparait ainsi ni dans les journaux d'acces ni dans l'historique.
+async function postJSON(path, body) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    const err = new Error(`API ${path} returned ${response.status}`)
+    err.status = response.status
+    throw err
+  }
+  return response.json()
+}
+
 const shortCache = new Map()
 
 function cachedJSON(path, ttl = 25000) {
@@ -53,6 +69,7 @@ export const api = {
   chainForkWindow: (limit = 250, to = null) => fetchJSON(`/chain/fork-window?limit=${limit}${to != null ? `&to=${to}` : ''}`),
   chainWindow: (from, to) => fetchJSON(`/chain/window?from=${from}&to=${to}`),
   blockDetail: (hash) => fetchJSON(`/chain/block/${hash}`),
+  search: (query) => postJSON('/chain/search', { query }),
   chainProvenance: (window = '24h') => fetchJSON(`/chain/provenance?window=${window}`),
   price: () => fetchJSON('/price'),
   priceSpread: (window = '7d') => fetchJSON(`/price/spread?window=${window}`),
