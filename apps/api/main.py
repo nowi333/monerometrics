@@ -11,13 +11,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from db import init_pool, close_pool, get_pool, get_database_url
 import discovery
+import txinfo
 import asyncpg
 import httpx
 import json
 import os
 import re
 from pricing import round_trip_cost
-from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse, SeriesStats, StatusSignal, StatusResponse, NewsItem, NewsResponse
+from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse, SeriesStats, StatusSignal, StatusResponse, NewsItem, NewsResponse, TxReorgExposure, TxDetailResponse, SearchRequest, SearchResponse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
 
@@ -41,7 +42,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.16.2', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.17.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -122,7 +123,7 @@ async def rate_limit(request: Request, call_next):
             await _flush_external()
     return await call_next(request)
 app.include_router(discovery.router)
-app.add_middleware(CORSMiddleware, allow_origins=['https://monerometrics.net', 'https://www.monerometrics.net', 'http://localhost:5173', 'http://localhost:4173'], allow_credentials=False, allow_methods=['GET'], allow_headers=['*'])
+app.add_middleware(CORSMiddleware, allow_origins=['https://monerometrics.net', 'https://www.monerometrics.net', 'http://localhost:5173', 'http://localhost:4173'], allow_credentials=False, allow_methods=['GET', 'POST'], allow_headers=['*'])
 
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
@@ -370,6 +371,110 @@ async def block_detail(block_hash: str):
         proof_address=proof_address,
         proof_viewkey=proof_viewkey,
     )
+
+
+@app.post('/chain/search', response_model=SearchResponse)
+async def chain_search(body: SearchRequest):
+    """Resolve a 64-character hash to a transaction or a block.
+
+    POST rather than GET so the hash never lands in a URL, an access log or the
+    per-path usage counters: looking up your own transaction should not tie it
+    to you. A transaction is read live from the node and placed on the chain
+    monerometrics has indexed, with the pool that mined its block and whether
+    that height was ever contested. No amount, sender or recipient: the protocol
+    encrypts them.
+    """
+    q = (body.query or '').strip().lower()
+    if not re.fullmatch(r'[0-9a-f]{64}', q):
+        raise HTTPException(400, 'query must be 64 hex characters')
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(f'{MONEROD_RPC_URL}/get_transactions',
+                                  json={'txs_hashes': [q], 'decode_as_json': True, 'prune': False})
+            r.raise_for_status()
+            data = r.json()
+            current_height = None
+            if data.get('txs'):
+                h = await client.get(f'{MONEROD_RPC_URL}/get_height')
+                if h.status_code == 200:
+                    current_height = h.json().get('height')
+    except Exception:
+        # Pas de detail dans le journal : le message pourrait porter la requete.
+        log.warning('monerod get_transactions failed')
+        raise HTTPException(503, 'monerod unreachable')
+
+    txs = data.get('txs') or []
+    if txs:
+        return SearchResponse(kind='tx', tx=await _tx_detail(txs[0], current_height))
+
+    height = await _block_height_for_hash(q)
+    if height is not None:
+        return SearchResponse(kind='block', height=height, hash=q)
+    raise HTTPException(404, 'nothing found for this hash')
+
+
+async def _tx_detail(entry: dict, current_height) -> TxDetailResponse:
+    t = txinfo.parse_transaction(entry)
+    height = t['block_height']
+    conf = t['confirmations']
+    if conf is None and height is not None and current_height is not None:
+        # get_height renvoie la prochaine hauteur : le sommet est current_height - 1.
+        conf = max(current_height - height, 0)
+
+    block_hash = miner_pool = pool_source = None
+    reorg = TxReorgExposure()
+    if height is not None:
+        try:
+            async with get_pool().acquire() as conn:
+                row = await conn.fetchrow(
+                    'SELECT hash, miner_pool, pool_source FROM blocks '
+                    'WHERE height = $1 AND is_canonical = true', height)
+                contested = await conn.fetchval(
+                    'SELECT COUNT(*) FROM blocks WHERE height = $1 AND is_canonical = false', height)
+                rg = await conn.fetchrow(
+                    'SELECT COUNT(*) AS n, MAX(depth) AS d FROM reorgs_detected '
+                    'WHERE $1 > fork_point_height AND $1 <= fork_point_height + depth', height)
+            if row:
+                block_hash, miner_pool, pool_source = row['hash'], row['miner_pool'], row['pool_source']
+            reorg = TxReorgExposure(contested=bool(contested), reorgs_touching=rg['n'] or 0,
+                                    max_reorg_depth=rg['d'])
+        except Exception as e:
+            log.warning(f'tx enrichment failed: {e}')
+
+    fields = {k: v for k, v in t.items() if k != 'confirmations'}
+    return TxDetailResponse(
+        **fields,
+        confirmations=conf,
+        spendable=txinfo.spendable(conf, t['unlock_time'], current_height),
+        lock_blocks=txinfo.LOCK_BLOCKS,
+        block_hash=block_hash,
+        miner_pool=miner_pool,
+        pool_source=pool_source,
+        reorg=reorg,
+    )
+
+
+async def _block_height_for_hash(h: str):
+    try:
+        async with get_pool().acquire() as conn:
+            height = await conn.fetchval('SELECT height FROM blocks WHERE hash = $1 LIMIT 1', h)
+        if height is not None:
+            return height
+    except Exception:
+        pass
+    # Un bloc trop recent pour avoir ete indexe : on demande au noeud.
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.post(f'{MONEROD_RPC_URL}/json_rpc', json={
+                'jsonrpc': '2.0', 'id': '0', 'method': 'get_block_header_by_hash',
+                'params': {'hash': h}})
+            d = r.json()
+        if 'error' in d:
+            return None
+        return ((d.get('result') or {}).get('block_header') or {}).get('height')
+    except Exception:
+        return None
 
 
 @app.get('/chain/provenance', response_model=ProvenanceResponse)
