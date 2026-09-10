@@ -16,11 +16,13 @@ function Row({ label, children, mono }) {
  * indexe : qui a mine son bloc, et si cette hauteur a deja ete contestee.
  * Rien sur les montants ni les parties, que le protocole chiffre.
  */
-export default function TxResult({ tx, onClose, onShowBlock }) {
+export default function TxResult({ tx, seenAt, onClose, onShowBlock }) {
   const { t } = useTranslation()
   const pending = tx.in_pool
   const conf = tx.confirmations ?? 0
-  const ago = tx.block_timestamp ? Math.floor(Date.now() / 1000) - tx.block_timestamp : null
+  // L'instant de reference arrive du parent, capture a la reception de la
+  // reponse : lire l'horloge pendant le rendu le rendrait instable.
+  const ago = tx.block_timestamp && seenAt ? Math.floor(seenAt / 1000) - tx.block_timestamp : null
   const r = tx.reorg || {}
   const exposed = r.reorgs_touching > 0 || r.contested
   const reorgText = r.reorgs_touching > 0
