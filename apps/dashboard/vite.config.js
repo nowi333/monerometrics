@@ -37,7 +37,9 @@ export default defineConfig({
           if (!id.includes('node_modules')) return
           if (id.includes('/react-dom/') || /\/react\//.test(id)) return 'react'
           if (id.includes('/d3')) return 'd3'
-          if (id.includes('chart.js') || id.includes('react-chartjs-2') || id.includes('chartjs-plugin')) return 'charts'
+          // Chart.js n'est plus regroupe a part : en chunk nomme il etait
+          // precharge avec la page, alors que plus aucun panneau visible d'emblee
+          // ne s'en sert. Laisse libre, il part avec le premier graphique demande.
           if (id.includes('i18next')) return 'i18n'
         },
       },
