@@ -1,33 +1,33 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 import LanguageSwitcher from './LanguageSwitcher'
 import KPICards from './KPICards'
 import ChainForkVisualizer from './ChainForkVisualizer'
-import BlocktimeChart from './BlocktimeChart'
-import SpreadChart from './SpreadChart'
 import RefreshBadge from './RefreshBadge'
 import StatusBanner from './StatusBanner'
 import NewsBanner from './NewsBanner'
 import SectionNav from './SectionNav'
-import FeeEstimator from './FeeEstimator'
-import FeeHistory from './FeeHistory'
-import HavenoMethods from './HavenoMethods'
-import HavenoLiquidity from './HavenoLiquidity'
-import OrderBookDepth from './OrderBookDepth'
-import HashrateChart from './HashrateChart'
-import MempoolChart from './MempoolChart'
-import EmissionChart from './EmissionChart'
-import PoolsDistribution from './PoolsDistribution'
-import Provenance from './Provenance'
-import ReorgsStats from './ReorgsStats'
-import OrphansTable from './OrphansTable'
-import Donation from './Donation'
 import Freshness from './Freshness'
 import ErrorBoundary from './ErrorBoundary'
 
 const Documentation = lazy(() => import('./Documentation'))
+const OrphansTable = lazy(() => import('./OrphansTable'))
+const ReorgsStats = lazy(() => import('./ReorgsStats'))
+const PoolsDistribution = lazy(() => import('./PoolsDistribution'))
+const Provenance = lazy(() => import('./Provenance'))
+const HashrateChart = lazy(() => import('./HashrateChart'))
+const BlocktimeChart = lazy(() => import('./BlocktimeChart'))
+const MempoolChart = lazy(() => import('./MempoolChart'))
+const EmissionChart = lazy(() => import('./EmissionChart'))
+const FeeEstimator = lazy(() => import('./FeeEstimator'))
+const FeeHistory = lazy(() => import('./FeeHistory'))
+const SpreadChart = lazy(() => import('./SpreadChart'))
+const HavenoLiquidity = lazy(() => import('./HavenoLiquidity'))
+const OrderBookDepth = lazy(() => import('./OrderBookDepth'))
+const HavenoMethods = lazy(() => import('./HavenoMethods'))
+const Donation = lazy(() => import('./Donation'))
 
 const REPO_URL = 'https://github.com/nowi333/monerometrics'
 const X_URL = 'https://x.com/monerometrics'
@@ -39,6 +39,41 @@ const ONION_URL = `http://${ONION_HOST}`
 const ICON_GITHUB = 'M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12'
 const ICON_X = 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z'
 const ICON_MATRIX = 'M.632.55v22.9H2.28V24H0V0h2.28v.55zm7.043 7.26v1.157h.033c.309-.443.683-.784 1.117-1.024.433-.245.936-.365 1.5-.365.54 0 1.033.107 1.481.314.448.208.785.582 1.02 1.108.254-.374.6-.706 1.034-.992.434-.287.95-.43 1.546-.43.453 0 .872.056 1.26.167.388.11.716.286.993.53.276.245.489.559.646.951.152.392.23.863.23 1.417v5.728h-2.349V11.52c0-.286-.01-.559-.032-.812a1.755 1.755 0 0 0-.18-.66 1.106 1.106 0 0 0-.438-.448c-.194-.11-.457-.166-.785-.166-.332 0-.6.064-.803.189a1.38 1.38 0 0 0-.48.499 1.94 1.94 0 0 0-.231.696 5.56 5.56 0 0 0-.06.785v4.677h-2.35v-4.85c0-.254-.004-.503-.018-.752a2.074 2.074 0 0 0-.143-.688 1.052 1.052 0 0 0-.415-.503c-.194-.125-.476-.19-.854-.19-.111 0-.259.024-.439.074-.18.051-.36.143-.53.282-.171.138-.319.337-.439.595-.12.259-.18.6-.18 1.02v5.014H5.46V7.81zm15.693 15.64V.55H21.72V0H24v24h-2.28v-.55z'
+
+// Un panneau qu'on ne voit pas encore n'a aucune raison d'etre charge : ni son
+// code, ni la bibliotheque de graphiques qu'il tire derriere lui, ni sa requete
+// a l'API. Il se monte quand il approche de l'ecran, avec 400 px d'avance pour
+// qu'il soit pret avant d'etre visible.
+//
+// La hauteur est reservee d'avance : sans cela la page se raccourcirait, les
+// ancres du menu tomberaient a cote et le defilement sauterait a chaque montage.
+// Les valeurs viennent de la hauteur mesuree de chaque panneau en desktop ;
+// en mobile ils sont plus hauts, la reserve n'est donc qu'une approximation.
+function Deferred({ children, minHeight = 300 }) {
+  const ref = useRef(null)
+  const [shown, setShown] = useState(false)
+
+  useEffect(() => {
+    if (shown) return
+    const el = ref.current
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setShown(true)
+      return
+    }
+    const io = new IntersectionObserver(
+      (entries) => { if (entries.some(e => e.isIntersecting)) { setShown(true); io.disconnect() } },
+      { rootMargin: '400px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [shown])
+
+  return (
+    <div ref={ref} style={shown ? undefined : { minHeight }}>
+      {shown ? <Suspense fallback={<div style={{ minHeight }} />}>{children}</Suspense> : null}
+    </div>
+  )
+}
 
 function Guard({ children }) {
   const { t } = useTranslation()
@@ -154,68 +189,68 @@ export default function App() {
       <Guard><ChainForkVisualizer hero /></Guard>
 
       <div className="mb-4">
-        <Guard><OrphansTable /></Guard>
+        <Deferred minHeight={780}><Guard><OrphansTable /></Guard></Deferred>
       </div>
 
       <div className="mb-4">
-        <Guard><ReorgsStats /></Guard>
+        <Deferred minHeight={320}><Guard><ReorgsStats /></Guard></Deferred>
       </div>
 
       <Section id="mining" label={t('section.mining')} />
 
       <div className="mb-4">
-        <Guard><PoolsDistribution /></Guard>
+        <Deferred minHeight={640}><Guard><PoolsDistribution /></Guard></Deferred>
       </div>
 
       <div className="mb-4">
-        <Guard><Provenance /></Guard>
+        <Deferred minHeight={490}><Guard><Provenance /></Guard></Deferred>
       </div>
 
       <Section id="network" label={t('section.network')} />
 
       <div className="mb-4">
-        <Guard><HashrateChart /></Guard>
+        <Deferred minHeight={530}><Guard><HashrateChart /></Guard></Deferred>
       </div>
 
       <div className="mb-4">
-        <Guard><BlocktimeChart /></Guard>
+        <Deferred minHeight={440}><Guard><BlocktimeChart /></Guard></Deferred>
       </div>
 
       <div className="mb-4">
-        <Guard><MempoolChart /></Guard>
+        <Deferred minHeight={530}><Guard><MempoolChart /></Guard></Deferred>
       </div>
 
       <div className="mb-4">
-        <Guard><EmissionChart /></Guard>
+        <Deferred minHeight={440}><Guard><EmissionChart /></Guard></Deferred>
       </div>
 
       <div className="mb-4">
-        <Guard><FeeEstimator /></Guard>
+        <Deferred minHeight={280}><Guard><FeeEstimator /></Guard></Deferred>
       </div>
 
       <div className="mb-4">
-        <Guard><FeeHistory /></Guard>
+        <Deferred minHeight={460}><Guard><FeeHistory /></Guard></Deferred>
       </div>
 
       <Section id="market" label={t('section.market')} />
 
       <div className="mb-4">
-        <Guard><SpreadChart /></Guard>
+        <Deferred minHeight={570}><Guard><SpreadChart /></Guard></Deferred>
       </div>
 
       <div className="mb-4">
-        <Guard><HavenoLiquidity /></Guard>
+        <Deferred minHeight={530}><Guard><HavenoLiquidity /></Guard></Deferred>
       </div>
 
       <div className="mb-4">
-        <Guard><OrderBookDepth /></Guard>
+        <Deferred minHeight={510}><Guard><OrderBookDepth /></Guard></Deferred>
       </div>
 
       <div className="mb-4">
-        <Guard><HavenoMethods /></Guard>
+        <Deferred minHeight={730}><Guard><HavenoMethods /></Guard></Deferred>
       </div>
 
-      <Guard><Donation /></Guard>
+      <Deferred minHeight={310}><Guard><Donation /></Guard></Deferred>
       </>}
       </div>
 

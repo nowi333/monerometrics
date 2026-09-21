@@ -109,6 +109,24 @@ server {
         try_files $uri $uri/ =404;
     }
 
+    # Les fichiers d'assets portent l'empreinte de leur contenu dans leur nom :
+    # un nom ne designe jamais deux versions, ils peuvent donc etre gardes un an
+    # au lieu des quatre heures par defaut. On passe par `expires` et non par
+    # `add_header` : ce dernier, dans un bloc imbrique, annulerait tous les
+    # en-tetes de securite herites du serveur.
+    location ^~ /assets/ {
+        try_files $uri =404;
+        expires 1y;
+        access_log off;
+    }
+
+    # La page, elle, ne doit jamais etre gardee : c'est elle qui nomme la
+    # version des assets a charger. Une page perimee reclamerait des fichiers
+    # supprimes au deploiement suivant.
+    location = /index.html {
+        expires -1;
+    }
+
     # Vue documentation du SPA. Une regle ciblee plutot qu'un repli general vers
     # index.html : ce dernier transformerait toute URL inexistante en 200, ce qui
     # trompe les moteurs et les agents autant que les visiteurs.

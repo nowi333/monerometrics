@@ -8,11 +8,12 @@ from datetime import datetime
 from collections import defaultdict, deque
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from db import init_pool, close_pool, get_pool, get_database_url
 import discovery
 import txinfo
 import newsfeed
+import httpcache
 import asyncpg
 import httpx
 import json
@@ -43,7 +44,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.18.0', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.19.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -123,6 +124,40 @@ async def rate_limit(request: Request, call_next):
             _external_last_flush = now
             await _flush_external()
     return await call_next(request)
+
+
+@app.middleware('http')
+async def cache_headers(request: Request, call_next):
+    """Annonce au client la duree de validite de la reponse, et lui evite de la
+    retelecharger si elle n'a pas change.
+
+    L'API recalcule chaque agregat une fois par periode ; sans cet en-tete, un
+    navigateur qui sonde toutes les minutes refait un aller-retour complet pour
+    une donnee identique. Avec, il la ressert depuis sa memoire, et une
+    revalidation qui tombe sur la meme empreinte ne coute qu'un 304 vide.
+    """
+    response = await call_next(request)
+    # Permet au navigateur de mesurer nos propres temps de reponse, que le
+    # cloisonnement entre origines masque sinon entierement.
+    response.headers['Timing-Allow-Origin'] = '*'
+    ttl = httpcache.ttl_for(request.url.path, request.query_params.get('window'))
+    if request.method != 'GET' or response.status_code != 200 or ttl is None:
+        if ttl is None and request.url.path in httpcache.NO_STORE:
+            response.headers['Cache-Control'] = 'no-store'
+        return response
+
+    body = b''.join([chunk async for chunk in response.body_iterator])
+    etag = httpcache.etag_for(body)
+    headers = dict(response.headers)
+    headers.pop('content-length', None)
+    headers['Cache-Control'] = httpcache.cache_control(ttl)
+    headers['ETag'] = etag
+    if httpcache.matches(request.headers.get('if-none-match'), etag):
+        return Response(status_code=304, headers=headers)
+    return Response(content=body, status_code=200, headers=headers,
+                    media_type=response.media_type)
+
+
 app.include_router(discovery.router)
 app.add_middleware(CORSMiddleware, allow_origins=['https://monerometrics.net', 'https://www.monerometrics.net', 'http://localhost:5173', 'http://localhost:4173'], allow_credentials=False, allow_methods=['GET', 'POST'], allow_headers=['*'])
 
