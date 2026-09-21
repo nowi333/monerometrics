@@ -58,6 +58,12 @@ export default function InfraDiagram() {
           en colonne etroite, empiles quand le diagramme passe a l'horizontale. */}
       <div className="flex flex-1 min-w-[130px] flex-row lg:flex-col gap-2">
         <Node icon="cloudflare" title="Cloudflare" sub={'DNS · WAF'} />
+        {/* Dit ce que la mise en page seule ne dit pas : on emprunte l'un ou
+            l'autre, jamais les deux a la suite. */}
+        <span
+          className="self-center shrink-0 -my-1 lg:my-0 -mx-1 lg:mx-0 flex h-6 w-6 items-center justify-center rounded-full border text-[10px] uppercase tracking-wide"
+          style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-dim)' }}
+        >{t('doc.infra.or')}</span>
         <Node icon="tor" title="Tor" sub={t('doc.infra.hidden')} />
       </div>
       <Connector />
