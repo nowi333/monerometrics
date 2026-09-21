@@ -10,7 +10,15 @@ const toUnix = (s) => (s ? Math.floor(Date.parse(s) / 1000) || null : null)
 export default function OrphansTable() {
   const { t } = useTranslation()
   const [selected, setSelected] = useState(null)
-  const { data, status } = usePolledData(() => api.orphansRecent(20), d => Array.isArray(d && d.orphans), [])
+  // Une plage de temps plutot qu'un nombre fixe : combien de blocs orphelins
+  // sont apparus en une semaine dit quelque chose du reseau, alors que « les
+  // vingt derniers » couvre une periode qui varie avec le reseau lui-meme.
+  const [period, setPeriod] = useState('30d')
+  const { data, status } = usePolledData(
+    () => api.orphansRecent(period),
+    d => Array.isArray(d && d.orphans),
+    [period],
+  )
 
   const openOrphan = (o) => setSelected({
     block: {
@@ -32,8 +40,22 @@ export default function OrphansTable() {
   const viewOnChain = (o) => window.dispatchEvent(new CustomEvent('mm:focus-block', { detail: { height: o.height } }))
 
   const wrap = (inner) => (
-    <Panel title={t('orphans.title')} info={t('info.orphans')}
-      status={status} stateVariant="table" stateHeight={140} apiPath="/orphans/recent?limit=20">{inner}</Panel>
+    <Panel
+      title={t('orphans.title')}
+      info={t('info.orphans')}
+      subtitle={status === 'ok' ? t('orphans.count', { count: data.orphans.length }) : null}
+      status={status}
+      stateVariant="table"
+      stateHeight={140}
+      apiPath={`/orphans/recent?window=${period}`}
+      control={
+        <select value={period} onChange={e => setPeriod(e.target.value)}
+          className="bg-transparent border rounded px-3 py-1 text-sm"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
+          {['24h', '48h', '7d', '30d', '90d'].map(w => <option key={w} value={w}>{w}</option>)}
+        </select>
+      }
+    >{inner}</Panel>
   )
 
   if (status !== 'ok') return wrap(null)

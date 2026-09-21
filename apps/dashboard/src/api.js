@@ -58,7 +58,7 @@ export const api = {
   reorgsStats: () => fetchJSON('/reorgs/stats'),
   poolsDistribution: (window = '24h') => fetchJSON(`/pools/distribution?window=${window}`),
   poolsSources: () => fetchJSON('/pools/sources'),
-  orphansRecent: (limit = 50) => fetchJSON(`/orphans/recent?limit=${limit}`),
+  orphansRecent: (window = '7d') => fetchJSON(`/orphans/recent?window=${window}`),
   reorgs: (limit = 100) => fetchJSON(`/reorgs?limit=${limit}`),
 
   networkInfo: () => fetchJSON('/network/info'),

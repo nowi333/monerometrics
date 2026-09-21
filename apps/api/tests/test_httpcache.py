@@ -46,9 +46,17 @@ def test_the_announced_duration_never_exceeds_the_server_cache():
 
 
 def test_cache_control_allows_a_short_stale_window():
-    assert cache_control(60) == 'public, max-age=60, stale-while-revalidate=30'
+    assert cache_control(60) == 'private, max-age=60, stale-while-revalidate=30'
     # Une duree tres courte garde quand meme un filet minimal.
-    assert cache_control(5) == 'public, max-age=5, stale-while-revalidate=5'
+    assert cache_control(5) == 'private, max-age=5, stale-while-revalidate=5'
+
+
+def test_a_response_is_never_stored_by_a_shared_cache():
+    # La reponse porte un en-tete CORS propre a l'origine appelante. Un cache
+    # partage qui n'en garderait qu'une version casserait le tableau de bord.
+    for ttl in (5, 60, 1800):
+        assert cache_control(ttl).startswith('private,')
+        assert 'public' not in cache_control(ttl)
 
 
 def test_the_etag_changes_with_the_body():

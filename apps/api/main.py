@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.20.0', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.21.1', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 # Cadence de reconstruction de l'index des pools cote worker : elle borne la
 # resolution du delai de declaration qu'on peut mesurer.
@@ -155,6 +155,9 @@ async def cache_headers(request: Request, call_next):
     headers.pop('content-length', None)
     headers['Cache-Control'] = httpcache.cache_control(ttl)
     headers['ETag'] = etag
+    # Dit explicitement de quoi la reponse depend, pour tout intermediaire qui
+    # en tiendrait compte. Ce n'est pas suffisant seul, d'ou le `private`.
+    headers['Vary'] = 'Origin, Accept-Encoding'
     if httpcache.matches(request.headers.get('if-none-match'), etag):
         return Response(status_code=304, headers=headers)
     return Response(content=body, status_code=200, headers=headers,
@@ -1357,13 +1360,33 @@ async def pools_sources():
     _agg_cache_set('pools:sources', result)
     return result
 
+ORPHAN_WINDOWS = {'24h': '24 hours', '48h': '48 hours', '7d': '7 days', '30d': '30 days', '90d': '90 days'}
+
+
 @app.get('/orphans/recent', response_model=OrphansResponse)
-async def orphans_recent(limit: int=Query(50, ge=1, le=500)):
+async def orphans_recent(window: str=Query('7d', regex='^(24h|48h|7d|30d|90d)$'),
+                         limit: int=Query(200, ge=1, le=500)):
+    """Orphan blocks over a time window, newest first.
+
+    A window rather than a fixed count: how many orphans appeared in a week is
+    a fact about the network, while the last twenty of them covers a period
+    that changes with the network's own behaviour.
+    """
+    interval = ORPHAN_WINDOWS[window]
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch('\n            SELECT o.height, o.hash AS orphan_hash, c.hash AS canonical_hash,\n                   o.timestamp_human, o.miner_pool, o.tx_count\n            FROM blocks o\n            LEFT JOIN blocks c ON c.height = o.height AND c.is_canonical = true\n            WHERE o.is_canonical = false\n            ORDER BY o.height DESC\n            LIMIT $1\n            ', limit)
+        rows = await conn.fetch(f"""
+            SELECT o.height, o.hash AS orphan_hash, c.hash AS canonical_hash,
+                   o.timestamp_human, o.miner_pool, o.tx_count
+            FROM blocks o
+            LEFT JOIN blocks c ON c.height = o.height AND c.is_canonical = true
+            WHERE o.is_canonical = false
+              AND o.timestamp_human >= NOW() - INTERVAL '{interval}'
+            ORDER BY o.height DESC
+            LIMIT $1
+            """, limit)
     orphans = [OrphanBlock(**dict(r)) for r in rows]
-    return OrphansResponse(count=len(orphans), orphans=orphans)
+    return OrphansResponse(count=len(orphans), orphans=orphans, window=window)
 MONEROD_RPC_URL = os.getenv('MONEROD_RPC_URL', 'http://monerod:18081')
 
 def _load_pool_proofs() -> dict:

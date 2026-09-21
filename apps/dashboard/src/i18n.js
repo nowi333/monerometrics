@@ -308,7 +308,9 @@ i18n
           'reorgs.routine': 'Depth 1 is the network breathing: two blocks found at almost the same moment, one of them dropped. A deeper reorg means the chain rewrote something that already held.',
 
 
-          'orphans.title': 'Recent orphan blocks (max 20)',
+          'orphans.title': 'Orphan blocks',
+          'orphans.count_one': '{{count}} orphan over the window',
+          'orphans.count_other': '{{count}} orphans over the window',
           'orphans.column.height': 'Height',
           'orphans.column.orphanHash': 'Orphan hash',
           'orphans.column.canonicalHash': 'Canonical hash',
@@ -738,7 +740,9 @@ i18n
           'reorgs.routine': "Une profondeur de 1, c'est la respiration du réseau : deux blocs trouvés presque en même temps, dont l'un cède la place. Au-delà, la chaîne a réécrit quelque chose qui tenait déjà.",
 
 
-          'orphans.title': 'Derniers blocs orphelins (max 20)',
+          'orphans.title': 'Blocs orphelins',
+          'orphans.count_one': '{{count}} orphelin sur la période',
+          'orphans.count_other': '{{count}} orphelins sur la période',
           'orphans.column.height': 'Hauteur',
           'orphans.column.orphanHash': 'Hash orphelin',
           'orphans.column.canonicalHash': 'Hash canonique',
@@ -1168,7 +1172,9 @@ i18n
           'reorgs.routine': 'Una profundidad de 1 es la respiración de la red: dos bloques encontrados casi a la vez, uno de ellos descartado. Más allá, la cadena reescribió algo que ya se mantenía.',
 
 
-          'orphans.title': 'Últimos bloques huérfanos (máx. 20)',
+          'orphans.title': 'Bloques huérfanos',
+          'orphans.count_one': '{{count}} huérfano en el período',
+          'orphans.count_other': '{{count}} huérfanos en el período',
           'orphans.column.height': 'Altura',
           'orphans.column.orphanHash': 'Hash huérfano',
           'orphans.column.canonicalHash': 'Hash canónico',

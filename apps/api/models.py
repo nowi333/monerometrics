@@ -141,6 +141,7 @@ class OrphanBlock(BaseModel):
 
 class OrphansResponse(BaseModel):
     count: int
+    window: str = '7d'
     orphans: list[OrphanBlock]
 
 class NetworkInfoResponse(BaseModel):

@@ -68,10 +68,20 @@ def ttl_for(path: str, window: str | None = None) -> int | None:
 
 
 def cache_control(ttl: int) -> str:
-    """`stale-while-revalidate` laisse servir la reponse un peu au-dela de sa
+    """Duree de validite pour le navigateur du visiteur, et pour lui seul.
+
+    `private` et non `public` : la reponse porte un en-tete CORS qui depend de
+    l'origine appelante. Un cache partage qui en garderait une seule version la
+    resservirait a tout le monde, et les appels depuis le tableau de bord
+    seraient rejetes par le navigateur faute d'`Access-Control-Allow-Origin`.
+    Un `Vary: Origin` reglerait le probleme en theorie, mais Cloudflare ne
+    distingue les variantes que sur `Accept-Encoding` et l'ignorerait.
+
+    `stale-while-revalidate` laisse resservir la reponse un peu au-dela de sa
     validite pendant qu'on en cherche une fraiche : la page reste rapide sans
-    jamais afficher de chiffre plus vieux que la fenetre annoncee."""
-    return f'public, max-age={ttl}, stale-while-revalidate={max(ttl // 2, 5)}'
+    jamais afficher de chiffre plus vieux que la fenetre annoncee.
+    """
+    return f'private, max-age={ttl}, stale-while-revalidate={max(ttl // 2, 5)}'
 
 
 def etag_for(body: bytes) -> str:
