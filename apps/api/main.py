@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from db import init_pool, close_pool, get_pool, get_database_url
 import discovery
 import txinfo
+import newsfeed
 import asyncpg
 import httpx
 import json
@@ -42,7 +43,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.17.0', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.18.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
@@ -994,68 +995,65 @@ async def status():
     return result
 
 
-NEWS_FEED = 'https://www.getmonero.org/feed.xml'
-# Seules ces categories comptent comme « important ». Le flux officiel en porte
-# d'autres (community, dev) qui relevent du suivi courant, pas de l'annonce.
-NEWS_CATEGORIES = {'releases', 'announcements'}
-NEWS_MAX_BYTES = 2_000_000
+# Trois sources, par ordre de confiance : le projet lui-meme, l'Observer qui
+# suit l'ecosysteme au jour le jour, et les publications GitHub qui sortent
+# souvent avant l'annonce du site. Chaque source n'accepte que ses propres
+# liens : un flux detourne ne doit pas pouvoir rediriger nos visiteurs.
+#
+# `cap` reserve des places a chacune. Sans quota, l'Observer prendrait tout.
+# `max_bytes` borne le telechargement : son flux depasse vingt megaoctets,
+# on n'en lit que le debut, ou se trouvent les articles les plus recents.
+NEWS_SOURCES = [
+    {'id': 'getmonero', 'kind': 'atom', 'cap': 4, 'max_bytes': 2_000_000,
+     'url': 'https://www.getmonero.org/feed.xml',
+     'prefix': 'https://www.getmonero.org/',
+     'categories': {'releases', 'announcements'}},
+    {'id': 'observer', 'kind': 'rss', 'cap': 5, 'max_bytes': 200_000,
+     'url': 'https://monero.observer/feed.xml',
+     'prefix': 'https://monero.observer/'},
+    {'id': 'github', 'kind': 'atom', 'cap': 3, 'max_bytes': 1_000_000,
+     'url': 'https://github.com/monero-project/monero/releases.atom',
+     'prefix': 'https://github.com/monero-project/'},
+]
 NEWS_LIMIT = 10
-_ATOM = '{http://www.w3.org/2005/Atom}'
 _last_news = None
+
+
+async def _fetch_source(client, src):
+    """Lit une source. Une panne chez l'une ne doit pas vider le bandeau."""
+    try:
+        headers = {'User-Agent': 'monerometrics/1.0', 'Range': f"bytes=0-{src['max_bytes']}"}
+        r = await client.get(src['url'], headers=headers)
+        if r.status_code not in (200, 206):
+            raise ValueError(f'status {r.status_code}')
+        raw = r.content[:src['max_bytes']]
+        if src['kind'] == 'rss':
+            return newsfeed.parse_rss(raw.decode('utf-8', 'ignore'), src['prefix'])
+        return newsfeed.parse_atom(ElementTree.fromstring(raw), src['prefix'], src.get('categories'))
+    except Exception as e:
+        log.warning(f"news source {src['id']} failed: {e}")
+        return []
 
 
 @app.get('/news', response_model=NewsResponse)
 async def news():
-    """Releases and announcements from the Monero project's own blog."""
+    """Monero news: the project's own announcements, Monero Observer, GitHub releases."""
     global _last_news
     cached = _agg_cache_get('news', 1800)
     if cached is not None:
         return cached
 
-    try:
-        async with httpx.AsyncClient(timeout=12, follow_redirects=True) as client:
-            r = await client.get(NEWS_FEED, headers={'User-Agent': 'monerometrics/1.0'})
-            r.raise_for_status()
-            raw = r.content[:NEWS_MAX_BYTES]
-        root = ElementTree.fromstring(raw)
-    except Exception as e:
-        log.warning(f'news feed failed: {e}')
-        # Une coupure passagere ne doit pas faire disparaitre le bandeau ; on
-        # ressert la derniere version connue en la signalant comme telle.
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        groups = [(src['id'], await _fetch_source(client, src)) for src in NEWS_SOURCES]
+
+    if not any(items for _id, items in groups):
+        # Une coupure passagere ne doit pas faire disparaitre le bandeau.
         if _last_news is not None:
             return _last_news.model_copy(update={'stale': True})
         return NewsResponse()
 
-    items = []
-    for entry in root.findall(f'{_ATOM}entry'):
-        cats = {c.get('term') for c in entry.findall(f'{_ATOM}category') if c.get('term')}
-        if not (cats & NEWS_CATEGORIES):
-            continue
-        title = (entry.findtext(f'{_ATOM}title') or '').strip()
-        link = ''
-        for lk in entry.findall(f'{_ATOM}link'):
-            if lk.get('rel') in (None, 'alternate') and lk.get('href'):
-                link = lk.get('href')
-                break
-        # On ne republie que des liens vers la source elle-meme : un flux
-        # compromis ne doit pas pouvoir pointer nos visiteurs ailleurs.
-        if not title or not link.startswith('https://www.getmonero.org/'):
-            continue
-        stamp = entry.findtext(f'{_ATOM}updated') or entry.findtext(f'{_ATOM}published') or ''
-        try:
-            published = int(datetime.fromisoformat(stamp.replace('Z', '+00:00')).timestamp())
-        except ValueError:
-            continue
-        items.append(NewsItem(
-            id=(entry.findtext(f'{_ATOM}id') or link)[:200],
-            title=title[:200],
-            url=link,
-            published_unix=published,
-            categories=sorted(cats & NEWS_CATEGORIES),
-        ))
-
-    items.sort(key=lambda x: x.published_unix, reverse=True)
-    result = NewsResponse(items=items[:NEWS_LIMIT], fetched_unix=int(time.time()))
+    merged = newsfeed.merge(groups, NEWS_LIMIT, {src['id']: src['cap'] for src in NEWS_SOURCES})
+    result = NewsResponse(items=[NewsItem(**m) for m in merged], fetched_unix=int(time.time()))
     if result.items:
         _agg_cache_set('news', result)
         _last_news = result

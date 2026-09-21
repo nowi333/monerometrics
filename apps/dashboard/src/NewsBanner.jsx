@@ -40,6 +40,14 @@ export default function NewsBanner() {
   const items = data.items
   if (!items.length) return null
 
+  // Chaque source a sa pastille : on doit savoir d'ou vient une news sans lire
+  // l'URL. Les libelles sont des noms propres, ils ne se traduisent pas.
+  const SOURCES = {
+    getmonero: { label: 'Monero', color: 'var(--color-accent)' },
+    observer: { label: 'Observer', color: 'var(--color-info)' },
+    github: { label: 'GitHub', color: 'var(--color-dim)' },
+  }
+
   const entry = (item, key) => (
     <a
       key={key}
@@ -49,7 +57,14 @@ export default function NewsBanner() {
       className="inline-flex items-baseline gap-2 px-5 text-[13px] hover:underline"
       style={{ color: 'var(--color-text)' }}
     >
-      <span aria-hidden="true" style={{ color: 'var(--color-success)' }}>›</span>
+      <span
+        className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0"
+        style={{
+          color: (SOURCES[item.source] || SOURCES.getmonero).color,
+          border: `1px solid color-mix(in srgb, ${(SOURCES[item.source] || SOURCES.getmonero).color} 45%, transparent)`,
+          background: `color-mix(in srgb, ${(SOURCES[item.source] || SOURCES.getmonero).color} 12%, transparent)`,
+        }}
+      >{(SOURCES[item.source] || SOURCES.getmonero).label}</span>
       {item.title}
       <span className="text-[11px] font-mono" style={{ color: 'var(--color-dim)' }}>
         {D.dayMonthYear(new Date(item.published_unix * 1000))}

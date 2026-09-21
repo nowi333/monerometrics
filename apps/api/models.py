@@ -434,6 +434,7 @@ class StatusResponse(BaseModel):
 
 class NewsItem(BaseModel):
     id: str
+    source: str = 'getmonero'
     title: str
     url: str
     published_unix: int
@@ -441,18 +442,19 @@ class NewsItem(BaseModel):
 
 
 class NewsResponse(BaseModel):
-    """Announcements from the Monero project's own blog, nothing else.
+    """Monero news from three sources, each item labelled with the one it came from.
 
-    The source is deliberately narrow. Aggregators and newsletters would turn
-    this into a news feed, and the point is the opposite: only what the project
-    itself publishes as a release or an announcement. Entries land here roughly
-    every two weeks, so each one carries its date — a banner that looks live
-    while showing a month-old item is worse than no banner.
+    The project's own blog for releases and announcements, Monero Observer for
+    the day-to-day of the ecosystem, and the GitHub releases, which often land
+    before the site announces them. Each source only gets a few slots: the
+    Observer publishes several times a day and would otherwise fill the banner
+    on its own. Items carry their date — a banner that looks live while showing
+    a month-old entry is worse than no banner.
 
-    Fetched server-side and cached, so a visitor's browser never contacts
-    getmonero.org and no IP leaks to a third party.
+    Fetched server-side and cached, so a visitor's browser never contacts any
+    of these sites and no IP leaks to a third party.
     """
-    source: str = 'getmonero.org'
+    sources: List[str] = ['getmonero.org', 'monero.observer', 'github.com']
     items: List[NewsItem] = []
     fetched_unix: Optional[int] = None
     stale: bool = False
