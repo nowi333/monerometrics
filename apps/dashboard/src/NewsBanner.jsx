@@ -178,7 +178,7 @@ export default function NewsBanner() {
   // fil sans fin. Repete dans chaque copie de la liste pour que la boucle le
   // ramene a chaque tour.
   const heading = (key) => (
-    <span key={key} className="inline-flex items-center gap-2 pl-5 pr-1 shrink-0 select-none">
+    <span key={key} className="inline-flex items-center pl-5 shrink-0 select-none">
       <span
         className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.18em] font-semibold px-2 py-[3px] rounded"
         style={{
@@ -192,7 +192,6 @@ export default function NewsBanner() {
         </svg>
         {t('news.weekly')}
       </span>
-      <span aria-hidden="true" style={{ color: 'color-mix(in srgb, var(--color-success) 50%, transparent)' }}>—</span>
     </span>
   )
 
