@@ -54,11 +54,11 @@ export default function NewsBanner() {
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-baseline gap-2 px-5 text-[13px] hover:underline"
+      className="inline-flex items-center gap-2 px-5 text-[13px] hover:underline"
       style={{ color: 'var(--color-text)' }}
     >
       <span
-        className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0"
+        className="text-[10px] font-mono uppercase tracking-wider leading-none px-1.5 py-[3px] rounded shrink-0"
         style={{
           color: (SOURCES[item.source] || SOURCES.getmonero).color,
           border: `1px solid color-mix(in srgb, ${(SOURCES[item.source] || SOURCES.getmonero).color} 45%, transparent)`,

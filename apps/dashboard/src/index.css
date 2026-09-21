@@ -279,6 +279,9 @@ button:not(:disabled),
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
 }
+/* Sans cela, l'interligne du conteneur laisse une bande vide au-dessus de la
+   piste et les marges haute et basse du bandeau ne sont plus egales. */
+.mm-ticker { line-height: 0; }
 .mm-ticker-track {
   display: inline-flex;
   align-items: center;
