@@ -31,6 +31,7 @@ FIXED_TTL = {
     '/network/fees': 60,
     '/pools/distribution': 60,
     '/pools/sources': 60,
+    '/pools/latency': 300,
     '/chain/provenance': 60,
     '/chain/window': 30,
     '/chain/fork-window': 30,

@@ -432,6 +432,31 @@ class StatusResponse(BaseModel):
     generated_unix: int
 
 
+class PoolLatency(BaseModel):
+    """Retard entre l'arrivee d'un bloc sur la chaine et le moment ou son pool
+    le revendique publiquement."""
+    pool: str
+    blocks: int
+    median_seconds: float
+    p90_seconds: float
+
+
+class PoolLatencyResponse(BaseModel):
+    """Delai de declaration des pools, mesure et non declare.
+
+    Les parts de hashrate que publient les pools reposent sur leurs propres
+    annonces. Celles-ci n'arrivent pas toutes a la meme vitesse : un pool lent
+    parait plus petit qu'il n'est sur une fenetre courte. Cette mesure dit de
+    combien, pool par pool.
+
+    La resolution est bornee par notre propre cadence de releve, annoncee dans
+    `resolution_seconds` : une valeur inferieure a ce pas ne veut rien dire.
+    """
+    window: str
+    resolution_seconds: int
+    pools: List[PoolLatency] = []
+
+
 class NewsItem(BaseModel):
     id: str
     source: str = 'getmonero'

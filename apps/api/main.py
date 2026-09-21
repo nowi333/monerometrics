@@ -20,7 +20,7 @@ import json
 import os
 import re
 from pricing import round_trip_cost
-from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse, SeriesStats, StatusSignal, StatusResponse, NewsItem, NewsResponse, TxReorgExposure, TxDetailResponse, SearchRequest, SearchResponse
+from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse, SeriesStats, StatusSignal, StatusResponse, NewsItem, NewsResponse, PoolLatency, PoolLatencyResponse, TxReorgExposure, TxDetailResponse, SearchRequest, SearchResponse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
 
@@ -44,8 +44,11 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.19.0', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.20.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
+# Cadence de reconstruction de l'index des pools cote worker : elle borne la
+# resolution du delai de declaration qu'on peut mesurer.
+POOL_INDEX_REFRESH_SECONDS = int(os.getenv('POOL_INDEX_REFRESH_INTERVAL', '300'))
 ONION_HEADER = 'x-mm-onion'
 ONION_BUCKET_KEY = '__onion__'
 RATE_LIMIT_ONION_PER_MIN = int(os.getenv('RATE_LIMIT_ONION_PER_MIN', '1200'))
@@ -1294,6 +1297,50 @@ async def haveno_trades(limit: int=Query(100, ge=1, le=1000),
         premium_pct=round(float(r['premium']), 2) if r['premium'] is not None else None,
     ) for r in rows]
     return HavenoTradesResponse(currency=currency, count=len(trades), trades=trades)
+
+@app.get('/pools/latency', response_model=PoolLatencyResponse)
+async def pools_latency(window: str=Query('7d', regex='^(24h|48h|7d|30d)$')):
+    """How long each pool takes to publicly claim a block it mined.
+
+    Pools report their own hashrate share from these announcements. A pool that
+    announces late looks smaller than it is over a short window; this says by
+    how much. Resolution is bounded by our own polling interval.
+    """
+    cached = _agg_cache_get(f'poollat:{window}', 300)
+    if cached is not None:
+        return cached
+    interval_map = {'24h': '24 hours', '48h': '48 hours', '7d': '7 days', '30d': '30 days'}
+    interval = interval_map[window]
+    pool_obj = get_pool()
+    async with pool_obj.acquire() as conn:
+        rows = await conn.fetch(f"""
+            SELECT miner_pool AS pool,
+                   COUNT(*) AS blocks,
+                   percentile_cont(0.5) WITHIN GROUP (
+                       ORDER BY EXTRACT(EPOCH FROM (pool_attributed_at - timestamp_human))) AS median_s,
+                   percentile_cont(0.9) WITHIN GROUP (
+                       ORDER BY EXTRACT(EPOCH FROM (pool_attributed_at - timestamp_human))) AS p90_s
+            FROM blocks
+            WHERE is_canonical = true
+              AND pool_source = 'pool_api'
+              AND pool_attributed_at IS NOT NULL
+              AND miner_pool IS NOT NULL
+              AND miner_pool <> 'unknown'
+              AND timestamp_human >= NOW() - INTERVAL '{interval}'
+            GROUP BY miner_pool
+            HAVING COUNT(*) >= 5
+            ORDER BY median_s
+            """)
+    result = PoolLatencyResponse(
+        window=window,
+        resolution_seconds=POOL_INDEX_REFRESH_SECONDS,
+        pools=[PoolLatency(pool=r['pool'], blocks=r['blocks'],
+                           median_seconds=round(float(r['median_s'] or 0), 1),
+                           p90_seconds=round(float(r['p90_s'] or 0), 1)) for r in rows],
+    )
+    _agg_cache_set(f'poollat:{window}', result)
+    return result
+
 
 @app.get('/pools/sources', response_model=PoolSourcesResponse)
 async def pools_sources():

@@ -129,6 +129,10 @@ def persist_pool_sources(conn: psycopg.Connection) -> None:
         if not _pool_sources_table_ready:
             cur.execute('ALTER TABLE blocks ADD COLUMN IF NOT EXISTS pool_source TEXT')
             cur.execute('ALTER TABLE blocks ADD COLUMN IF NOT EXISTS merge_mining SMALLINT')
+            # Premier instant ou l'on voit un pool revendiquer ce bloc. L'ecart avec
+            # l'horodatage du bloc mesure le retard de declaration du pool, a la
+            # granularite de notre propre cadence de releve.
+            cur.execute('ALTER TABLE blocks ADD COLUMN IF NOT EXISTS pool_attributed_at TIMESTAMPTZ')
             cur.execute('\n                CREATE TABLE IF NOT EXISTS pool_sources (\n                    pool        TEXT PRIMARY KEY,\n                    url         TEXT NOT NULL,\n                    ok          BOOLEAN NOT NULL,\n                    blocks      INTEGER NOT NULL,\n                    checked_at  TIMESTAMPTZ NOT NULL\n                )\n            ')
             _pool_sources_table_ready = True
         for name, st in pools.LAST_STATUS.items():
@@ -206,7 +210,7 @@ def reattribute_recent_unknown(client: httpx.Client, conn: psycopg.Connection,
                 continue
             pool = _pool_index.get((h or '').lower()) if _pool_index else None
             if pool:
-                cur.execute('UPDATE blocks SET miner_pool = %s, pool_source = %s WHERE hash = %s', (pool, 'pool_api', h))
+                cur.execute('UPDATE blocks SET miner_pool = %s, pool_source = %s, pool_attributed_at = COALESCE(pool_attributed_at, now()) WHERE hash = %s', (pool, 'pool_api', h))
                 by_api += 1
     conn.commit()
 
@@ -328,6 +332,13 @@ def upsert_canonical_block(conn: psycopg.Connection, block: dict) -> None:
 def upsert_canonical_header(conn: psycopg.Connection, header: dict) -> None:
     pool = _pool_index.get((header.get('hash') or '').lower())
     _insert_canonical(conn, header, pool or 'unknown', 'pool_api' if pool else None)
+    if pool:
+        # Le pool avait deja annonce ce bloc avant qu'on le voie passer : on date
+        # l'observation ici aussi, sinon ces cas-la, les plus rapides, seraient
+        # absents de la mesure et la fausseraient vers le haut.
+        with conn.cursor() as cur:
+            cur.execute('UPDATE blocks SET pool_attributed_at = COALESCE(pool_attributed_at, now()) WHERE hash = %s',
+                        (header.get('hash'),))
 
 def index_forward(client: httpx.Client, conn: psycopg.Connection, top: int) -> int:
     last = get_last_indexed_height(conn)
