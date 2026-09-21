@@ -174,6 +174,28 @@ export default function NewsBanner() {
     </a>
   )
 
+  // Ouvre le ruban et dit ce qu'on regarde : les sept derniers jours, pas un
+  // fil sans fin. Repete dans chaque copie de la liste pour que la boucle le
+  // ramene a chaque tour.
+  const heading = (key) => (
+    <span key={key} className="inline-flex items-center gap-2 pl-5 pr-1 shrink-0 select-none">
+      <span
+        className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.18em] font-semibold px-2 py-[3px] rounded"
+        style={{
+          color: 'var(--color-success)',
+          border: '1px solid color-mix(in srgb, var(--color-success) 45%, transparent)',
+          background: 'color-mix(in srgb, var(--color-success) 14%, transparent)',
+        }}
+      >
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16" /><circle cx="5" cy="19" r="1.5" fill="currentColor" stroke="none" />
+        </svg>
+        {t('news.weekly')}
+      </span>
+      <span aria-hidden="true" style={{ color: 'color-mix(in srgb, var(--color-success) 50%, transparent)' }}>—</span>
+    </span>
+  )
+
   const arrow = (dir, path) => (
     <button
       type="button"
@@ -206,7 +228,9 @@ export default function NewsBanner() {
       >
         <div className="mm-ticker-track">
           {/* La liste est doublee pour que la boucle se referme sans saut. */}
+          {heading('ha')}
           {items.map((it, i) => entry(it, `a${i}`))}
+          {heading('hb')}
           {items.map((it, i) => entry(it, `b${i}`))}
         </div>
       </div>

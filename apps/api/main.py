@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.21.1', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.22.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 # Cadence de reconstruction de l'index des pools cote worker : elle borne la
 # resolution du delai de declaration qu'on peut mesurer.
@@ -1057,6 +1057,9 @@ NEWS_SOURCES = [
      'prefix': 'https://github.com/monero-project/'},
 ]
 NEWS_LIMIT = 10
+# Le bandeau ne montre que la semaine ecoulee : un ruban qui defile donne
+# l'impression du direct, une annonce d'il y a deux mois y ment.
+NEWS_MAX_AGE = 7 * 86400
 _last_news = None
 
 
@@ -1093,10 +1096,15 @@ async def news():
             return _last_news.model_copy(update={'stale': True})
         return NewsResponse()
 
+    now = int(time.time())
+    groups = [(source, newsfeed.within(items, now, NEWS_MAX_AGE)) for source, items in groups]
     merged = newsfeed.merge(groups, NEWS_LIMIT, {src['id']: src['cap'] for src in NEWS_SOURCES})
-    result = NewsResponse(items=[NewsItem(**m) for m in merged], fetched_unix=int(time.time()))
+    result = NewsResponse(items=[NewsItem(**m) for m in merged], fetched_unix=now)
+    # Le resultat est mis en cache meme vide : une semaine sans publication est
+    # une reponse valable, et sans cela on reinterrogerait les trois flux a
+    # chaque visite.
+    _agg_cache_set('news', result)
     if result.items:
-        _agg_cache_set('news', result)
         _last_news = result
     return result
 

@@ -106,6 +106,12 @@ def parse_rss(raw: str, prefix: str):
     return out
 
 
+def within(items, now: int, max_age: int):
+    """Ne garde que ce qui est assez recent. Un bandeau qui defile donne
+    l'impression du direct : une annonce d'il y a deux mois n'y a pas sa place."""
+    return [it for it in items if now - it['published_unix'] <= max_age]
+
+
 def merge(groups, limit: int, per_source: dict | None = None):
     """Fusionne les sources, retire les doublons et garde les plus recentes.
 
@@ -130,5 +136,21 @@ def merge(groups, limit: int, per_source: dict | None = None):
             seen_titles.add(key)
             out.append({**it, 'source': source})
             kept += 1
+    # Les quotas repartissent les places tant qu'il y a de la concurrence. S'il
+    # reste des trous, par exemple quand une fenetre de sept jours ne laisse
+    # qu'une seule source active, on les comble avec ce qui a ete ecarte plutot
+    # que de servir un bandeau a moitie vide.
+    if len(out) < limit:
+        for source, items in groups:
+            for it in sorted(items, key=lambda x: x['published_unix'], reverse=True):
+                if len(out) >= limit:
+                    break
+                key = it['title'].lower()
+                if it['url'] in seen_urls or key in seen_titles:
+                    continue
+                seen_urls.add(it['url'])
+                seen_titles.add(key)
+                out.append({**it, 'source': source})
+
     out.sort(key=lambda x: x['published_unix'], reverse=True)
     return out[:limit]

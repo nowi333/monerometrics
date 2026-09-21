@@ -2,7 +2,7 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from newsfeed import parse_atom, parse_rss, parse_date, merge
+from newsfeed import parse_atom, parse_rss, parse_date, merge, within
 
 ATOM_NS = 'http://www.w3.org/2005/Atom'
 
@@ -87,16 +87,48 @@ def test_the_same_release_announced_twice_appears_once():
     assert got[0]['source'] == 'getmonero'
 
 
-def test_a_chatty_source_cannot_take_every_slot():
-    # L'Observer publie plusieurs fois par jour : sans quota, il occuperait
-    # seul le bandeau et les annonces du projet n'y paraitraient jamais.
+def test_a_chatty_source_cannot_push_out_the_official_one():
+    # L'Observer publie plusieurs fois par jour et ses entrees sont toutes plus
+    # recentes : sans quota, l'annonce du projet, plus ancienne, tomberait hors
+    # du bandeau. Le quota lui reserve sa place ; il ne bride pas l'Observer,
+    # qui peut ensuite occuper les places restees libres.
     chatty = [{'id': str(i), 'title': f'obs {i}', 'url': f'https://monero.observer/{i}',
                'published_unix': 1000 + i, 'categories': []} for i in range(20)]
     official = [{'id': 'o', 'title': 'release', 'url': 'https://www.getmonero.org/a',
                  'published_unix': 500, 'categories': ['releases']}]
     got = merge([('getmonero', official), ('observer', chatty)], 10, {'observer': 5})
     sources = [g['source'] for g in got]
-    assert sources.count('observer') == 5
     assert 'getmonero' in sources
-    # Le quota garde bien les plus recentes de la source bavarde.
+    assert len(got) == 10
+    # Les plus recentes de la source bavarde passent en premier.
     assert [g['title'] for g in got if g['source'] == 'observer'][0] == 'obs 19'
+
+
+def _item(i, age_days, source_url='https://monero.observer/'):
+    return {'id': str(i), 'title': f'item {i}', 'url': f'{source_url}{i}',
+            'published_unix': 1_000_000 - age_days * 86400, 'categories': []}
+
+
+def test_only_the_recent_entries_are_kept():
+    now = 1_000_000
+    week = 7 * 86400
+    items = [_item(1, 0), _item(2, 3), _item(3, 6.9), _item(4, 8), _item(5, 60)]
+    kept = [i['title'] for i in within(items, now, week)]
+    assert kept == ['item 1', 'item 2', 'item 3']
+
+
+def test_a_quota_does_not_leave_the_banner_half_empty():
+    # Sur sept jours, une seule source publie encore. Le quota ne doit pas
+    # reserver des places a des sources qui n'ont rien a mettre dedans.
+    chatty = [_item(i, 0) for i in range(12)]
+    got = merge([('getmonero', []), ('observer', chatty)], 10, {'observer': 5, 'getmonero': 4})
+    assert len(got) == 10
+    assert all(g['source'] == 'observer' for g in got)
+
+
+def test_the_top_up_still_respects_the_order_and_the_duplicates():
+    a = [{'id': 'a', 'title': 'meme titre', 'url': 'https://a/1', 'published_unix': 500, 'categories': []}]
+    b = [{'id': 'b', 'title': 'Meme Titre', 'url': 'https://b/1', 'published_unix': 900, 'categories': []}]
+    got = merge([('getmonero', a), ('observer', b)], 10, {'getmonero': 0})
+    assert len(got) == 1
+    assert got[0]['source'] == 'observer'
