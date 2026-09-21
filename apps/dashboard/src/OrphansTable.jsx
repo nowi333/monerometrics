@@ -43,7 +43,9 @@ export default function OrphansTable() {
     <Panel
       title={t('orphans.title')}
       info={t('info.orphans')}
-      subtitle={status === 'ok' ? t('orphans.count', { count: data.orphans.length }) : null}
+      subtitle={status === 'ok'
+        ? t('orphans.count', { count: data.orphans.length }) + (period === 'all' ? ` · ${t('orphans.since')}` : '')
+        : null}
       status={status}
       stateVariant="table"
       stateHeight={140}
@@ -52,7 +54,9 @@ export default function OrphansTable() {
         <select value={period} onChange={e => setPeriod(e.target.value)}
           className="bg-transparent border rounded px-3 py-1 text-sm"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
-          {['24h', '48h', '7d', '30d', '90d'].map(w => <option key={w} value={w}>{w}</option>)}
+          {['24h', '48h', '7d', '30d', '90d', '180d', '1y', 'all'].map(w => (
+            <option key={w} value={w}>{w === 'all' ? t('orphans.all') : w}</option>
+          ))}
         </select>
       }
     >{inner}</Panel>

@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.22.0', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.23.0', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 # Cadence de reconstruction de l'index des pools cote worker : elle borne la
 # resolution du delai de declaration qu'on peut mesurer.
@@ -1368,12 +1368,16 @@ async def pools_sources():
     _agg_cache_set('pools:sources', result)
     return result
 
-ORPHAN_WINDOWS = {'24h': '24 hours', '48h': '48 hours', '7d': '7 days', '30d': '30 days', '90d': '90 days'}
+# `all` ne filtre pas : les orphelins ne se retrouvent pas apres coup, un bloc
+# ecarte disparait des explorateurs. Notre releve commence donc le jour ou
+# l'indexeur a commence a tourner, et cette option montre tout ce qu'on a.
+ORPHAN_WINDOWS = {'24h': '24 hours', '48h': '48 hours', '7d': '7 days', '30d': '30 days',
+                  '90d': '90 days', '180d': '180 days', '1y': '365 days', 'all': None}
 
 
 @app.get('/orphans/recent', response_model=OrphansResponse)
-async def orphans_recent(window: str=Query('7d', regex='^(24h|48h|7d|30d|90d)$'),
-                         limit: int=Query(200, ge=1, le=500)):
+async def orphans_recent(window: str=Query('30d', regex='^(24h|48h|7d|30d|90d|180d|1y|all)$'),
+                         limit: int=Query(500, ge=1, le=500)):
     """Orphan blocks over a time window, newest first.
 
     A window rather than a fixed count: how many orphans appeared in a week is
@@ -1381,6 +1385,7 @@ async def orphans_recent(window: str=Query('7d', regex='^(24h|48h|7d|30d|90d)$')
     that changes with the network's own behaviour.
     """
     interval = ORPHAN_WINDOWS[window]
+    since = f"AND o.timestamp_human >= NOW() - INTERVAL '{interval}'" if interval else ''
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(f"""
@@ -1389,7 +1394,7 @@ async def orphans_recent(window: str=Query('7d', regex='^(24h|48h|7d|30d|90d)$')
             FROM blocks o
             LEFT JOIN blocks c ON c.height = o.height AND c.is_canonical = true
             WHERE o.is_canonical = false
-              AND o.timestamp_human >= NOW() - INTERVAL '{interval}'
+              {since}
             ORDER BY o.height DESC
             LIMIT $1
             """, limit)
