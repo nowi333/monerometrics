@@ -21,7 +21,7 @@ function Node({ icon, title, sub }) {
 
 
   return (
-    <div className="mm-node flex-1 min-w-[130px] rounded-xl border p-4 flex flex-col items-center justify-center text-center gap-2">
+    <div className="mm-node flex-1 min-w-0 lg:min-w-[130px] rounded-xl border p-4 flex flex-col items-center justify-center text-center gap-2">
       <span className="mm-node-icon flex h-9 w-9 items-center justify-center rounded-full">
         <NodeIcon name={icon} />
       </span>
@@ -54,7 +54,9 @@ export default function InfraDiagram() {
     <div className="flex flex-col lg:flex-row lg:items-stretch">
       <Node icon="visitor" title={t('doc.infra.visitor')} sub={t('doc.infra.browser')} />
       <Connector />
-      <div className="flex flex-1 min-w-[130px] flex-col gap-2">
+      {/* Deux chemins paralleles vers le meme edge, pas deux etapes : cote a cote
+          en colonne etroite, empiles quand le diagramme passe a l'horizontale. */}
+      <div className="flex flex-1 min-w-[130px] flex-row lg:flex-col gap-2">
         <Node icon="cloudflare" title="Cloudflare" sub={'DNS · WAF'} />
         <Node icon="tor" title="Tor" sub={t('doc.infra.hidden')} />
       </div>
