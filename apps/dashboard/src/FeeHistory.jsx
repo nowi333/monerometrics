@@ -17,6 +17,7 @@ export default function FeeHistory() {
   const fmtFull = (ts) => D.full(new Date(ts * 1000))
   return (
     <TimeSeriesChart
+      ranger={false}
       title={t('fees.historyTitle')}
       infoText={t('info.feesHistory')}
       subtitle={t('fees.historySub')}

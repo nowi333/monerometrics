@@ -5,14 +5,14 @@ import { crosshair, lastValueTag } from './chartTools'
 import ChartNavigator from './ChartNavigator'
 import { Line } from 'react-chartjs-2'
 import {
-  Chart, LineElement, PointElement, LinearScale, LogarithmicScale, CategoryScale, Tooltip, Legend, Filler,
+  Chart, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler,
 } from 'chart.js'
 import InfoTooltip from './InfoTooltip'
 import PanelState from './PanelState'
 import ApiCall from './ApiCall'
 import { usePolledData } from './usePolledData'
 
-Chart.register(LineElement, PointElement, LinearScale, LogarithmicScale, CategoryScale, Tooltip, Legend, Filler)
+Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
 // En deca de ce nombre de points visibles, zoomer n'apporte plus rien.
 const MIN_POINTS = 5
@@ -56,16 +56,13 @@ export default function TimeSeriesChart({
   title, infoText, color, windows, defaultWindow,
   fetcher, mapPoints, format, currentValue, fill = true, referenceY = null, yMax = null, emptyText = null,
   extraSeries = null, seriesLabel = null, footer = null, bandFill = false, headlineExtra = null, subtitle = null, showLegend = null,
-  headlineClass = 'text-2xl', context = null, apiPath = null,
+  headlineClass = 'text-2xl', context = null, apiPath = null, ranger = true,
 }) {
   const { t } = useTranslation()
   const [window_, setWindow] = useState(defaultWindow)
   const [switching, setSwitching] = useState(false)
   const [isFs, setIsFs] = useState(false)
   const [range, setRange] = useState([0, 1])
-  const [mode, setMode] = useState('pan')
-  const [log, setLog] = useState(false)
-  const [sel, setSel] = useState(null)
   const boxRef = useRef(null)
   const plotRef = useRef(null)
   const chartRef = useRef(null)
@@ -147,24 +144,18 @@ export default function TimeSeriesChart({
     return () => el.removeEventListener('wheel', onWheel)
   }, [isFs, zoomAt, status])
 
+  // Glisser deplace la fenetre. Choisir une plage se fait sur la bande de
+  // navigation, ou l'on voit ce qu'on selectionne.
   const onPointerDown = (e) => {
     if (e.pointerType === 'touch' || !plotRef.current) return
     const box = plotRef.current.getBoundingClientRect()
     const from = (e.clientX - box.left) / box.width
     const base = range
     const move = (ev) => {
-      const to = (ev.clientX - box.left) / box.width
-      if (mode === 'zoom') setSel([Math.min(from, to), Math.max(from, to)])
-      else applyRange([base[0] - (to - from) * (base[1] - base[0]), base[1] - (to - from) * (base[1] - base[0])])
+      const d = (ev.clientX - box.left) / box.width - from
+      applyRange([base[0] - d * (base[1] - base[0]), base[1] - d * (base[1] - base[0])])
     }
-    const up = (ev) => {
-      const to = (ev.clientX - box.left) / box.width
-      if (mode === 'zoom' && Math.abs(to - from) > 0.02) {
-        const a = base[0] + Math.min(from, to) * (base[1] - base[0])
-        const b = base[0] + Math.max(from, to) * (base[1] - base[0])
-        applyRange([a, b])
-      }
-      setSel(null)
+    const up = () => {
       globalThis.removeEventListener('pointermove', move)
       globalThis.removeEventListener('pointerup', up)
     }
@@ -210,15 +201,6 @@ export default function TimeSeriesChart({
         )}
       </div>
       <div className="flex items-center gap-1.5 flex-wrap justify-end">
-        <Btn onClick={() => setMode(mode === 'pan' ? 'zoom' : 'pan')} active={mode === 'zoom'}
-          title={mode === 'zoom' ? t('charts.modeZoom') : t('charts.modePan')}>
-          {mode === 'zoom'
-            ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
-            : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 9l-3 3 3 3M19 9l3 3-3 3M2 12h20"/></svg>}
-        </Btn>
-        <Btn onClick={() => setLog(!log)} active={log} title={t('charts.logScale')}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21V3M3 21h18M6 17c3 0 4-9 7-9s3 4 8 4"/></svg>
-        </Btn>
         <Btn onClick={() => zoomAt(1 / 1.3)} title={t('charts.zoomOut')}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </Btn>
@@ -327,8 +309,7 @@ export default function TimeSeriesChart({
     scales: {
       x: { ticks: { color: '#8b9099', font: { size: 10 }, maxRotation: 0, autoSkip: true, autoSkipPadding: 6, maxTicksLimit: 6 }, grid: { display: false } },
       y: {
-        type: log ? 'logarithmic' : 'linear',
-        max: log ? undefined : (yMax ?? undefined),
+        max: yMax ?? undefined,
         ticks: { color: '#8b9099', font: { size: 10 }, callback: (v) => format(v) },
         grid: { color: 'rgba(255,255,255,0.05)' },
       },
@@ -344,15 +325,9 @@ export default function TimeSeriesChart({
         onPointerDown={onPointerDown}
         onKeyDown={onKeyDown}
         className="relative outline-none"
-        style={{ height: isFs ? '72vh' : '240px', cursor: mode === 'zoom' ? 'crosshair' : 'grab', touchAction: 'pan-y' }}
+        style={{ height: isFs ? '72vh' : '240px', cursor: 'grab', touchAction: 'pan-y' }}
       >
-        <Line key={`${window_}-${log}`} ref={chartRef} data={chartData} options={options} plugins={[crosshair, lastValueTag]} />
-        {sel && (
-          <div className="absolute inset-y-0 pointer-events-none"
-            style={{ left: `${sel[0] * 100}%`, width: `${(sel[1] - sel[0]) * 100}%`,
-                     background: `color-mix(in srgb, ${color} 14%, transparent)`,
-                     borderLeft: `1px solid ${color}`, borderRight: `1px solid ${color}` }} />
-        )}
+        <Line key={window_} ref={chartRef} data={chartData} options={options} plugins={[crosshair, lastValueTag]} />
         {switching && (
           <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--color-card) 55%, transparent)' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
@@ -364,16 +339,17 @@ export default function TimeSeriesChart({
         )}
       </div>
 
-      {n > MIN_POINTS && (
-        <ChartNavigator values={allYs} color={color} range={range} onRange={applyRange} />
+      {ranger && n > MIN_POINTS && (
+        <>
+          <ChartNavigator values={allYs} color={color} range={range} onRange={applyRange} />
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] font-mono" style={{ color: 'var(--color-dim)' }}>
+            <span>{zoomed
+              ? t('charts.showing', { n: visible.length, total: n, from: visible[0]?.full ?? '', to: visible[visible.length - 1]?.full ?? '' })
+              : t('charts.showingAll', { n })}</span>
+            <span className="hidden sm:inline">{t('charts.gestures')}</span>
+          </div>
+        </>
       )}
-
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] font-mono" style={{ color: 'var(--color-dim)' }}>
-        <span>{zoomed
-          ? t('charts.showing', { n: visible.length, total: n, from: visible[0]?.full ?? '', to: visible[visible.length - 1]?.full ?? '' })
-          : t('charts.showingAll', { n })}</span>
-        <span className="hidden sm:inline">{t('charts.gestures')}</span>
-      </div>
 
       {context ? context(data) : null}
       {footer ? (
