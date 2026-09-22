@@ -273,6 +273,13 @@ button:not(:disabled),
 .rounded-lg.border .rounded,
 .mm-node { box-shadow: none; }
 
+/* Ligne depliante : on remplace le triangle du navigateur, qui n'existe pas
+   partout et ne suit pas le theme, par un chevron qui pivote a l'ouverture. */
+.mm-disclosure > summary { list-style: none; }
+.mm-disclosure > summary::-webkit-details-marker { display: none; }
+.mm-disclosure > summary .mm-caret { transition: transform 150ms ease; }
+.mm-disclosure[open] > summary .mm-caret { transform: rotate(90deg); }
+
 /* Bandeau de news defilant et navigable.
    Sans cela, l'interligne du conteneur laisse une bande vide au-dessus de la
    piste et les marges haute et basse du bandeau ne sont plus egales. */

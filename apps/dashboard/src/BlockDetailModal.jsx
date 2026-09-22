@@ -168,8 +168,15 @@ export default function BlockDetailModal({ selected, onClose }) {
         </div>
 
         {ext?.tx_hashes?.length > 0 && (
-          <details className="mb-4">
-            <summary className="text-[11px] uppercase tracking-wide cursor-pointer inline-flex items-center gap-1" style={{ color: 'var(--color-dim)' }}>
+          <details className="mm-disclosure mb-4">
+            <summary className="text-[11px] uppercase tracking-wide cursor-pointer inline-flex items-center gap-1.5" style={{ color: 'var(--color-dim)' }}>
+              {/* Le chevron dit que la ligne se deplie, et son sens dit dans quel
+                  etat elle se trouve. Sans lui, rien ne distingue ce titre d'un
+                  intitule de champ. */}
+              <svg className="mm-caret shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
               {t('block.txList', { count: ext.tx_hashes.length })}
               <InfoTooltip text={t('block.tip.txList')} />
             </summary>
