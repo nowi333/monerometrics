@@ -23,7 +23,11 @@ POOL_INDEX_REFRESH_INTERVAL = int(os.getenv('POOL_INDEX_REFRESH_INTERVAL', '300'
 POOL_FETCH_LIMIT = int(os.getenv('POOL_FETCH_LIMIT', '10000'))
 METRICS_PORT = int(os.getenv('METRICS_PORT', '9100'))
 HEARTBEAT_FILE = os.getenv('HEARTBEAT_FILE', '/tmp/worker-heartbeat')
-MEMPOOL_RETENTION_DAYS = int(os.getenv('MEMPOOL_RETENTION_DAYS', '90'))
+# Le mempool est un etat qui ne se rattrape pas : une fois les transactions
+# minees, rien dans la chaine ne dit combien etaient en attente hier. Ces
+# instantanes sont la seule trace qui existera jamais, et ils coutent 66 Mo par
+# an. Les effacer au bout de trois mois etait une economie de bout de chandelle.
+MEMPOOL_RETENTION_DAYS = int(os.getenv('MEMPOOL_RETENTION_DAYS', '1825'))
 MEMPOOL_PRUNE_INTERVAL = int(os.getenv('MEMPOOL_PRUNE_INTERVAL', '3600'))
 PRICE_INTERVAL = int(os.getenv('PRICE_INTERVAL', '600'))
 PRICE_RETENTION_DAYS = int(os.getenv('PRICE_RETENTION_DAYS', '400'))
