@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.25.0', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.26.1', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 # Cadence de reconstruction de l'index des pools cote worker : elle borne la
 # resolution du delai de declaration qu'on peut mesurer.
@@ -1431,8 +1431,30 @@ WINDOW_CONFIG = {
     '30d': ('30 days', 7200),        # 360
     '90d': ('90 days', 21600),       # 360
     '1y': ('365 days', 'day'),       # 365
-    '5y': ('1825 days', 'week'),     # 261
+    '5y': ('1825 days', 'day'),      # 1826
 }
+
+
+# Tranches possibles, de la minute a la semaine.
+BUCKET_LADDER = [60, 300, 900, 1800, 3600, 7200, 21600, 43200, 86400, 172800, 259200, 604800]
+
+
+def _adaptive_step(span_seconds: float, target: int = 320) -> int:
+    """Tranche qui rend environ `target` points pour la duree reellement
+    couverte par les donnees.
+
+    Une serie jeune ne remplit pas une fenetre de cinq ans : decouper par
+    semaine ne lui laisse alors qu'une dizaine de points, quelle que soit la
+    finesse des mesures sous-jacentes. En partant de l'etendue disponible
+    plutot que de la fenetre demandee, la courbe garde sa densite et s'affine
+    d'elle-meme a mesure que l'historique s'allonge.
+    """
+    if span_seconds <= 0:
+        return BUCKET_LADDER[0]
+    # La tranche retenue est celle qui approche le mieux la cible, et non la
+    # premiere au-dessus : arrondir systematiquement vers le haut ferait perdre
+    # la moitie des points des que l'etendue tombe entre deux echelons.
+    return min(BUCKET_LADDER, key=lambda step: abs(span_seconds / step - target))
 
 
 def _bucket(column: str, step) -> str:
@@ -1558,6 +1580,13 @@ async def network_mempool(window: str=Query('24h', regex=WINDOW_REGEX)):
     interval, step = WINDOW_CONFIG[window]
     pool = get_pool()
     async with pool.acquire() as conn:
+        # Les instantanes de mempool ne remontent qu'a juillet 2026 : sur les
+        # longues fenetres, c'est l'etendue des donnees qui doit decider de la
+        # tranche, pas la fenetre demandee.
+        span = await conn.fetchval(
+            f"SELECT extract(epoch from (MAX(observed_at) - MIN(observed_at)))"
+            f" FROM mempool_snapshots WHERE observed_at >= NOW() - INTERVAL '{interval}'")
+        step = _adaptive_step(float(span or 0))
         rows = await conn.fetch(f"\n            SELECT {_bucket('observed_at', step)} AS bucket,\n                   AVG(tx_count)::int AS tx_count\n            FROM mempool_snapshots\n            WHERE observed_at >= NOW() - INTERVAL '{interval}'\n            GROUP BY bucket\n            ")
         current = await conn.fetchval('SELECT tx_count FROM mempool_snapshots ORDER BY observed_at DESC LIMIT 1')
     rows = sorted(rows, key=lambda r: r['bucket'])
