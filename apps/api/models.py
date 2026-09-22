@@ -59,6 +59,9 @@ class ReorgStatsWindow(BaseModel):
 
 class ReorgStatsResponse(BaseModel):
     windows: list[ReorgStatsWindow]
+    # Premiere reorganisation observee. Elle date du jour ou l'indexeur a
+    # commence a surveiller la chaine, pas du jour ou le reseau en a connu une.
+    since: Optional[datetime] = None
 
 class SeriesStats(BaseModel):
     """Where the latest value sits inside the window being displayed.

@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.26.1', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.27.1', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 # Cadence de reconstruction de l'index des pools cote worker : elle borne la
 # resolution du delai de declaration qu'on peut mesurer.
@@ -231,13 +231,28 @@ async def reorgs(limit: int=Query(100, ge=1, le=1000)):
 @app.get('/reorgs/stats', response_model=ReorgStatsResponse)
 async def reorgs_stats():
     pool = get_pool()
-    windows_config = [('24h', '24 hours'), ('7d', '7 days'), ('30d', '30 days')]
+    # `all` ne filtre pas : une reorganisation ne se retrouve pas apres coup, la
+    # serie commence donc le jour ou l'indexeur a commence a surveiller, et
+    # cette plage montre tout ce qu'on a vu.
+    # Pas de fenetre d'un an : la surveillance date du 1er aout 2026, elle
+    # rendrait exactement le meme chiffre que `all` pendant encore des mois.
+    windows_config = [('24h', '24 hours'), ('7d', '7 days'), ('30d', '30 days'),
+                      ('90d', '90 days'), ('all', None)]
     windows = []
     async with pool.acquire() as conn:
+        since = await conn.fetchval('SELECT MIN(detected_at) FROM reorgs_detected')
         for label, interval in windows_config:
-            row = await conn.fetchrow(f"\n                SELECT COUNT(*) AS count,\n                       AVG(depth)::float AS avg_depth,\n                       MAX(depth) AS max_depth,\n                       COALESCE(SUM(affected_tx_count), 0) AS total_affected_tx\n                FROM reorgs_detected\n                WHERE detected_at >= NOW() - INTERVAL '{interval}'\n                ")
+            where = f"WHERE detected_at >= NOW() - INTERVAL '{interval}'" if interval else ''
+            row = await conn.fetchrow(f"""
+                SELECT COUNT(*) AS count,
+                       AVG(depth)::float AS avg_depth,
+                       MAX(depth) AS max_depth,
+                       COALESCE(SUM(affected_tx_count), 0) AS total_affected_tx
+                FROM reorgs_detected
+                {where}
+                """)
             windows.append(ReorgStatsWindow(window=label, count=row['count'] or 0, avg_depth=row['avg_depth'], max_depth=row['max_depth'], total_affected_tx=row['total_affected_tx'] or 0))
-    return ReorgStatsResponse(windows=windows)
+    return ReorgStatsResponse(windows=windows, since=since)
 
 @app.get('/pools/distribution', response_model=PoolDistributionResponse)
 async def pools_distribution(window: str=Query('24h', regex='^(1h|6h|24h|48h|7d)$')):

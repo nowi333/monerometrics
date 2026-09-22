@@ -11,6 +11,13 @@ const ALERT_DEPTH = 5
 // Nombre de temoins de profondeur affiches. Au-dela, le chiffre parle seul.
 const PIPS = 6
 
+// En francais, le premier jour du mois s'ecrit « 1er », jamais « 1 ».
+function dateLongue(iso, langue) {
+  const d = new Date(iso)
+  const texte = d.toLocaleDateString(langue, { day: 'numeric', month: 'long', year: 'numeric' })
+  return langue.startsWith('fr') && d.getDate() === 1 ? texte.replace(/^1\b/, '1er') : texte
+}
+
 function severity(maxDepth) {
   if (!maxDepth) return 'var(--color-success)'
   if (maxDepth >= ALERT_DEPTH) return 'var(--color-danger)'
@@ -19,11 +26,14 @@ function severity(maxDepth) {
 }
 
 export default function ReorgsStats() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { data: stats, status } = usePolledData(() => api.reorgsStats(), d => !!(d && d.windows), [])
 
   const wrap = (inner) => (
-    <Panel title={t('reorgs.title')} info={t('info.reorgs')}
+    <Panel
+      title={t('reorgs.title')}
+      info={t('info.reorgs')}
+      subtitle={status === 'ok' && stats.since ? t('reorgs.since', { d: dateLongue(stats.since, i18n.language) }) : null}
       status={status} stateVariant="table" stateHeight={150} apiPath="/reorgs/stats">{inner}</Panel>
   )
 
@@ -44,7 +54,7 @@ export default function ReorgsStats() {
         <div className="flex items-center gap-2 mb-2">
           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
           <span className="text-[11px] font-mono uppercase tracking-wider" style={{ color: 'var(--color-dim)' }}>
-            {w.window}
+            {w.window === 'all' ? t('reorgs.all') : w.window}
           </span>
         </div>
 
@@ -93,7 +103,7 @@ export default function ReorgsStats() {
 
   return wrap(
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {stats.windows.map(card)}
       </div>
       <p className="mt-3 text-[11px] leading-relaxed" style={{ color: 'var(--color-dim)' }}>

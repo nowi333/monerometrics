@@ -309,6 +309,8 @@ i18n
           'reorgs.none': 'none',
           'reorgs.unit': 'reorganisations',
           'reorgs.depthValue': 'depth {{n}}',
+          'reorgs.all': 'all',
+          'reorgs.since': 'Watching since {{d}}',
           'reorgs.routine': 'Depth 1 is the network breathing: two blocks found at almost the same moment, one of them dropped. A deeper reorg means the chain rewrote something that already held.',
 
 
@@ -747,6 +749,8 @@ i18n
           'reorgs.none': 'aucune',
           'reorgs.unit': 'réorganisations',
           'reorgs.depthValue': 'profondeur {{n}}',
+          'reorgs.all': 'tout',
+          'reorgs.since': 'Sous surveillance depuis le {{d}}',
           'reorgs.routine': "Une profondeur de 1, c'est la respiration du réseau : deux blocs trouvés presque en même temps, dont l'un cède la place. Au-delà, la chaîne a réécrit quelque chose qui tenait déjà.",
 
 
@@ -1185,6 +1189,8 @@ i18n
           'reorgs.none': 'ninguna',
           'reorgs.unit': 'reorganizaciones',
           'reorgs.depthValue': 'profundidad {{n}}',
+          'reorgs.all': 'todo',
+          'reorgs.since': 'Bajo vigilancia desde el {{d}}',
           'reorgs.routine': 'Una profundidad de 1 es la respiración de la red: dos bloques encontrados casi a la vez, uno de ellos descartado. Más allá, la cadena reescribió algo que ya se mantenía.',
 
 
