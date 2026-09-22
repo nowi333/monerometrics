@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.23.0', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.24.1', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 # Cadence de reconstruction de l'index des pools cote worker : elle borne la
 # resolution du delai de declaration qu'on peut mesurer.
@@ -1419,7 +1419,35 @@ async def monerod_get_info():
         response = await client.get(f'{MONEROD_RPC_URL}/get_info')
         response.raise_for_status()
         return response.json()
-WINDOW_CONFIG = {'1h': ('1 hour', 'minute'), '24h': ('24 hours', 'hour'), '7d': ('7 days', 'hour'), '30d': ('30 days', 'day'), '90d': ('90 days', 'day'), '1y': ('365 days', 'week'), '5y': ('1825 days', 'month')}
+# Duree de la fenetre, et taille d'une tranche en secondes. Les tranches visent
+# 250 a 370 points par fenetre : assez pour qu'un zoom revele quelque chose,
+# assez peu pour qu'une reponse reste sous la dizaine de kilo-octets compressee.
+# Une tranche plus fine que l'intervalle entre deux blocs, deux minutes, ne
+# produirait que du bruit et des trous.
+WINDOW_CONFIG = {
+    '1h': ('1 hour', 60),            # 60 points
+    '24h': ('24 hours', 300),        # 288
+    '7d': ('7 days', 1800),          # 336
+    '30d': ('30 days', 7200),        # 360
+    '90d': ('90 days', 21600),       # 360
+    '1y': ('365 days', 'day'),       # 365
+    '5y': ('1825 days', 'week'),     # 261
+}
+
+
+def _bucket(column: str, step) -> str:
+    """Tranche alignee sur une duree fixe, ou sur une unite du calendrier.
+
+    Passer par l'epoch autorise des pas que `date_trunc` ne connait pas, cinq
+    minutes ou deux heures, et c'est ce dont les fenetres courtes ont besoin.
+    Mais cette expression se calcule ligne a ligne : sur un an ou cinq ans, ou
+    la requete balaie des centaines de milliers de blocs, elle coute assez pour
+    depasser le delai d'execution. Ces fenetres-la reprennent donc `date_trunc`,
+    qui donne de toute facon la bonne densite a l'echelle du jour ou de la
+    semaine."""
+    if isinstance(step, str):
+        return f"date_trunc('{step}', {column})"
+    return f"to_timestamp(floor(extract(epoch from {column}) / {step}) * {step})"
 WINDOW_REGEX = '^(1h|24h|7d|30d|90d|1y|5y)$'
 _network_info_cache = {'data': None, 'timestamp': 0}
 _agg_cache: dict[str, tuple] = {}
@@ -1480,11 +1508,11 @@ async def network_hashrate(window: str=Query('30d', regex=WINDOW_REGEX)):
     cached = _agg_cache_get(f'hashrate:{window}', _series_ttl(window))
     if cached is not None:
         return cached
-    interval, grain = WINDOW_CONFIG[window]
-    bucket_size = f'1 {grain}'
+    interval, step = WINDOW_CONFIG[window]
+    bucket_size = step if isinstance(step, str) else f'{step} seconds'
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(f"\n            SELECT date_trunc('{grain}', timestamp_human) AS bucket,\n                   (AVG(difficulty) / 120)::bigint AS hashrate_h_s\n            FROM blocks\n            WHERE is_canonical = true\n              AND timestamp_unix > 0\n              AND timestamp_human >= NOW() - INTERVAL '{interval}'\n            GROUP BY bucket\n            ORDER BY bucket\n            ")
+        rows = await conn.fetch(f"\n            SELECT {_bucket('timestamp_human', step)} AS bucket,\n                   (AVG(difficulty) / 120)::bigint AS hashrate_h_s\n            FROM blocks\n            WHERE is_canonical = true\n              AND timestamp_unix > 0\n              AND timestamp_human >= NOW() - INTERVAL '{interval}'\n            GROUP BY bucket\n            ORDER BY bucket\n            ")
     points = [HashratePoint(bucket=r['bucket'], hashrate_h_s=r['hashrate_h_s'] or 0) for r in rows]
     response = HashrateResponse(
         window=window, bucket_size=bucket_size, points=points,
@@ -1498,7 +1526,7 @@ async def network_blocktime(window: str=Query('24h', regex=WINDOW_REGEX)):
     cached = _agg_cache_get(f'blocktime:{window}', _series_ttl(window))
     if cached is not None:
         return cached
-    interval, _grain = WINDOW_CONFIG[window]
+    interval, _step = WINDOW_CONFIG[window]
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(f"\n            WITH ordered AS (\n                SELECT height, timestamp_unix,\n                       LAG(timestamp_unix) OVER (ORDER BY height) AS prev_ts\n                FROM blocks\n                WHERE is_canonical = true\n                  AND timestamp_human >= NOW() - INTERVAL '{interval}'\n            )\n            SELECT height, timestamp_unix, (timestamp_unix - prev_ts) AS delta_seconds\n            FROM ordered\n            WHERE prev_ts IS NOT NULL\n              AND (timestamp_unix - prev_ts) BETWEEN 0 AND 3600\n            ORDER BY height\n            ")
@@ -1523,14 +1551,14 @@ async def network_mempool(window: str=Query('24h', regex=WINDOW_REGEX)):
     cached = _agg_cache_get(f'mempool:{window}', _series_ttl(window))
     if cached is not None:
         return cached
-    interval, grain = WINDOW_CONFIG[window]
+    interval, step = WINDOW_CONFIG[window]
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(f"\n            SELECT date_trunc('{grain}', observed_at) AS bucket,\n                   AVG(tx_count)::int AS tx_count\n            FROM mempool_snapshots\n            WHERE observed_at >= NOW() - INTERVAL '{interval}'\n            GROUP BY bucket\n            ORDER BY bucket\n            ")
+        rows = await conn.fetch(f"\n            SELECT {_bucket('observed_at', step)} AS bucket,\n                   AVG(tx_count)::int AS tx_count\n            FROM mempool_snapshots\n            WHERE observed_at >= NOW() - INTERVAL '{interval}'\n            GROUP BY bucket\n            ORDER BY bucket\n            ")
         current = await conn.fetchval('SELECT tx_count FROM mempool_snapshots ORDER BY observed_at DESC LIMIT 1')
     points = [MempoolPoint(bucket=r['bucket'], tx_count=r['tx_count'] or 0) for r in rows]
     response = MempoolResponse(
-        window=window, bucket_size=f'1 {grain}', current=current or 0, points=points,
+        window=window, bucket_size=(step if isinstance(step, str) else f'{step} seconds'), current=current or 0, points=points,
         stats=_series_stats([p.tx_count for p in points],
                             [int(p.bucket.timestamp()) for p in points]))
     _agg_cache_set(f'mempool:{window}', response)
@@ -1541,12 +1569,12 @@ async def network_emission(window: str=Query('30d', regex=WINDOW_REGEX)):
     cached = _agg_cache_get(f'emission:{window}', _series_ttl(window))
     if cached is not None:
         return cached
-    interval, grain = WINDOW_CONFIG[window]
+    interval, step = WINDOW_CONFIG[window]
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(f"\n            SELECT date_trunc('{grain}', timestamp_human) AS bucket,\n                   AVG(reward_xmr)::numeric(20,12)::text AS avg_reward_xmr,\n                   COUNT(*) AS blocks\n            FROM blocks\n            WHERE is_canonical = true\n              AND timestamp_human >= NOW() - INTERVAL '{interval}'\n            GROUP BY bucket\n            ORDER BY bucket\n            ")
+        rows = await conn.fetch(f"\n            SELECT {_bucket('timestamp_human', step)} AS bucket,\n                   AVG(reward_xmr)::numeric(20,12)::text AS avg_reward_xmr,\n                   COUNT(*) AS blocks\n            FROM blocks\n            WHERE is_canonical = true\n              AND timestamp_human >= NOW() - INTERVAL '{interval}'\n            GROUP BY bucket\n            ORDER BY bucket\n            ")
     points = [EmissionPoint(bucket=r['bucket'], avg_reward_xmr=r['avg_reward_xmr'] or '0', blocks=r['blocks']) for r in rows]
-    response = EmissionResponse(window=window, bucket_size=f'1 {grain}', points=points)
+    response = EmissionResponse(window=window, bucket_size=(step if isinstance(step, str) else f'{step} seconds'), points=points)
     _agg_cache_set(f'emission:{window}', response)
     return response
 
