@@ -22,7 +22,7 @@ data:
     max-log-files=3
     fast-block-sync=1
     max-concurrency=4
-    db-sync-mode=fast:async:250000000bytes
+    db-sync-mode=safe
     sync-pruned-blocks=1
     block-sync-size=100
     out-peers=32

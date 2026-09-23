@@ -8,6 +8,7 @@ metadata:
     component: indexer
 spec:
   schedule: "15 */2 * * *"
+  suspend: true
   concurrencyPolicy: Replace
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 2
@@ -18,7 +19,7 @@ spec:
       template:
         metadata:
           annotations:
-            vault.hashicorp.com/agent-inject: "true"
+            vault.hashicorp.com/agent-inject: "false"
             vault.hashicorp.com/agent-pre-populate-only: "true"
             vault.hashicorp.com/role: "monerometrics-worker"
             vault.hashicorp.com/agent-inject-secret-postgres-credentials: "secret/data/postgres/credentials"
@@ -34,8 +35,11 @@ spec:
           restartPolicy: Never
           containers:
             - name: retro-pools
-              image: ghcr.io/nowi333/monerometrics-worker:0.11.0
+              image: ghcr.io/nowi333/monerometrics-worker:0.20.0
               command: ["python", "-u", "retro_pools.py"]
               env:
                 - name: PG_HOST
                   value: "postgres"
+              envFrom:
+                - secretRef:
+                    name: postgres-credentials-fallback

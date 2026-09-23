@@ -9,7 +9,7 @@ DEFAULT_LIMIT = 10000
 
 def load_secrets():
     f = '/vault/secrets/postgres-credentials'
-    s = {}
+    s = {k: os.environ[k] for k in ('POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_DB') if k in os.environ}
     if os.path.exists(f):
         for line in open(f):
             line = line.strip()
@@ -31,7 +31,7 @@ def main():
         updated = 0
         with conn.cursor() as cur:
             for hh, pool in index.items():
-                cur.execute("UPDATE blocks SET miner_pool = %s WHERE hash = %s AND (miner_pool IS NULL OR miner_pool = 'unknown' OR miner_pool <> %s)", (pool, hh, pool))
+                cur.execute("UPDATE blocks SET miner_pool = %s, pool_source = 'pool_api', pool_attributed_at = COALESCE(pool_attributed_at, now()) WHERE hash = %s AND pool_source IS DISTINCT FROM 'viewkey_proof' AND (miner_pool IS NULL OR miner_pool = 'unknown' OR miner_pool <> %s OR pool_source IS NULL)", (pool, hh, pool))
                 updated += cur.rowcount
         conn.commit()
         print(f'Blocs mis a jour: {updated}')

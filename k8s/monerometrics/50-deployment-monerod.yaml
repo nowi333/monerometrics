@@ -18,12 +18,11 @@ spec:
       labels:
         app: monerod
     spec:
-      # 30 s (defaut) peut ne pas suffire a vider les 250 Mo d'ecritures
-      # differees de db-sync-mode=fast:async avant le SIGKILL.
+      # Laisse a monerod le temps de fermer LMDB proprement avant le SIGKILL.
       terminationGracePeriodSeconds: 180
       containers:
         - name: monerod
-          image: sethsimmons/simple-monerod:v0.18.3.4
+          image: ghcr.io/sethforprivacy/simple-monerod:v0.18.5.1
           args:
             - --config-file=/etc/monero/monerod.conf
           ports:

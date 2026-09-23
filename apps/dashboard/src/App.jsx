@@ -49,7 +49,7 @@ const ICON_MATRIX = 'M.632.55v22.9H2.28V24H0V0h2.28v.55zm7.043 7.26v1.157h.033c.
 // ancres du menu tomberaient a cote et le defilement sauterait a chaque montage.
 // Les valeurs viennent de la hauteur mesuree de chaque panneau en desktop ;
 // en mobile ils sont plus hauts, la reserve n'est donc qu'une approximation.
-function Deferred({ children, minHeight = 300 }) {
+function Deferred({ children, minHeight = 300, id, className }) {
   const ref = useRef(null)
   const [shown, setShown] = useState(false)
 
@@ -69,7 +69,7 @@ function Deferred({ children, minHeight = 300 }) {
   }, [shown])
 
   return (
-    <div ref={ref} style={shown ? undefined : { minHeight }}>
+    <div ref={ref} id={id} className={className} style={shown ? undefined : { minHeight }}>
       {shown ? <Suspense fallback={<div style={{ minHeight }} />}>{children}</Suspense> : null}
     </div>
   )
@@ -250,7 +250,7 @@ export default function App() {
         <Deferred minHeight={730}><Guard><HavenoMethods /></Guard></Deferred>
       </div>
 
-      <Deferred minHeight={310}><Guard><Donation /></Guard></Deferred>
+      <Deferred minHeight={310} id="donation" className="scroll-mt-4"><Guard><Donation /></Guard></Deferred>
       </>}
       </div>
 

@@ -40,8 +40,7 @@ export default function Donation() {
 
   return (
     <div
-      id="donation"
-      className="mm-iridescent mm-iridescent-glow relative overflow-hidden rounded-xl border p-6 mb-4 scroll-mt-4"
+      className="mm-iridescent mm-iridescent-glow relative overflow-hidden rounded-xl border p-6 mb-4"
       style={{
         background: 'color-mix(in srgb, var(--color-accent) 4%, var(--color-card))',
         borderColor: 'color-mix(in srgb, var(--color-accent) 28%, var(--color-border))',

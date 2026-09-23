@@ -1,0 +1,41 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: monerometrics
+  namespace: monerometrics
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: monerometrics
+      rules:
+        - alert: WorkerStalled
+          expr: time() - monerometrics_last_loop_unixtime > 300 or absent(monerometrics_last_loop_unixtime)
+          for: 5m
+          labels: {severity: critical}
+          annotations: {summary: "Worker loop has not run for 5 minutes"}
+        - alert: IndexingLag
+          expr: monerometrics_indexing_lag_blocks > 10
+          for: 15m
+          labels: {severity: warning}
+          annotations: {summary: "Indexer is {{ $value }} blocks behind the node"}
+        - alert: NodeNotSynced
+          expr: monerometrics_node_synced == 0
+          for: 15m
+          labels: {severity: critical}
+          annotations: {summary: "monerod is not synced"}
+        - alert: DiskAlmostFull
+          expr: 1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"} > 0.90
+          for: 10m
+          labels: {severity: critical}
+          annotations: {summary: "Root disk above 90%"}
+        - alert: PodCrashLooping
+          expr: increase(kube_pod_container_status_restarts_total{namespace="monerometrics"}[30m]) > 3
+          labels: {severity: warning}
+          annotations: {summary: "{{ $labels.pod }} restarted more than 3 times in 30 min"}
+        - alert: CronJobFailing
+          expr: kube_job_status_failed{namespace="monerometrics"} > 0
+          for: 10m
+          labels: {severity: warning}
+          annotations: {summary: "Job {{ $labels.job_name }} failed"}
