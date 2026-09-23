@@ -26,10 +26,10 @@ spec:
           labels: {severity: critical}
           annotations: {summary: "monerod is not synced"}
         - alert: DiskAlmostFull
-          expr: 1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"} > 0.90
+          expr: 1 - node_filesystem_avail_bytes{mountpoint=~"/|/var/lib/monerometrics-data"} / node_filesystem_size_bytes{mountpoint=~"/|/var/lib/monerometrics-data"} > 0.90
           for: 10m
           labels: {severity: critical}
-          annotations: {summary: "Root disk above 90%"}
+          annotations: {summary: "{{ $labels.mountpoint }} above 90%"}
         - alert: PodCrashLooping
           expr: increase(kube_pod_container_status_restarts_total{namespace="monerometrics"}[30m]) > 3
           labels: {severity: warning}
