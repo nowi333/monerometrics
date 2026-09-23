@@ -99,7 +99,10 @@ export function timeAgo(seconds) {
   const units = [[86400, 'day'], [3600, 'hour'], [60, 'minute'], [1, 'second']]
   const [size, unit] = units.find(([u]) => seconds >= u) || units[3]
   try {
-    return new Intl.RelativeTimeFormat(lang, { numeric: 'always', style: 'narrow' })
+    // « narrow » donne « 7d ago » en anglais mais « -7 j » en francais :
+    // on ne le garde que pour l'anglais.
+    const style = lang.startsWith('en') ? 'narrow' : 'short'
+    return new Intl.RelativeTimeFormat(lang, { numeric: 'always', style })
       .format(-Math.floor(seconds / size), unit)
   } catch {
     return `${Math.floor(seconds / size)}${unit[0]} ago`

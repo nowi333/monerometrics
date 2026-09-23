@@ -188,9 +188,14 @@ export default function BlockDetailModal({ selected, onClose }) {
 
         <div>
           <div className="text-[11px] uppercase tracking-wide mb-2 inline-flex items-center gap-1" style={{ color: 'var(--color-dim)' }}>
-            {t('block.verify')}
+            {t(isOrphan ? 'block.verifyOrphan' : 'block.verify')}
             <InfoTooltip text={t('block.tip.explorers')} />
           </div>
+          {/* Aucun explorateur public ne garde les orphelins : on le dit avant
+              le lien, pas apres, pour qu'on ne croie pas verifier ce bloc-ci. */}
+          {isOrphan && (
+            <p className="text-[11px] mb-2 leading-relaxed" style={{ color: 'var(--color-dim)' }}>{t('block.orphanNote')}</p>
+          )}
           <div className="flex flex-wrap gap-2">
             {EXPLORERS.map(ex => (
               <a
@@ -205,9 +210,6 @@ export default function BlockDetailModal({ selected, onClose }) {
               </a>
             ))}
           </div>
-          {isOrphan && (
-            <p className="text-[11px] mt-2 leading-relaxed" style={{ color: 'var(--color-dim)' }}>{t('block.orphanNote')}</p>
-          )}
         </div>
       </div>
     </div>

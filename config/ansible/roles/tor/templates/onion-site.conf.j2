@@ -4,7 +4,11 @@ server {
 
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "DENY" always;
-    add_header Content-Security-Policy "frame-ancestors 'none'" always;
+    # Seuls nos propres fichiers peuvent s'executer. Les styles en ligne restent
+    # permis (React les pose en attribut), le seul cadre tiers est le widget de
+    # don Trocador.
+    # Sur l'onion, l'API passe par /api : rien ne sort vers le web clair.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; frame-src https://trocador.app; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; connect-src 'self'" always;
     add_header Referrer-Policy "no-referrer" always;
 
     access_log off;

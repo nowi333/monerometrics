@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { setLanguage } from './i18n'
 
 const LANGS = [
   { code: 'en', label: 'English' },
@@ -67,7 +68,7 @@ export default function LanguageSwitcher() {
     }
   }, [open])
 
-  const select = (code) => { i18n.changeLanguage(code); setOpen(false) }
+  const select = (code) => { setLanguage(code); setOpen(false) }
 
   return (
     <div ref={ref} className="relative">
