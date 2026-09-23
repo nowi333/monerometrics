@@ -4,7 +4,11 @@ alertmanager:
 
 prometheus:
   prometheusSpec:
-    retention: 7d
+    # Le disque de donnees est partage avec la blockchain : le monitoring garde
+    # trois jours et jamais plus de 1,5 Go, la plus petite des deux limites
+    # s'applique.
+    retention: 3d
+    retentionSize: 1500MB
     resources:
       requests:
         cpu: 100m
