@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import InfraDiagram from './InfraDiagram'
+import { DocPrice, DocHaveno } from './DocMarket'
 import { api, timeAgo } from './api'
 
 const REPO_URL = 'https://github.com/nowi333/monerometrics'
@@ -210,20 +211,9 @@ export default function Documentation() {
         <p className="text-[11px] mt-3" style={{ color: 'var(--color-dim)' }}>{t('doc.sources.note')}</p>
       </section>
 
-      <section className="rounded-lg border p-5 sm:p-6" style={card}>
-        <h2 className="text-lg font-medium mb-3" style={{ color: 'var(--color-text)' }}>{t('doc.price.title')}</h2>
-        <p className="text-sm mb-3 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.price.p1')}</p>
-        <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.price.p2')}</p>
-        <p className="text-sm leading-relaxed mt-3" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.price.p3')}</p>
-        <p className="text-sm leading-relaxed mt-3" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.price.p4')}</p>
-      </section>
+      <DocPrice />
 
-      <section className="rounded-lg border p-5 sm:p-6" style={card}>
-        <h2 className="text-lg font-medium mb-3" style={{ color: 'var(--color-text)' }}>{t('doc.haveno.title')}</h2>
-        <p className="text-sm mb-3 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.haveno.p1')}</p>
-        <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.haveno.p2')}</p>
-        <p className="text-sm leading-relaxed mt-3" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.haveno.p3')}</p>
-      </section>
+      <DocHaveno />
 
       <section className="rounded-lg border p-5 sm:p-6" style={card}>
         <h2 className="text-lg font-medium mb-1" style={{ color: 'var(--color-text)' }}>{t('doc.apiTitle')}</h2>
