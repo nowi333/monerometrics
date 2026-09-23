@@ -25,6 +25,15 @@ server:
 
       service_registration "kubernetes" {}
 
+      # Descellement automatique au demarrage : la cle AES-256 qui chiffre la
+      # cle maitresse est lue dans le Secret openbao-static-seal (cree hors du
+      # depot, jamais versionne). Sans elle, chaque redemarrage du pod ou du
+      # serveur laissait OpenBao scelle jusqu'a une intervention manuelle.
+      seal "static" {
+        current_key_id = "20260924-1"
+        current_key    = "file:///openbao/seal/unseal.key"
+      }
+
       audit "file" "to-stdout" {
         options {
           file_path = "/dev/stdout"
@@ -43,6 +52,15 @@ server:
     limits:
       cpu: 200m
       memory: 1Gi
+  volumes:
+    - name: static-seal
+      secret:
+        secretName: openbao-static-seal
+        defaultMode: 0444
+  volumeMounts:
+    - name: static-seal
+      mountPath: /openbao/seal
+      readOnly: true
 
   dataStorage:
     enabled: true
