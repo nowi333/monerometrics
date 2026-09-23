@@ -280,7 +280,11 @@ async def info():
     pool = get_pool()
     async with pool.acquire() as conn:
         latest = await conn.fetchval('SELECT MAX(height) FROM blocks WHERE is_canonical = true')
-        total_blocks = await conn.fetchval('SELECT COUNT(*) FROM blocks WHERE is_canonical = true')
+        # La chaine canonique est indexee sans trou depuis le bloc 0 (un index
+        # unique impose un seul bloc canonique par hauteur) : son nombre de
+        # blocs est donc la hauteur maximale plus un. Le COUNT(*) equivalent
+        # parcourait 3,7 millions de lignes en plus de dix secondes.
+        total_blocks = latest + 1 if latest is not None else 0
         total_orphans = await conn.fetchval('SELECT COUNT(*) FROM blocks WHERE is_canonical = false')
         total_reorgs = await conn.fetchval('SELECT COUNT(*) FROM reorgs_detected')
     result = InfoResponse(api_version=app.version, latest_indexed_height=latest, total_blocks_indexed=total_blocks or 0, total_orphan_blocks=total_orphans or 0, total_reorgs_detected=total_reorgs or 0)
