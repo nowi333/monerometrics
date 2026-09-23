@@ -120,13 +120,21 @@ def sync_trades(dsn: str, client: httpx.Client, limit: int = TRADE_LIMIT) -> int
                 continue
             payload = [(_trade_key(currency, row), currency, _ts(row['date']), row['price'],
                         row.get('paymentMethod'), row.get('base_vol'), row.get('rel_vol')) for row in rows]
+            if not payload:
+                continue
             cur.executemany(
                 """
                 INSERT INTO haveno_trades (trade_key, currency, traded_at, price, payment_method, base_vol, rel_vol)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (trade_key) DO NOTHING
-                """, payload)
-            written += len(payload)
+                RETURNING trade_key
+                """, payload, returning=True)
+            # Seules les lignes vraiment inserees : chaque passage relit des
+            # milliers de transactions deja connues.
+            while True:
+                written += len(cur.fetchall())
+                if not cur.nextset():
+                    break
     return written
 
 

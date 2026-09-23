@@ -37,6 +37,9 @@ def _agg_cache_get(key: str, ttl: int):
     return None
 
 _compute_locks: dict[str, asyncio.Lock] = {}
+# Taches de fond gardees en reference : sans elle, le ramasse-miettes peut
+# les interrompre en cours de route.
+_background: set = set()
 
 
 def _compute_lock(key: str) -> asyncio.Lock:
@@ -887,13 +890,29 @@ async def _haveno_depth():
 
 
 @app.get('/price', response_model=PriceResponse)
-@_single_flight('price')
 async def price():
     """XMR/USD: centralised reference plus the Haveno peer-to-peer street price."""
     cached = _agg_cache_get('price', 15)
     if cached is not None:
         return cached
+    # Trois services tiers a interroger : le visiteur qui tombait sur
+    # l'expiration du cache attendait parfois cinq secondes. Une valeur recente
+    # est servie tout de suite et rafraichie en arriere-plan.
+    stale = _agg_cache_get('price', 300)
+    if stale is not None:
+        if not _compute_lock('price').locked():
+            task = asyncio.create_task(_refresh_price())
+            _background.add(task)
+            task.add_done_callback(_background.discard)
+        return stale
+    return await _refresh_price()
 
+
+@_single_flight('price')
+async def _refresh_price():
+    cached = _agg_cache_get('price', 15)
+    if cached is not None:
+        return cached
     (official, change, source), (haveno, bid, ask), book = await asyncio.gather(
         _official_price(), _haveno_price(), _haveno_depth())
     if book.get('best_ask') is not None:
