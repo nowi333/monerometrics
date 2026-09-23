@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import logging
 import sys
 from contextlib import asynccontextmanager
@@ -24,6 +25,54 @@ from pricing import round_trip_cost
 from models import HealthResponse, InfoResponse, Block, ChainWindowResponse, Reorg, ReorgsResponse, ReorgStatsWindow, ReorgStatsResponse, PoolShare, PoolDistributionResponse, PoolSource, PoolSourcesResponse, OrphanBlock, OrphansResponse, NetworkInfoResponse, HashratePoint, HashrateResponse, BlocktimePoint, BlocktimeResponse, ForkBlock, ForkWindowResponse, MempoolPoint, MempoolResponse, EmissionPoint, EmissionResponse, MergeMinedChain, BlockDetailResponse, ProvenanceBucket, ProvenanceResponse, PriceResponse, SpreadPoint, SpreadResponse, HavenoMethod, HavenoMethodsResponse, HavenoLiquidityPoint, HavenoLiquidityResponse, HavenoTrade, HavenoTradesResponse, FeeTier, FeeEstimateResponse, FeePoint, FeeHistoryResponse, ExternalUsageResponse, BookLevel, OrderBookResponse, SeriesStats, StatusSignal, StatusResponse, NewsItem, NewsResponse, PoolLatency, PoolLatencyResponse, TxReorgExposure, TxDetailResponse, SearchRequest, SearchResponse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
 log = logging.getLogger('monerometrics-api')
+
+_network_info_cache = {'data': None, 'timestamp': 0}
+_agg_cache: dict[str, tuple] = {}
+
+def _agg_cache_get(key: str, ttl: int):
+    import time
+    entry = _agg_cache.get(key)
+    if entry and time.time() - entry[1] < ttl:
+        return entry[0]
+    return None
+
+_compute_locks: dict[str, asyncio.Lock] = {}
+
+
+def _compute_lock(key: str) -> asyncio.Lock:
+    """Un seul calcul a la fois par cle : a l'expiration du cache, les
+    requetes simultanees attendent le premier resultat au lieu de relancer
+    chacune la meme requete lourde."""
+    lock = _compute_locks.get(key)
+    if lock is None:
+        lock = _compute_locks[key] = asyncio.Lock()
+    return lock
+
+
+def _single_flight(prefix: str):
+    """Serialise un endpoint par cle de cache : la requete qui attend trouve
+    ensuite le resultat du premier calcul dans le cache."""
+    def deco(fn):
+        @functools.wraps(fn)
+        async def wrapper(*args, **kwargs):
+            key = ':'.join([prefix] + [str(a) for a in args] + [str(v) for v in kwargs.values()])
+            async with _compute_lock(key):
+                return await fn(*args, **kwargs)
+        return wrapper
+    return deco
+
+
+def _agg_cache_set(key: str, value) -> None:
+    import time
+    _agg_cache[key] = (value, time.time())
+
+# Une seule table pour le cache serveur et l'en-tete HTTP : deux copies
+# finissent toujours par diverger.
+_SERIES_TTL = httpcache.SERIES_TTL
+
+def _series_ttl(window: str) -> int:
+    return _SERIES_TTL.get(window, 60)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -205,6 +254,7 @@ async def health():
         return HealthResponse(status='degraded', db_connected=False)
 
 @app.get('/info', response_model=InfoResponse)
+@_single_flight('info')
 async def info():
     # Compter 3,7 millions de blocs canoniques prend deux secondes : sans ce
     # cache, chaque client distinct les payait, et la base avec lui.
@@ -272,6 +322,7 @@ async def reorgs_stats():
     return ReorgStatsResponse(windows=windows, since=since)
 
 @app.get('/pools/distribution', response_model=PoolDistributionResponse)
+@_single_flight('pools')
 async def pools_distribution(window: str=Query('24h', pattern='^(1h|6h|24h|48h|7d)$')):
     cached = _agg_cache_get(f'pools:{window}', 60)
     if cached is not None:
@@ -552,6 +603,7 @@ async def _block_height_for_hash(h: str):
 
 
 @app.get('/chain/provenance', response_model=ProvenanceResponse)
+@_single_flight('prov')
 async def chain_provenance(window: str=Query('24h', pattern='^(1h|6h|24h|48h|7d)$')):
     """How our attribution was established over a window.
 
@@ -615,6 +667,26 @@ async def chain_provenance(window: str=Query('24h', pattern='^(1h|6h|24h|48h|7d)
 
 
 async def _official_price():
+    """Spot XMR/USD, garde une minute.
+
+    L'offre gratuite de CoinGecko refuse au-dela de quelques appels par
+    minute : sans ce cache, /price, le carnet et les frais l'interrogeaient
+    chacun de leur cote et recoltaient des 429.
+    """
+    cached = _agg_cache_get('official', 60)
+    if cached is not None:
+        return cached
+    async with _compute_lock('official'):
+        cached = _agg_cache_get('official', 60)
+        if cached is not None:
+            return cached
+        result = await _fetch_official_price()
+        if result[0] is not None:
+            _agg_cache_set('official', result)
+        return result
+
+
+async def _fetch_official_price():
     """Spot XMR/USD from CoinGecko, falling back to Kraken."""
     async with httpx.AsyncClient(timeout=8) as client:
         try:
@@ -662,9 +734,6 @@ FEE_TIERS = [('slow', 'fee_slow', 20), ('normal', 'fee_normal', 4), ('fast', 'fe
 
 
 async def _spot_usd():
-    cached = _agg_cache_get('price', 5)
-    if cached is not None and cached.official_usd:
-        return cached.official_usd
     official, _, _ = await _official_price()
     return official
 
@@ -818,9 +887,10 @@ async def _haveno_depth():
 
 
 @app.get('/price', response_model=PriceResponse)
+@_single_flight('price')
 async def price():
     """XMR/USD: centralised reference plus the Haveno peer-to-peer street price."""
-    cached = _agg_cache_get('price', 5)
+    cached = _agg_cache_get('price', 15)
     if cached is not None:
         return cached
 
@@ -1019,6 +1089,7 @@ _LEVEL_RANK = {'ok': 0, 'watch': 1, 'alert': 2}
 
 
 @app.get('/status', response_model=StatusResponse)
+@_single_flight('status')
 async def status():
     """One-line health verdict, with every threshold that produced it."""
     cached = _agg_cache_get('status', 30)
@@ -1027,7 +1098,12 @@ async def status():
 
     pools = await pools_distribution('24h')
     stats = await reorgs_stats()
-    net = await network_info()
+    # Un noeud injoignable est precisement ce que le verdict doit signaler :
+    # il ne doit pas faire tomber le verdict lui-meme.
+    try:
+        net = await network_info()
+    except HTTPException:
+        net = None
     T = STATUS_THRESHOLDS
     signals = []
 
@@ -1057,9 +1133,9 @@ async def status():
         f"depth >= {T['reorg_depth_watch']} watch, >= {T['reorg_depth_alert']} alert",
         watch=T['reorg_depth_watch'], alert=T['reorg_depth_alert'], max_depth=depth)
 
-    age = net.last_block_age_seconds or 0
-    lvl = 'alert' if age >= T['stale_tip_seconds'] else 'ok'
-    add('tip', 'last block', age, f'{age}s ago', lvl,
+    age = net.last_block_age_seconds if net else None
+    lvl = 'alert' if age is None or age >= T['stale_tip_seconds'] else 'ok'
+    add('tip', 'last block', age, f'{age}s ago' if age is not None else 'node unreachable', lvl,
         f">= {T['stale_tip_seconds']}s alert", alert=T['stale_tip_seconds'])
 
     chain_sigs = [x for x in signals if x.key in ('reorgs', 'tip')]
@@ -1520,24 +1596,6 @@ def _bucket(column: str, step) -> str:
         return f"date_trunc('{step}', {column})"
     return f"to_timestamp(floor(extract(epoch from {column}) / {step}) * {step})"
 WINDOW_REGEX = '^(1h|24h|7d|30d|90d|1y|5y)$'
-_network_info_cache = {'data': None, 'timestamp': 0}
-_agg_cache: dict[str, tuple] = {}
-
-def _agg_cache_get(key: str, ttl: int):
-    import time
-    entry = _agg_cache.get(key)
-    if entry and time.time() - entry[1] < ttl:
-        return entry[0]
-    return None
-
-def _agg_cache_set(key: str, value) -> None:
-    import time
-    _agg_cache[key] = (value, time.time())
-
-_SERIES_TTL = {'1h': 45, '24h': 60, '7d': 180, '30d': 600, '90d': 1200, '1y': 1800, '5y': 3600}
-
-def _series_ttl(window: str) -> int:
-    return _SERIES_TTL.get(window, 60)
 
 @app.get('/network/info', response_model=NetworkInfoResponse)
 async def network_info():
@@ -1562,12 +1620,23 @@ async def network_info():
     height = info.get('height', 0)
     target = info.get('target_height', 0) or height
     sync_pct = height / target * 100 if target else 0.0
-    pool_obj = get_pool()
+    # L'age du dernier bloc vient du noeud : lu dans notre base, il mesurait
+    # aussi le retard de notre indexeur, et un worker arrete faisait annoncer
+    # un reseau decroche. La base ne sert que de secours.
     last_block_age = None
-    async with pool_obj.acquire() as conn:
-        ts = await conn.fetchval('SELECT timestamp_unix FROM blocks WHERE is_canonical = true ORDER BY height DESC LIMIT 1')
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.post(f'{MONEROD_RPC_URL}/json_rpc', json={
+                'jsonrpc': '2.0', 'id': '0', 'method': 'get_last_block_header'})
+            ts = ((r.json().get('result') or {}).get('block_header') or {}).get('timestamp')
         if ts:
-            import time
+            last_block_age = int(time.time()) - int(ts)
+    except Exception as e:
+        log.warning(f'monerod get_last_block_header failed: {e}')
+    if last_block_age is None:
+        async with get_pool().acquire() as conn:
+            ts = await conn.fetchval('SELECT timestamp_unix FROM blocks WHERE is_canonical = true ORDER BY height DESC LIMIT 1')
+        if ts:
             last_block_age = int(time.time()) - ts
     response = NetworkInfoResponse(block_height=height, block_hash=info.get('top_block_hash', ''), target_height=target, sync_pct=round(sync_pct, 2), synced=info.get('synchronized', False), difficulty=str(difficulty), mempool_tx_count=mempool_count, network_hashrate_h_s=hashrate, last_block_age_seconds=last_block_age)
     _network_info_cache['data'] = response
@@ -1577,6 +1646,7 @@ async def network_info():
 HASHRATE_PER_BLOCK = {'1h', '24h'}
 
 @app.get('/network/hashrate', response_model=HashrateResponse)
+@_single_flight('hashrate')
 async def network_hashrate(window: str=Query('30d', pattern=WINDOW_REGEX)):
     cached = _agg_cache_get(f'hashrate:{window}', _series_ttl(window))
     if cached is not None:
@@ -1603,30 +1673,79 @@ async def network_hashrate(window: str=Query('30d', pattern=WINDOW_REGEX)):
     _agg_cache_set(f'hashrate:{window}', response)
     return response
 
+# Au-dela de trente jours, un point par bloc ferait remonter des centaines de
+# milliers de lignes pour un graphique qui n'en affiche que quelques centaines :
+# on agrege en SQL, par tranche.
+BLOCKTIME_PER_BLOCK = {'1h', '24h', '7d', '30d'}
+
+
 @app.get('/network/blocktime', response_model=BlocktimeResponse)
 async def network_blocktime(window: str=Query('24h', pattern=WINDOW_REGEX)):
     cached = _agg_cache_get(f'blocktime:{window}', _series_ttl(window))
     if cached is not None:
         return cached
-    interval, _step = WINDOW_CONFIG[window]
+    async with _compute_lock(f'blocktime:{window}'):
+        cached = _agg_cache_get(f'blocktime:{window}', _series_ttl(window))
+        if cached is not None:
+            return cached
+        response = await _blocktime(window)
+        _agg_cache_set(f'blocktime:{window}', response)
+        return response
+
+
+async def _blocktime(window: str) -> BlocktimeResponse:
+    interval, step = WINDOW_CONFIG[window]
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(f"\n            WITH ordered AS (\n                SELECT height, timestamp_unix,\n                       LAG(timestamp_unix) OVER (ORDER BY height) AS prev_ts\n                FROM blocks\n                WHERE is_canonical = true\n                  AND timestamp_human >= NOW() - INTERVAL '{interval}'\n            )\n            SELECT height, timestamp_unix, (timestamp_unix - prev_ts) AS delta_seconds\n            FROM ordered\n            WHERE prev_ts IS NOT NULL\n              AND (timestamp_unix - prev_ts) BETWEEN 0 AND 3600\n            ORDER BY height\n            ")
-    points = [BlocktimePoint(**dict(r)) for r in rows]
-    if points:
-        deltas = sorted((p.delta_seconds for p in points))
-        avg = sum(deltas) / len(deltas)
-        median = deltas[len(deltas) // 2]
-    else:
-        avg = 0.0
-        median = 0
-    max_points = 1500
-    points = _decimate(points, max_points)
-    response = BlocktimeResponse(window=window, avg_delta=round(avg, 2), median_delta=median, points=points)
-    _agg_cache_set(f'blocktime:{window}', response)
-    return response
+        # Moyenne tiree de l'etendue, pas des ecarts filtres : les horodatages
+        # sont choisis par les mineurs, et ecarter les ecarts negatifs en gardant
+        # les grands gonflait la moyenne. L'etendue divisee par le nombre
+        # d'intervalles, elle, ne depend pas de l'ordre des horodatages.
+        span = await conn.fetchrow(f"""
+            SELECT COUNT(*) AS n, MIN(timestamp_unix) AS t0, MAX(timestamp_unix) AS t1
+            FROM blocks
+            WHERE is_canonical = true AND timestamp_human >= NOW() - INTERVAL '{interval}'
+            """)
+        n = span['n'] or 0
+        avg = (span['t1'] - span['t0']) / (n - 1) if n > 1 else 0.0
+        if window in BLOCKTIME_PER_BLOCK:
+            rows = await conn.fetch(f"""
+                WITH ordered AS (
+                    SELECT height, timestamp_unix,
+                           timestamp_unix - LAG(timestamp_unix) OVER (ORDER BY height) AS delta
+                    FROM blocks
+                    WHERE is_canonical = true AND timestamp_human >= NOW() - INTERVAL '{interval}'
+                )
+                SELECT height, timestamp_unix, delta AS delta_seconds
+                FROM ordered WHERE delta IS NOT NULL ORDER BY height
+                """)
+            deltas = sorted(r['delta_seconds'] for r in rows)
+            median = deltas[len(deltas) // 2] if deltas else 0
+            # Le graphique ne montre que les ecarts plausibles ; la moyenne et la
+            # mediane, elles, portent sur tous.
+            points = [BlocktimePoint(**dict(r)) for r in rows if 0 <= r['delta_seconds'] <= 3600]
+            points = _decimate(points, 1500)
+            bucket_size = 'block'
+        else:
+            rows = await conn.fetch(f"""
+                SELECT {_bucket('timestamp_human', step)} AS bucket,
+                       MIN(timestamp_unix) AS t0, MAX(timestamp_unix) AS t1, COUNT(*) AS n
+                FROM blocks
+                WHERE is_canonical = true AND timestamp_human >= NOW() - INTERVAL '{interval}'
+                GROUP BY bucket
+                """)
+            rows = sorted((r for r in rows if r['n'] > 1), key=lambda r: r['bucket'])
+            points = [BlocktimePoint(timestamp_unix=int(r['bucket'].timestamp()),
+                                     delta_seconds=round((r['t1'] - r['t0']) / (r['n'] - 1)))
+                      for r in rows]
+            vals = sorted(p.delta_seconds for p in points)
+            median = vals[len(vals) // 2] if vals else 0
+            bucket_size = step if isinstance(step, str) else f'{step} seconds'
+    return BlocktimeResponse(window=window, avg_delta=round(avg, 2), median_delta=median,
+                             bucket_size=bucket_size, points=points)
 
 @app.get('/network/mempool', response_model=MempoolResponse)
+@_single_flight('mempool')
 async def network_mempool(window: str=Query('24h', pattern=WINDOW_REGEX)):
     cached = _agg_cache_get(f'mempool:{window}', _series_ttl(window))
     if cached is not None:
@@ -1653,6 +1772,7 @@ async def network_mempool(window: str=Query('24h', pattern=WINDOW_REGEX)):
     return response
 
 @app.get('/network/emission', response_model=EmissionResponse)
+@_single_flight('emission')
 async def network_emission(window: str=Query('30d', pattern=WINDOW_REGEX)):
     cached = _agg_cache_get(f'emission:{window}', _series_ttl(window))
     if cached is not None:

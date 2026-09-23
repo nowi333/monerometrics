@@ -59,6 +59,7 @@ export default function StatusBanner() {
   // la langue du lecteur. Le texte anglais de l'API ne sert qu'en secours.
   const pct = (v) => `${Number(v).toFixed(1)}%`
   const display = (s) => {
+    if (s.key === 'tip' && s.value == null) return t('status.unreachable')
     if (s.value == null) return s.display
     if (s.key === 'top_pool' || s.key === 'top2') return pct(s.value)
     if (s.key === 'reorgs') return s.value ? t('status.depth', { n: s.value, d: s.max_depth ?? 0 }) : t('status.none')

@@ -50,13 +50,13 @@ def parse_pool_response(parser_type: str, data) -> list[tuple[int, str]]:
     return blocks
 KRYPTEX_MAX_PAGES = 15
 
-def fetch_pool_blocks(client: httpx.Client, name: str, url_template: str, parser_type: str, limit: int) -> list[tuple[int, str]]:
+def fetch_pool_blocks(client: httpx.Client, name: str, url_template: str, parser_type: str, limit: int, max_pages: int | None = None) -> list[tuple[int, str]]:
     headers = {'User-Agent': 'monerometrics/1.0'}
     try:
         if parser_type == 'kryptex':
             blocks: list[tuple[int, str]] = []
             url = url_template.format(limit=100)
-            for _ in range(KRYPTEX_MAX_PAGES):
+            for _ in range(max_pages or KRYPTEX_MAX_PAGES):
                 r = client.get(url, timeout=12, follow_redirects=True, headers=headers)
                 r.raise_for_status()
                 payload = r.json()
@@ -68,7 +68,7 @@ def fetch_pool_blocks(client: httpx.Client, name: str, url_template: str, parser
         if parser_type == 'cryptonote_paged':
             acc: dict[str, int] = {}
             low = 99999999
-            for _ in range(CRYPTONOTE_MAX_PAGES):
+            for _ in range(max_pages or CRYPTONOTE_MAX_PAGES):
                 r = client.get(url_template.format(height=low), timeout=12, follow_redirects=True, headers=headers)
                 r.raise_for_status()
                 page = parse_pool_response(parser_type, r.json())
@@ -86,13 +86,18 @@ def fetch_pool_blocks(client: httpx.Client, name: str, url_template: str, parser
         log.warning(f'Pool API {name} failed: {e}')
         return []
 
-def build_pool_index(client: httpx.Client, limit: int, per_pool_limits: dict[str, int] | None=None) -> dict[str, str]:
+def build_pool_index(client: httpx.Client, limit: int, per_pool_limits: dict[str, int] | None=None, max_pages: int | None=None) -> dict[str, str]:
     index: dict[str, str] = {}
     total = 0
     for name, (url_template, parser_type) in POOL_APIS.items():
         pool_limit = (per_pool_limits or {}).get(name, limit)
-        blocks = fetch_pool_blocks(client, name, url_template, parser_type, pool_limit)
-        LAST_STATUS[name] = {'url': url_template.split('?')[0], 'ok': len(blocks) > 0, 'blocks': len(blocks), 'checked_at': time.time()}
+        blocks = fetch_pool_blocks(client, name, url_template, parser_type, pool_limit, max_pages)
+        count = len(blocks)
+        if max_pages is not None and name in LAST_STATUS:
+            # Relecture partielle : le nombre publie reste celui de la derniere
+            # lecture complete, pas celui de la seule page relue.
+            count = max(count, LAST_STATUS[name]['blocks'])
+        LAST_STATUS[name] = {'url': url_template.split('?')[0], 'ok': len(blocks) > 0, 'blocks': count, 'checked_at': time.time()}
         for _height, block_hash in blocks:
             index[block_hash] = canonical(name)
             total += 1

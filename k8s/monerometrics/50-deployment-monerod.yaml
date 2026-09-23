@@ -28,6 +28,8 @@ spec:
           ports:
             - containerPort: 18081
               name: rpc
+            - containerPort: 18083
+              name: rpc-admin
             - containerPort: 18080
               name: p2p
           volumeMounts:

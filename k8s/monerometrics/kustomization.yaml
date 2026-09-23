@@ -13,6 +13,7 @@ resources:
   - 40-service-postgres.yaml
   - 40-service-monerod.yaml
   - 45-networkpolicy-postgres.yaml
+  - 46-networkpolicy-monerod.yaml
   - 50-deployment-postgres.yaml
   - 50-deployment-monerod.yaml
   - 50-deployment-worker.yaml

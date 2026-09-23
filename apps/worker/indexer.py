@@ -13,6 +13,10 @@ from prometheus_client import start_http_server, Counter, Gauge
 import pools
 import pool_proofs
 MONEROD_URL = os.getenv('MONEROD_URL', 'http://monerod:18081')
+# Port RPC non restreint du noeud, joignable du seul worker. Il sert a lire les
+# chaines alternatives : un bloc orphelin remplace en quelques secondes, avant
+# notre passage suivant, n'existe que la.
+MONEROD_ADMIN_URL = os.getenv('MONEROD_ADMIN_URL', '')
 POLL_INTERVAL = int(os.getenv('POLL_INTERVAL', '30'))
 MAX_BLOCKS_PER_BATCH = int(os.getenv('MAX_BLOCKS_PER_BATCH', '100'))
 CONFIRMATION_WINDOW = int(os.getenv('CONFIRMATION_WINDOW', '60'))
@@ -21,6 +25,12 @@ BACKFILL_CHUNK = int(os.getenv('BACKFILL_CHUNK', '1000'))
 BACKFILL_CHUNKS_PER_POLL = int(os.getenv('BACKFILL_CHUNKS_PER_POLL', '20'))
 POOL_INDEX_REFRESH_INTERVAL = int(os.getenv('POOL_INDEX_REFRESH_INTERVAL', '300'))
 POOL_FETCH_LIMIT = int(os.getenv('POOL_FETCH_LIMIT', '10000'))
+# Entre deux reconstructions completes, on ne relit que les derniers blocs de
+# chaque pool : les APIs tierces n'ont pas a servir 10 000 blocs toutes les
+# cinq minutes pour nous en apprendre une poignee.
+POOL_REFRESH_LIMIT = int(os.getenv('POOL_REFRESH_LIMIT', '200'))
+POOL_FULL_REFRESH_INTERVAL = int(os.getenv('POOL_FULL_REFRESH_INTERVAL', '21600'))
+MARKET_LOOP_INTERVAL = int(os.getenv('MARKET_LOOP_INTERVAL', '30'))
 METRICS_PORT = int(os.getenv('METRICS_PORT', '9100'))
 HEARTBEAT_FILE = os.getenv('HEARTBEAT_FILE', '/tmp/worker-heartbeat')
 # Le mempool est un etat qui ne se rattrape pas : une fois les transactions
@@ -38,18 +48,21 @@ FEE_INTERVAL = int(os.getenv('FEE_INTERVAL', '300'))
 FEE_RETENTION_DAYS = int(os.getenv('FEE_RETENTION_DAYS', '400'))
 ATOMIC_UNITS = Decimal(10) ** 12
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', stream=sys.stdout)
+# Une ligne par requete HTTP noyait le journal : on ne garde que les erreurs.
+logging.getLogger('httpx').setLevel(logging.WARNING)
 log = logging.getLogger('monerometrics-worker')
 M_LAST_INDEXED = Gauge('monerometrics_last_indexed_height', 'Derniere hauteur canonique indexee')
 M_NODE_TIP = Gauge('monerometrics_node_tip_height', 'Hauteur de la tete du node monerod')
 M_LAG = Gauge('monerometrics_indexing_lag_blocks', "Retard d'indexation (tip - derniere hauteur indexee)")
 M_SYNCED = Gauge('monerometrics_node_synced', '1 si monerod est synchronise, sinon 0')
-M_LAST_LOOP = Gauge('monerometrics_last_loop_unixtime', 'Timestamp Unix du dernier passage de boucle')
+M_LAST_LOOP = Gauge('monerometrics_last_loop_unixtime', 'Timestamp Unix du dernier passage de boucle reussi')
 M_POOL_INDEX = Gauge('monerometrics_pool_index_size', "Nombre de hash dans l'index pools")
 M_MEMPOOL = Gauge('monerometrics_mempool_tx_count', 'Nombre de transactions dans le mempool')
 M_BLOCKS = Counter('monerometrics_blocks_indexed_total', 'Total de blocs indexes depuis le demarrage')
 M_REORGS = Counter('monerometrics_reorgs_detected_total', 'Total de reorgs detectees depuis le demarrage')
 M_CONFLICTS = Counter('monerometrics_attribution_conflicts_total', 'Blocs ou une API de pool contredit la preuve cryptographique')
 M_PROVEN = Counter('monerometrics_blocks_proven_total', 'Blocs attribues par preuve viewkey')
+M_ALT_BLOCKS = Counter('monerometrics_alt_blocks_recorded_total', 'Blocs alternatifs lus sur le noeud et enregistres')
 M_UNPROVEN = Counter('monerometrics_unproven_claims_total', "Blocs revendiques par un pool dont la cle de vue publiee ne les prouve pas")
 
 def load_secrets_from_openbao():
@@ -78,6 +91,7 @@ else:
 DATABASE_URL = os.getenv('DATABASE_URL', f'postgresql://{PG_USER}:{PG_PASSWORD}@postgres:5432/{PG_DB}')
 _pool_index: dict[str, str] = {}
 _pool_index_last_refresh = 0.0
+_pool_index_last_full = 0.0
 
 def _miner_tx(block: dict):
     try:
@@ -122,11 +136,19 @@ def detect_pool(block: dict) -> tuple[str, str | None]:
     return 'unknown', None
 
 def maybe_refresh_pool_index(client: httpx.Client) -> None:
-    global _pool_index, _pool_index_last_refresh
-    if time.time() - _pool_index_last_refresh >= POOL_INDEX_REFRESH_INTERVAL:
+    global _pool_index, _pool_index_last_refresh, _pool_index_last_full
+    now = time.time()
+    if now - _pool_index_last_refresh < POOL_INDEX_REFRESH_INTERVAL:
+        return
+    if not _pool_index or now - _pool_index_last_full >= POOL_FULL_REFRESH_INTERVAL:
+        # Reconstruction complete : elle remplace l'index, ce qui purge aussi
+        # les blocs trop anciens pour encore figurer dans les listes des pools.
         _pool_index = pools.build_pool_index(client, POOL_FETCH_LIMIT)
-        _pool_index_last_refresh = time.time()
-        M_POOL_INDEX.set(len(_pool_index))
+        _pool_index_last_full = now
+    else:
+        _pool_index.update(pools.build_pool_index(client, POOL_REFRESH_LIMIT, max_pages=1))
+    _pool_index_last_refresh = now
+    M_POOL_INDEX.set(len(_pool_index))
 _pool_sources_table_ready = False
 
 def persist_pool_sources(conn: psycopg.Connection) -> None:
@@ -158,8 +180,9 @@ def verify_proof_keys(client: httpx.Client) -> None:
     so it can never mislabel a block. Runs once at startup.
     """
     samples = {}
+    provable = pool_proofs.load_pools()
     for block_hash, pool in _pool_index.items():
-        if pool in samples or pool not in pool_proofs.load_pools():
+        if pool in samples or pool not in provable:
             continue
         samples[pool] = block_hash
     if not samples:
@@ -191,7 +214,7 @@ def reattribute_recent_unknown(client: httpx.Client, conn: psycopg.Connection,
     """Re-check recent unknown blocks: pool APIs catch up over time, and blocks
     indexed before view-key proofs existed have never been proven."""
     with conn.cursor() as cur:
-        cur.execute("\n            SELECT height, hash FROM blocks\n            WHERE is_canonical = true\n              AND (miner_pool IS NULL OR miner_pool = 'unknown' OR pool_source IS NULL)\n              AND height >= %s\n            ORDER BY height DESC\n            ", (tip - depth,))
+        cur.execute("\n            SELECT height, hash FROM blocks\n            WHERE is_canonical = true\n              AND (miner_pool IS NULL OR miner_pool = 'unknown' OR pool_source IS NULL\n                   OR pool_source = 'coinbase_heuristic')\n              AND height >= %s\n            ORDER BY height DESC\n            ", (tip - depth,))
         rows = cur.fetchall()
 
         todo = [(height, h) for height, h in rows]
@@ -334,9 +357,29 @@ def _difficulty_of(header: dict) -> int:
 
 def _insert_canonical(conn: psycopg.Connection, header: dict, pool: str,
                       source: str | None = None, mm: int | None = None) -> None:
+    _insert_block(conn, header, pool, source, mm, canonical=True)
+
+
+def _insert_block(conn: psycopg.Connection, header: dict, pool: str,
+                  source: str | None = None, mm: int | None = None, canonical: bool = True) -> None:
     reward = Decimal(int(header.get('reward', 0))) / ATOMIC_UNITS
+    if not canonical:
+        # Un bloc alternatif deja connu garde son etat : s'il est canonique pour
+        # nous, c'est le rescan de la fenetre de confirmation qui tranche.
+        with conn.cursor() as cur:
+            cur.execute('''
+                INSERT INTO blocks (
+                    hash, height, prev_hash, timestamp_unix, timestamp_human,
+                    difficulty, tx_count, size_bytes, miner_address, miner_pool,
+                    pool_source, merge_mining, reward_xmr, is_canonical
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
+                ON CONFLICT (hash) DO NOTHING
+                ''', (header['hash'], header['height'], header.get('prev_hash', ''), header['timestamp'],
+                      datetime.fromtimestamp(header['timestamp'], tz=timezone.utc), _difficulty_of(header),
+                      header.get('num_txes', 0), header.get('block_size', 0), None, pool, source, mm, reward))
+        return
     with conn.cursor() as cur:
-        cur.execute('\n            INSERT INTO blocks (\n                hash, height, prev_hash, timestamp_unix, timestamp_human,\n                difficulty, tx_count, size_bytes, miner_address, miner_pool,\n                pool_source, merge_mining, reward_xmr, is_canonical\n            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)\n            ON CONFLICT (hash) DO UPDATE SET\n                is_canonical = TRUE,\n                miner_pool = COALESCE(EXCLUDED.miner_pool, blocks.miner_pool),\n                pool_source = COALESCE(EXCLUDED.pool_source, blocks.pool_source),\n                merge_mining = COALESCE(EXCLUDED.merge_mining, blocks.merge_mining)\n            ', (header['hash'], header['height'], header.get('prev_hash', ''), header['timestamp'], datetime.fromtimestamp(header['timestamp'], tz=timezone.utc), _difficulty_of(header), header.get('num_txes', 0), header.get('block_size', 0), None, pool, source, mm, reward))
+        cur.execute('\n            INSERT INTO blocks (\n                hash, height, prev_hash, timestamp_unix, timestamp_human,\n                difficulty, tx_count, size_bytes, miner_address, miner_pool,\n                pool_source, merge_mining, reward_xmr, is_canonical\n            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)\n            ON CONFLICT (hash) DO UPDATE SET\n                is_canonical = TRUE,\n                miner_pool = CASE WHEN EXCLUDED.pool_source IS NOT NULL OR blocks.pool_source IS NULL\n                                  THEN EXCLUDED.miner_pool ELSE blocks.miner_pool END,\n                pool_source = COALESCE(EXCLUDED.pool_source, blocks.pool_source),\n                merge_mining = COALESCE(EXCLUDED.merge_mining, blocks.merge_mining)\n            ', (header['hash'], header['height'], header.get('prev_hash', ''), header['timestamp'], datetime.fromtimestamp(header['timestamp'], tz=timezone.utc), _difficulty_of(header), header.get('num_txes', 0), header.get('block_size', 0), None, pool, source, mm, reward))
 
 def upsert_canonical_block(conn: psycopg.Connection, block: dict) -> None:
     pool, source = detect_pool(block)
@@ -448,6 +491,57 @@ def _record_reorg_events(conn: psycopg.Connection, changed: list[tuple[int, str,
             new_tip_hash = tip[3]
             affected_tx = sum((item[2] for item in run))
             cur.execute('\n                INSERT INTO reorgs_detected\n                    (fork_point_height, depth, old_chain_tip_hash,\n                     new_chain_tip_hash, affected_tx_count, notes)\n                VALUES (%s, %s, %s, %s, %s, %s)\n                ', (fork_point, depth, old_tip_hash, new_tip_hash, affected_tx, 'Detected during confirmation-window rescan'))
+
+_alt_seen: set[str] = set()
+
+
+def record_alternate_blocks(client: httpx.Client, conn: psycopg.Connection) -> int:
+    """Enregistre les blocs des chaines alternatives que le noeud connait.
+
+    Le rescan de la fenetre de confirmation ne voit un orphelin que si on avait
+    deja indexe le bloc avant son remplacement. Or la plupart des blocs
+    concurrents sont departages en quelques secondes, bien avant notre passage
+    suivant : sans cette lecture, on n'en voyait qu'environ un sur quatre.
+    """
+    if not MONEROD_ADMIN_URL:
+        return 0
+    r = client.post(f'{MONEROD_ADMIN_URL}/json_rpc', timeout=10,
+                    json={'jsonrpc': '2.0', 'id': '0', 'method': 'get_alternate_chains'})
+    r.raise_for_status()
+    data = r.json()
+    if 'error' in data:
+        raise RuntimeError(f"monerod error: {data['error']}")
+    hashes = []
+    for chain in (data.get('result') or {}).get('chains') or []:
+        hashes += chain.get('block_hashes') or [chain.get('block_hash')]
+    todo = [h for h in hashes if h and h not in _alt_seen]
+    if not todo:
+        return 0
+    with conn.cursor() as cur:
+        cur.execute('SELECT hash FROM blocks WHERE hash = ANY(%s)', (todo,))
+        known = {row[0] for row in cur.fetchall()}
+    written = 0
+    for h in todo:
+        if h in known:
+            _alt_seen.add(h)
+            continue
+        payload = {'jsonrpc': '2.0', 'id': '0', 'method': 'get_block', 'params': {'hash': h}}
+        res = client.post(f'{MONEROD_ADMIN_URL}/json_rpc', json=payload, timeout=10).json()
+        block = res.get('result')
+        if not block:
+            continue
+        pool, source = detect_pool(block)
+        mt = _miner_tx(block)
+        mm = pool_proofs.merge_mining_chains(mt.get('extra')) if mt else None
+        _insert_block(conn, block['block_header'], pool, source, mm, canonical=False)
+        _alt_seen.add(h)
+        written += 1
+    if written:
+        conn.commit()
+        M_ALT_BLOCKS.inc(written)
+        log.info(f'Recorded {written} alternative block(s) from the node')
+    return written
+
 
 def _heartbeat() -> None:
     try:
@@ -609,6 +703,27 @@ def maybe_sync_haveno(http_client: httpx.Client) -> None:
         _haveno_running.set()
         threading.Thread(target=_haveno_full_sync, name='haveno-sync', daemon=True).start()
 
+def _market_loop() -> None:
+    """Prix et carnet Haveno, sur leur propre fil : un service tiers lent ne
+    doit jamais retarder l'indexation des blocs."""
+    with httpx.Client() as client:
+        while True:
+            try:
+                maybe_record_price(client)
+                maybe_sync_haveno(client)
+            except Exception as e:
+                log.warning(f'market loop failed: {e}')
+            time.sleep(MARKET_LOOP_INTERVAL)
+
+
+def _mark_alive() -> None:
+    # Appele seulement quand un tour a abouti : un worker dont chaque tour
+    # echoue doit laisser vieillir son battement, pour que la sonde et
+    # l'alerte WorkerStalled puissent le voir.
+    _heartbeat()
+    M_LAST_LOOP.set(time.time())
+
+
 def index_loop() -> None:
     log.info(f'Starting worker · monerod={MONEROD_URL} · poll={POLL_INTERVAL}s · batch={MAX_BLOCKS_PER_BATCH} · window={CONFIRMATION_WINDOW}')
     log.info(f'Postgres credentials source: {_source}')
@@ -620,11 +735,8 @@ def index_loop() -> None:
             haveno.ensure_schema(DATABASE_URL)
         except Exception as e:
             log.warning(f'haveno schema failed: {e}')
+        threading.Thread(target=_market_loop, name='market', daemon=True).start()
         while True:
-            maybe_record_price(http_client)
-            maybe_sync_haveno(http_client)
-            _heartbeat()
-            M_LAST_LOOP.set(time.time())
             try:
                 maybe_refresh_pool_index(http_client)
                 info = get_info(http_client)
@@ -637,6 +749,7 @@ def index_loop() -> None:
                 if not synced:
                     pct = node_height / target_height * 100 if target_height else 0
                     log.info(f'Waiting for monerod sync · {node_height:,}/{target_height:,} ({pct:.2f}%)')
+                    _mark_alive()
                     time.sleep(POLL_INTERVAL)
                     continue
                 with psycopg.connect(DATABASE_URL, autocommit=False) as conn:
@@ -645,14 +758,23 @@ def index_loop() -> None:
                     ensure_fee_table(conn)
                     maybe_record_fees(conn, http_client)
                     maybe_prune_mempool(conn)
+                    # Les instantanes sont independants de l'indexation : on les
+                    # valide tout de suite, un echec plus loin ne doit pas les perdre.
+                    conn.commit()
                     rescan_confirmation_window(http_client, conn, top)
                     index_forward(http_client, conn, top)
+                    try:
+                        record_alternate_blocks(http_client, conn)
+                    except Exception as e:
+                        conn.rollback()
+                        log.warning(f'alternative chains read failed: {e}')
                     reattribute_recent_unknown(http_client, conn, top)
                     last = get_last_indexed_height(conn)
                     M_LAST_INDEXED.set(last)
                     M_LAG.set(max(0, top - last))
                     if last >= top:
                         log.info(f'Up to date · last indexed = {last:,} · node tip = {top:,}')
+                _mark_alive()
             except httpx.RequestError as e:
                 log.error(f'HTTP error talking to monerod: {e}')
             except psycopg.OperationalError as e:

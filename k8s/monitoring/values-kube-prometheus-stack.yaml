@@ -27,7 +27,12 @@ prometheus:
 
 grafana:
   enabled: true
-  adminPassword: REDACTED
+  # Identifiants lus dans un Secret cree hors du depot (grafana-admin, cles
+  # admin-user et admin-password) : aucun mot de passe n'est versionne.
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
   persistence:
     enabled: true
     storageClassName: local-path

@@ -24,7 +24,7 @@ SERIES_PATHS = {
 
 # Duree fixe, alignee sur le cache serveur de chaque endpoint.
 FIXED_TTL = {
-    '/price': 5,
+    '/price': 15,
     '/status': 30,
     '/haveno/book': 30,
     '/network/info': 60,
@@ -42,7 +42,7 @@ FIXED_TTL = {
     '/haveno/liquidity': 600,
     '/haveno/methods': 900,
     '/news': 1800,
-    '/info': 300,
+    '/info': 60,
 }
 
 # Ce qui ne doit jamais etre garde : l'etat de sante, le compteur d'usage, et

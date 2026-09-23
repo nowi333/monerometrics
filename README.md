@@ -121,8 +121,9 @@ Deployed by the `tor` Ansible role (`config/ansible/roles/tor/`).
 
 The platform runs on **Hetzner Cloud** (Nuremberg) as three Ubuntu 24.04 servers on a private
 network, each behind its own firewall. Administration goes over a **Tailscale** (WireGuard) mesh;
-Grafana is reachable over Tailscale only. Encrypted off-site backups live on a separate cloud
-(**Oracle Cloud**, S3-compatible) to isolate failure domains.
+Grafana is reachable over Tailscale only. Backups are **paused**: the tooling (Restic, encrypted,
+see [`k8s/monerometrics/BACKUP-PRA.md`](k8s/monerometrics/BACKUP-PRA.md)) stays in the repository,
+but no scheduled backup runs today.
 
 ```mermaid
 flowchart TB
@@ -139,8 +140,6 @@ flowchart TB
     Bastion --- Mesh
     Edge --- Mesh
     K3s --- Mesh
-    OCI[("Oracle Cloud<br/>Restic backups<br/>S3-compatible, encrypted")]
-    K3s -->|"3-2-1 encrypted"| OCI
 ```
 
 | Server | Type | Public exposure | Role |
@@ -153,8 +152,8 @@ Key choices: per-server firewalls, a single SSH entry point, a WAF on the only p
 a zero-trust admin mesh, and a k3s node with **no inbound exposure at all**. Both hops run HTTP/2
 with the WAF active. Everything is Infrastructure-as-Code: Hetzner and Cloudflare resources via
 **Terraform**, server configuration and CIS-aligned hardening via **Ansible**, images published to
-GHCR. Supervision with **Prometheus + Grafana**, backups with **Restic** (3-2-1, cross-cloud,
-tested restore, see [`k8s/monerometrics/BACKUP-PRA.md`](k8s/monerometrics/BACKUP-PRA.md)).
+GHCR. Supervision with **Prometheus + Grafana**, with alert rules on indexing, node sync, disk and
+failing workloads. The backup tooling (**Restic**) is kept but paused.
 
 **Secrets.** The cluster is provisioned with **OpenBao** (a free fork of Vault) and the manifests
 carry no plaintext credential. OpenBao is currently sealed and the workloads read their database
@@ -189,7 +188,7 @@ full**, the 128 GB volume has about seven months left, so the plan is to take it
 ## How the indexer works
 
 The worker ([`apps/worker/indexer.py`](apps/worker/indexer.py)) is the heart of the project. Every
-`POLL_INTERVAL` seconds it asks `monerod` for its state and, when the node is synced, runs **two
+`POLL_INTERVAL` seconds it asks `monerod` for its state and, when the node is synced, runs **three
 passes**:
 
 1. **Confirmation-window rescan (reorg detection).** It re-fetches the headers of the last
@@ -214,6 +213,12 @@ passes**:
    to a **fast header backfill** (~1000 blocks per call), enough for the network-health series and
    fast enough to fill the long windows in under two hours instead of never.
 
+3. **Alternative chains (orphans).** Most competing blocks are settled within seconds, long before
+   the next poll, so the rescan above never sees them: it only catches a block we had already
+   indexed. The worker therefore also reads the node's own alternative chains
+   (`get_alternate_chains`, on an RPC port only the worker can reach) and records every competing
+   block as an orphan. Before this pass, about one orphan in four was recorded.
+
 ```mermaid
 flowchart TB
     Start(["Every POLL_INTERVAL"]) --> Info["GET /get_info"]
@@ -224,13 +229,15 @@ flowchart TB
     Diff -->|yes| Reorg["mark old → orphan<br/>insert new canonical<br/>record reorg (depth, tx)"]
     Diff -->|no| Fwd
     Reorg --> Fwd["Forward index<br/>new blocks (batch)"]
-    Fwd --> Metrics["update Prometheus metrics"]
+    Fwd --> Alt["Read alternative chains<br/>record orphans"]
+    Alt --> Metrics["update Prometheus metrics"]
     Metrics --> Start
 ```
 
 **Observability.** The worker exposes Prometheus metrics on `:9100/metrics` (indexing lag, reorg
 counter, sync state, pool-index size, blocks proven by view key, attribution conflicts) and writes
-a heartbeat file consumed by a Kubernetes liveness probe, so a stalled loop gets restarted.
+a heartbeat file consumed by a Kubernetes liveness probe. The heartbeat is written only after a
+successful pass, so a loop that keeps failing is restarted and raises the `WorkerStalled` alert.
 
 ## Mining-pool attribution
 
@@ -558,10 +565,9 @@ kubectl apply -k k8s/monerometrics/ # application workloads
 Server sizing, datacenter and volume size are Terraform variables (see
 [`infra/environments/poc/terraform.tfvars.example`](infra/environments/poc/terraform.tfvars.example)).
 
-**Secrets live in OpenBao**, and no plaintext credential is committed. Seed the database credentials
-once (`secret/postgres/credentials`) and the backup credentials (`secret/restic/credentials`), and
-every consumer reads them from there; if OpenBao is sealed, the workloads fall back to a Kubernetes
-Secret so the service keeps running until it is unsealed.
+**No plaintext credential is committed.** The cluster ships OpenBao: seed the database credentials
+once (`secret/postgres/credentials`) and every consumer can read them from there. When OpenBao is
+sealed, the workloads read a Kubernetes Secret instead, which is how the service runs today.
 
 ## Local development (dashboard)
 
@@ -628,7 +634,7 @@ flowchart TB
 - **No secret in the repo.** Credentials come from the macOS Keychain / environment at runtime
   (`scripts/load-env.sh`) or from OpenBao. Terraform state is kept out of the repo.
 - Defense in depth: firewall segmentation, SSH bastion, WAF, zero-trust admin mesh, risk analysis
-  (EBIOS RM) and a tested cross-cloud disaster-recovery plan.
+  (EBIOS RM) and a written disaster-recovery plan (backups currently paused).
 
 ## Contact
 

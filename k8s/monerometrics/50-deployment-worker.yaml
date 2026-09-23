@@ -32,7 +32,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: worker
-          image: ghcr.io/nowi333/monerometrics-worker:0.21.0
+          image: ghcr.io/nowi333/monerometrics-worker:0.22.0
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsNonRoot: true
@@ -45,10 +45,12 @@ spec:
           env:
             - name: MONEROD_URL
               value: "http://monerod:18081"
+            - name: MONEROD_ADMIN_URL
+              value: "http://monerod:18083"
             - name: POLL_INTERVAL
               value: "30"
             - name: POOL_INDEX_REFRESH_INTERVAL
-              value: "120"
+              value: "300"
             - name: MAX_BLOCKS_PER_BATCH
               value: "100"
             - name: CONFIRMATION_WINDOW

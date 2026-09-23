@@ -33,16 +33,34 @@
   become: true
   notify: Apply sysctl --system
 
-- name: Allow k3s ports through ufw
+# Le firewall Hetzner bloque deja toute entree publique, mais ufw ne doit pas
+# tout laisser passer derriere lui : ces ports ne s'ouvrent qu'au reseau prive
+# (edge, bastion, pods et services k3s) et a Tailscale.
+- name: Allow k3s ports from private networks only
   community.general.ufw:
     rule: allow
-    port: "{{ item.port }}"
-    proto: "{{ item.proto }}"
-  loop:
-    - { port: "6443", proto: "tcp" }
-    - { port: "80", proto: "tcp" }
-    - { port: "443", proto: "tcp" }
-    - { port: "10250", proto: "tcp" }
+    port: "{{ item.0.port }}"
+    proto: "{{ item.0.proto }}"
+    from_ip: "{{ item.1 }}"
+  loop: "{{ k3s_ufw_ports | product(k3s_ufw_sources) | list }}"
+  vars:
+    k3s_ufw_ports:
+      - { port: "6443", proto: "tcp" }
+      - { port: "80", proto: "tcp" }
+      - { port: "443", proto: "tcp" }
+      - { port: "10250", proto: "tcp" }
+    k3s_ufw_sources:
+      - 10.0.0.0/8
+      - 100.64.0.0/10
+  become: true
+
+- name: Remove the former allow-from-anywhere k3s rules
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    delete: true
+  loop: ["6443", "80", "443", "10250"]
   become: true
 
 - name: Check if k3s is already installed

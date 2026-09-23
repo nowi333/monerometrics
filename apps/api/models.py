@@ -169,7 +169,9 @@ class HashrateResponse(BaseModel):
     stats: Optional[SeriesStats] = None
 
 class BlocktimePoint(BaseModel):
-    height: int
+    # Hauteur du bloc sur les fenetres courtes ; absente quand le point est la
+    # moyenne d'une tranche (90 jours et plus).
+    height: Optional[int] = None
     timestamp_unix: int
     delta_seconds: int
 
@@ -177,6 +179,7 @@ class BlocktimeResponse(BaseModel):
     window: str
     avg_delta: float
     median_delta: int
+    bucket_size: str = 'block'
     points: list[BlocktimePoint]
 
 class ForkBlock(BaseModel):

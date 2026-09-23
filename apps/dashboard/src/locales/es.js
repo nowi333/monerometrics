@@ -35,6 +35,7 @@ export default {
           'status.sig.reorgs': 'reorgs 24h',
           'status.sig.tip': 'último bloque',
           'status.none': 'ninguna',
+          'status.unreachable': 'nodo inaccesible',
           'status.depth': '{{n}} · profundidad máx. {{d}}',
           'status.th.share': '≥ {{w}} % vigilancia, ≥ {{a}} % alerta',
           'status.th.depth': 'profundidad ≥ {{w}} vigilancia, ≥ {{a}} alerta',

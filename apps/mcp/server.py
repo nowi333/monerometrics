@@ -1,4 +1,6 @@
+import contextvars
 import os
+
 import httpx
 from mcp.server.fastmcp import FastMCP
 
@@ -14,23 +16,57 @@ ORPHAN_WINDOWS = ("24h", "48h", "7d", "30d", "90d", "180d", "1y", "all")
 
 mcp = FastMCP("monerometrics", host=HOST, port=PORT, stateless_http=True, json_response=True)
 
+# IP du client MCP, relevee a l'entree de chaque requete. Relayee a l'API,
+# elle donne a chaque utilisateur sa propre limite de debit : sans elle, tous
+# les clients MCP partageaient celle de ce seul serveur, et un seul abus
+# bloquait tout le monde.
+_client_ip: contextvars.ContextVar[str | None] = contextvars.ContextVar("client_ip", default=None)
+
+
+async def _forward_client_ip(request: httpx.Request) -> None:
+    ip = _client_ip.get()
+    if ip:
+        request.headers["CF-Connecting-IP"] = ip
+
+
 _client = httpx.AsyncClient(
     base_url=API_BASE,
     timeout=20,
     headers={"User-Agent": "monerometrics-mcp/1.0", "Accept": "application/json"},
+    event_hooks={"request": [_forward_client_ip]},
 )
 
 
-async def _get(path: str, params: dict | None = None):
-    r = await _client.get(path, params=params)
-    r.raise_for_status()
+class ApiError(Exception):
+    pass
+
+
+def _check(r: httpx.Response, path: str) -> dict:
+    # Message court et sans l'URL interne du cluster, qui n'a rien a faire
+    # dans une reponse publique.
+    if r.status_code >= 400:
+        try:
+            detail = r.json().get("detail")
+        except ValueError:
+            detail = None
+        raise ApiError(f"{path}: HTTP {r.status_code}" + (f", {detail}" if detail else ""))
     return r.json()
+
+
+async def _get(path: str, params: dict | None = None):
+    try:
+        r = await _client.get(path, params=params)
+    except httpx.HTTPError:
+        raise ApiError(f"{path}: API unreachable") from None
+    return _check(r, path)
 
 
 async def _post(path: str, body: dict):
-    r = await _client.post(path, json=body)
-    r.raise_for_status()
-    return r.json()
+    try:
+        r = await _client.post(path, json=body)
+    except httpx.HTTPError:
+        raise ApiError(f"{path}: API unreachable") from None
+    return _check(r, path)
 
 
 def _one_of(value: str, allowed: tuple, name: str) -> str:
@@ -206,10 +242,35 @@ async def chain_fork_window(to: int | None = None, limit: int = 100) -> dict:
 @mcp.resource("monerometrics://reference")
 async def reference() -> str:
     """Full plain-text reference for monerometrics: methodology, glossary, API and FAQ."""
-    r = await _client.get("https://monerometrics.net/llms-full.txt")
+    async with httpx.AsyncClient(timeout=20) as client:
+        r = await client.get("https://monerometrics.net/llms-full.txt")
     r.raise_for_status()
     return r.text
 
 
+class ClientIPMiddleware:
+    """Releve l'IP du visiteur transmise par Cloudflare, puis par le proxy."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            headers = {k.decode().lower(): v.decode() for k, v in scope.get("headers", [])}
+            ip = headers.get("cf-connecting-ip") or headers.get("x-real-ip")
+            token = _client_ip.set(ip.strip() if ip else None)
+            try:
+                return await self.app(scope, receive, send)
+            finally:
+                _client_ip.reset(token)
+        return await self.app(scope, receive, send)
+
+
 if __name__ == "__main__":
-    mcp.run(transport=os.getenv("MCP_TRANSPORT", "streamable-http"))
+    transport = os.getenv("MCP_TRANSPORT", "streamable-http")
+    if transport == "streamable-http":
+        import uvicorn
+
+        uvicorn.run(ClientIPMiddleware(mcp.streamable_http_app()), host=HOST, port=PORT)
+    else:
+        mcp.run(transport=transport)

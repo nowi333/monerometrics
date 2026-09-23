@@ -54,6 +54,26 @@ DDL = [
     )
     """,
     'CREATE INDEX IF NOT EXISTS haveno_offers_time_idx ON haveno_offers (observed_at DESC)',
+    # Une ligne par etat distinct d'une offre, avec sa premiere et sa derniere
+    # observation, au lieu d'une copie du carnet entier toutes les dix minutes :
+    # meme information, une centaine de fois moins de place. L'ancienne table
+    # haveno_offers reste en lecture pour l'historique deja releve.
+    """
+    CREATE TABLE IF NOT EXISTS haveno_offer_spans (
+        currency       TEXT NOT NULL,
+        side           TEXT NOT NULL,
+        offer_id       TEXT NOT NULL,
+        price          NUMERIC(18,8) NOT NULL,
+        amount         NUMERIC(18,6) NOT NULL,
+        min_amount     NUMERIC(18,6),
+        offer_date     TIMESTAMPTZ,
+        payment_method TEXT,
+        first_seen     TIMESTAMPTZ NOT NULL,
+        last_seen      TIMESTAMPTZ NOT NULL,
+        PRIMARY KEY (currency, side, offer_id, price, amount)
+    )
+    """,
+    'CREATE INDEX IF NOT EXISTS haveno_offer_spans_seen_idx ON haveno_offer_spans (last_seen DESC)',
     """
     CREATE TABLE IF NOT EXISTS spot_daily (
         day      DATE NOT NULL,
@@ -144,48 +164,43 @@ def snapshot_offers(dsn: str, client: httpx.Client) -> int:
                 continue
             for side in ('asks', 'bids'):
                 for offer in book.get(side) or []:
+                    if not offer.get('offer_id') or offer.get('price') is None or offer.get('amount') is None:
+                        continue
                     cur.execute(
                         """
-                        INSERT INTO haveno_offers
-                            (observed_at, currency, side, offer_id, offer_date, amount, min_amount, price, payment_method)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (observed_at, currency, side, offer_id) DO NOTHING
+                        INSERT INTO haveno_offer_spans
+                            (currency, side, offer_id, price, amount, min_amount, offer_date,
+                             payment_method, first_seen, last_seen)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (currency, side, offer_id, price, amount)
+                        DO UPDATE SET last_seen = EXCLUDED.last_seen
                         """,
-                        (now, currency, side[:-1], offer.get('offer_id'),
+                        (currency, side[:-1], offer['offer_id'], offer['price'], offer['amount'],
+                         offer.get('min_amount'),
                          _ts(offer['offer_date']) if offer.get('offer_date') else None,
-                         offer.get('amount'), offer.get('min_amount'), offer.get('price'),
-                         offer.get('payment_method')),
+                         offer.get('payment_method'), now, now),
                     )
-                    written += cur.rowcount
+                    written += 1
     return written
 
 
 def sync_spot(dsn: str, client: httpx.Client) -> int:
+    # Meme source et meme convention pour chaque devise : la cloture
+    # quotidienne Kraken. Melanger une cloture et un cours d'ouverture rendait
+    # les primes USD et EUR incomparables.
     written = 0
-    series = []
-    try:
-        r = client.get('https://api.kraken.com/0/public/OHLC',
-                       params={'pair': 'XMRUSD', 'interval': 1440}, timeout=25)
-        r.raise_for_status()
-        result = r.json()['result']
-        key = next(k for k in result if k != 'last')
-        series = [(_ts(row[0]).date(), float(row[4]), 'kraken') for row in result[key]]
-    except Exception as e:
-        log.warning(f'kraken ohlc failed: {e}')
-    for currency, vs in PREMIUM_MARKETS.items():
-        if currency == 'USD':
-            continue
+    payload = []
+    for currency in PREMIUM_MARKETS:
         try:
-            r = client.get('https://api.coingecko.com/api/v3/coins/monero/market_chart',
-                           params={'vs_currency': vs, 'days': 365, 'interval': 'daily'}, timeout=25)
+            r = client.get('https://api.kraken.com/0/public/OHLC',
+                           params={'pair': f'XMR{currency}', 'interval': 1440}, timeout=25)
             r.raise_for_status()
-            for point in r.json().get('prices', []):
-                series.append((_ts(point[0]).date(), float(point[1]), f'coingecko:{vs}'))
+            result = r.json()['result']
+            key = next(k for k in result if k != 'last')
+            payload += [(_ts(row[0]).date(), currency, float(row[4]), 'kraken') for row in result[key]]
         except Exception as e:
-            log.warning(f'coingecko {vs} failed: {e}')
+            log.warning(f'kraken ohlc {currency} failed: {e}')
     with psycopg.connect(dsn, autocommit=True) as conn, conn.cursor() as cur:
-        payload = [(day, 'EUR' if source.endswith(':eur') else 'USD', price, source)
-                   for day, price, source in series]
         cur.executemany(
             """
             INSERT INTO spot_daily (day, currency, price, source)

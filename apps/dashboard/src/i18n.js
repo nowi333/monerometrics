@@ -53,6 +53,7 @@ i18n
           'status.sig.reorgs': 'reorgs 24h',
           'status.sig.tip': 'last block',
           'status.none': 'none',
+          'status.unreachable': 'node unreachable',
           'status.depth': '{{n}} · max depth {{d}}',
           'status.th.share': '≥ {{w}}% watch, ≥ {{a}}% alert',
           'status.th.depth': 'depth ≥ {{w}} watch, ≥ {{a}} alert',

@@ -8,10 +8,15 @@ data:
   monerod.conf: |
     data-dir=/data
     prune-blockchain=1
+    # 18081 : RPC restreint, pour l'API et le worker.
+    # 18083 : RPC complet, que la NetworkPolicy reserve au worker. Il donne acces
+    # aux chaines alternatives, sans lesquelles la plupart des orphelins
+    # passent inapercus.
     rpc-bind-ip=0.0.0.0
-    rpc-bind-port=18081
+    rpc-bind-port=18083
+    rpc-restricted-bind-ip=0.0.0.0
+    rpc-restricted-bind-port=18081
     confirm-external-bind=1
-    restricted-rpc=1
     p2p-bind-ip=0.0.0.0
     p2p-bind-port=18080
     no-igd=1

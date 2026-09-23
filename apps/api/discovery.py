@@ -13,7 +13,8 @@ ANONPAY = (
     '&name=monerometrics&description=Support%20monerometrics&buttonbgcolor=ff6600'
     f'&address={XMR_DONATION}'
 )
-API_VERSION = '0.28.0'
+API_VERSION = '0.29.0'
+MCP_VERSION = '0.4.0'
 RATE_LIMIT = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 CONTACT_EMAIL = 'contact@monerometrics.net'
 SUMMARY = 'Reorg-aware Monero (XMR) network observatory: chain reorganizations, orphan blocks, mining-pool centralization with cryptographically verified attribution.'
@@ -36,9 +37,11 @@ def _agent_card() -> dict:
         'name': 'monerometrics',
         'description': SUMMARY,
         'url': BASE,
-        'preferredTransport': 'JSONRPC',
+        # L'URL de base est une API REST : la declarer en JSON-RPC envoyait les
+        # clients A2A sur une interface qui ne parle pas leur protocole. Le MCP
+        # n'est pas un transport A2A, il est annonce par ses propres manifestes.
+        'preferredTransport': 'HTTP+JSON',
         'additionalInterfaces': [
-            {'url': f'{BASE}/mcp', 'transport': 'JSONRPC'},
             {'url': BASE, 'transport': 'HTTP+JSON'},
         ],
         'provider': {'organization': 'monerometrics', 'url': SITE},
@@ -81,7 +84,7 @@ def _mcp_manifest() -> dict:
             {
                 'name': 'io.github.nowi333/monerometrics',
                 'description': SUMMARY,
-                'version': '0.2.0',
+                'version': MCP_VERSION,
                 'transport': {'type': 'streamable-http', 'url': f'{BASE}/mcp'},
                 'authentication': {'type': 'none'},
                 'repository': REPO,
@@ -95,7 +98,7 @@ def _openrpc() -> dict:
         'openrpc': '1.3.2',
         'info': {
             'title': 'monerometrics MCP',
-            'version': '0.2.0',
+            'version': MCP_VERSION,
             'description': f'JSON-RPC 2.0 endpoint implementing the Model Context Protocol. {SUMMARY}',
             'license': {'name': 'MIT'},
         },
@@ -182,8 +185,8 @@ def _owners() -> dict:
         'policy': {
             'authentication': 'none',
             'pricing': 'free',
-            'rateLimit': '300 requests/minute per IP',
-            'dataRetention': 'No IP addresses stored. Daily aggregates only, keyed by a salted non-reversible identifier.',
+            'rateLimit': f'{RATE_LIMIT} requests/minute per IP',
+            'dataRetention': 'No raw IP addresses stored. Usage is kept as daily counts.',
             'training': 'allowed',
         },
     }

@@ -11,6 +11,9 @@ spec:
     - name: rpc
       port: 18081
       targetPort: 18081
+    - name: rpc-admin
+      port: 18083
+      targetPort: 18083
     - name: p2p
       port: 18080
       targetPort: 18080

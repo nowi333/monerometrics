@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monerod-admin-rpc
+  namespace: monerometrics
+  labels:
+    app.kubernetes.io/part-of: monerometrics
+spec:
+  # Le RPC complet (18083) peut arreter le noeud ou bannir des pairs : seul le
+  # worker y accede. Le RPC restreint et le P2P gardent leur acces habituel.
+  podSelector:
+    matchLabels:
+      app: monerod
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: worker
+      ports:
+        - protocol: TCP
+          port: 18083
+    - ports:
+        - protocol: TCP
+          port: 18081
+        - protocol: TCP
+          port: 18080

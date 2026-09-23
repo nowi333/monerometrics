@@ -13,7 +13,7 @@ def test_a_series_follows_its_window():
 
 
 def test_the_prices_expire_fast_and_the_news_slowly():
-    assert ttl_for('/price') == 5
+    assert ttl_for('/price') == 15
     assert ttl_for('/news') == 1800
 
 
@@ -36,7 +36,7 @@ def test_the_announced_duration_never_exceeds_the_server_cache():
     # Les deux tables doivent rester alignees : annoncer plus long que le cache
     # serveur ferait afficher des chiffres perimes.
     from httpcache import SERIES_PATHS
-    server = {'/price': 5, '/status': 30, '/haveno/book': 30, '/news': 1800,
+    server = {'/price': 15, '/status': 30, '/haveno/book': 30, '/news': 1800,
               '/pools/distribution': 60, '/haveno/liquidity': 600, '/haveno/methods': 900}
     for path, ttl in server.items():
         assert ttl_for(path) <= ttl, path
