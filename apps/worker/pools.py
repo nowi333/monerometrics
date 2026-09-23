@@ -3,6 +3,8 @@ import time
 import httpx
 log = logging.getLogger('monerometrics-worker')
 LAST_STATUS: dict[str, dict] = {}
+# Blocs revendiques par plusieurs pools lors de la derniere construction.
+LAST_CONFLICTS: set[str] = set()
 
 ALIASES = {'p2pool-mini': 'p2pool', 'p2pool-nano': 'p2pool'}
 
@@ -88,6 +90,7 @@ def fetch_pool_blocks(client: httpx.Client, name: str, url_template: str, parser
 
 def build_pool_index(client: httpx.Client, limit: int, per_pool_limits: dict[str, int] | None=None, max_pages: int | None=None) -> dict[str, str]:
     index: dict[str, str] = {}
+    contested: set[str] = set()
     total = 0
     for name, (url_template, parser_type) in POOL_APIS.items():
         pool_limit = (per_pool_limits or {}).get(name, limit)
@@ -99,7 +102,22 @@ def build_pool_index(client: httpx.Client, limit: int, per_pool_limits: dict[str
             count = max(count, LAST_STATUS[name]['blocks'])
         LAST_STATUS[name] = {'url': url_template.split('?')[0], 'ok': len(blocks) > 0, 'blocks': count, 'checked_at': time.time()}
         for _height, block_hash in blocks:
-            index[block_hash] = canonical(name)
+            pool = canonical(name)
+            other = index.get(block_hash)
+            if other and other != pool:
+                # Deux pools revendiquent le meme bloc : aucune des deux
+                # declarations ne vaut plus que l'autre. Le bloc sort de l'index
+                # et reste a la preuve par cle de vue, ou non attribue.
+                if block_hash not in contested:
+                    log.warning(f'conflicting claim for {block_hash[:12]}: {other} and {pool}')
+                contested.add(block_hash)
+            else:
+                index[block_hash] = pool
             total += 1
-    log.info(f'Pool index built: {len(index)} unique block hashes from {total} entries across {len(POOL_APIS)} pools')
+    for block_hash in contested:
+        index.pop(block_hash, None)
+    LAST_CONFLICTS.clear()
+    LAST_CONFLICTS.update(contested)
+    log.info(f'Pool index built: {len(index)} unique block hashes from {total} entries across {len(POOL_APIS)} pools'
+             + (f', {len(contested)} contested' if contested else ''))
     return index

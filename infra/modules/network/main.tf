@@ -91,6 +91,14 @@ resource "hcloud_firewall" "k3s" {
   name   = "${local.name_prefix}-fw-k3s"
   labels = local.common_labels
 
+  rule {
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "18080"
+    source_ips  = ["0.0.0.0/0", "::/0"]
+    description = "Monero P2P (pairs entrants)"
+  }
+
   apply_to {
     label_selector = "role=k3s"
   }

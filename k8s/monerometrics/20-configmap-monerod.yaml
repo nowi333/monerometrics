@@ -19,6 +19,9 @@ data:
     confirm-external-bind=1
     p2p-bind-ip=0.0.0.0
     p2p-bind-port=18080
+    # Sans cette option, monerod oublie ses blocs alternatifs a chaque
+    # redemarrage : ce sont precisement les orphelins qu'on mesure.
+    keep-alt-blocks=1
     no-igd=1
     no-zmq=1
     log-level=0

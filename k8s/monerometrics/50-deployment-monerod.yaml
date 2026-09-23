@@ -32,6 +32,10 @@ spec:
               name: rpc-admin
             - containerPort: 18080
               name: p2p
+              # Ouvert sur le noeud pour accepter des pairs entrants : un noeud
+              # qui ne fait que sortir voit moins de blocs concurrents, donc
+              # moins d'orphelins, et ne rend rien au reseau.
+              hostPort: 18080
           volumeMounts:
             - name: data
               mountPath: /data

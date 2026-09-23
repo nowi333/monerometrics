@@ -92,6 +92,9 @@ DATABASE_URL = os.getenv('DATABASE_URL', f'postgresql://{PG_USER}:{PG_PASSWORD}@
 _pool_index: dict[str, str] = {}
 _pool_index_last_refresh = 0.0
 _pool_index_last_full = 0.0
+# Blocs revendiques par deux pools : ils restent hors de l'index jusqu'a la
+# prochaine reconstruction complete, sinon une relecture partielle les y remettrait.
+_pool_contested: set[str] = set()
 
 def _miner_tx(block: dict):
     try:
@@ -144,9 +147,26 @@ def maybe_refresh_pool_index(client: httpx.Client) -> None:
         # Reconstruction complete : elle remplace l'index, ce qui purge aussi
         # les blocs trop anciens pour encore figurer dans les listes des pools.
         _pool_index = pools.build_pool_index(client, POOL_FETCH_LIMIT)
+        _pool_contested.clear()
+        _pool_contested.update(pools.LAST_CONFLICTS)
         _pool_index_last_full = now
     else:
-        _pool_index.update(pools.build_pool_index(client, POOL_REFRESH_LIMIT, max_pages=1))
+        fresh = pools.build_pool_index(client, POOL_REFRESH_LIMIT, max_pages=1)
+        for block_hash, pool in fresh.items():
+            if block_hash in _pool_contested:
+                continue
+            known = _pool_index.get(block_hash)
+            if known and known != pool:
+                # Meme regle qu'a la construction complete : une revendication
+                # contredite par un autre pool ne compte pour aucun des deux.
+                log.warning(f'conflicting claim for {block_hash[:12]}: {known} and {pool}')
+                del _pool_index[block_hash]
+                _pool_contested.add(block_hash)
+            elif not known:
+                _pool_index[block_hash] = pool
+        for block_hash in pools.LAST_CONFLICTS:
+            _pool_index.pop(block_hash, None)
+            _pool_contested.add(block_hash)
     _pool_index_last_refresh = now
     M_POOL_INDEX.set(len(_pool_index))
 _pool_sources_table_ready = False

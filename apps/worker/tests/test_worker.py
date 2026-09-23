@@ -144,3 +144,22 @@ def test_alternate_blocks_are_recorded_as_orphans(monkeypatch):
 def test_alternate_blocks_skipped_without_admin_port(monkeypatch):
     monkeypatch.setattr(indexer, 'MONEROD_ADMIN_URL', '')
     assert indexer.record_alternate_blocks(None, None) == 0
+
+
+def test_block_claimed_by_two_pools_is_left_out(monkeypatch):
+    pools.LAST_STATUS.clear()
+    monkeypatch.setattr(pools, 'POOL_APIS', {'supportxmr.com': ('u', 'standard'), 'kryptex.com': ('v', 'standard')})
+    shared, own = 'a' * 64, 'b' * 64
+    answers = {'supportxmr.com': [(1, shared), (2, own)], 'kryptex.com': [(1, shared)]}
+    monkeypatch.setattr(pools, 'fetch_pool_blocks', lambda client, name, *a, **k: answers[name])
+    index = pools.build_pool_index(None, 100)
+    assert index == {own: 'supportxmr.com'}
+    assert pools.LAST_CONFLICTS == {shared}
+
+
+def test_p2pool_sidechains_are_not_a_conflict(monkeypatch):
+    pools.LAST_STATUS.clear()
+    monkeypatch.setattr(pools, 'POOL_APIS', {'p2pool': ('u', 'standard'), 'p2pool-mini': ('v', 'standard')})
+    h = 'c' * 64
+    monkeypatch.setattr(pools, 'fetch_pool_blocks', lambda *a, **k: [(1, h)])
+    assert pools.build_pool_index(None, 100) == {h: 'p2pool'}
