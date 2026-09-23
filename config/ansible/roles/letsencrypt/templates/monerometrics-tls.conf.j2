@@ -137,6 +137,11 @@ server {
         try_files /index.html =404;
     }
 
+    # /docs/ renvoyait une 404 : on ramene l'URL avec barre finale sur la vue.
+    location = /docs/ {
+        return 301 /docs;
+    }
+
     location = /.well-known/api-catalog {
         default_type application/linkset+json;
     }

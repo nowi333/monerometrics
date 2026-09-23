@@ -94,7 +94,7 @@ export default function ReorgsStats() {
           </span>
           <span style={{ color: 'var(--color-dim)' }}>{t('reorgs.column.affectedTx')}</span>
           <span className="text-right font-mono" style={{ color: 'var(--color-text-secondary)' }}>
-            {w.total_affected_tx ? w.total_affected_tx.toLocaleString() : '—'}
+            {w.total_affected_tx ? w.total_affected_tx.toLocaleString(i18n.language) : '—'}
           </span>
         </div>
       </div>

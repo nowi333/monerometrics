@@ -31,8 +31,11 @@ else
   echo "ATTENTION : ~/.config/monerometrics/ghcr-token absent, push GHCR indisponible."
 fi
 
-echo "OK Credentials charges :"
-echo "  Hetzner token      : ${HCLOUD_TOKEN:0:6}..."
-echo "  Cloudflare token   : ${CLOUDFLARE_API_TOKEN:0:6}..."
-echo "  Tailscale auth key : ${TAILSCALE_AUTH_KEY:0:11}..."
-echo "  GHCR user / token  : ${GHCR_USER} / ${GHCR_TOKEN:0:6}..."
+# Seul l'etat est affiche : un debut de jeton n'a rien a faire dans un
+# terminal, un partage d'ecran ou un historique.
+_st() { [[ -n "${1:-}" ]] && echo "charge" || echo "MANQUANT"; }
+echo "Credentials :"
+echo "  Hetzner token      : $(_st "${HCLOUD_TOKEN:-}")"
+echo "  Cloudflare token   : $(_st "${CLOUDFLARE_API_TOKEN:-}")"
+echo "  Tailscale auth key : $(_st "${TAILSCALE_AUTH_KEY:-}")"
+echo "  GHCR token         : $(_st "${GHCR_TOKEN:-}")"

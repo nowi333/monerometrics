@@ -19,6 +19,12 @@ const sitemap = () => ({
     <changefreq>hourly</changefreq>
     <priority>1.0</priority>
   </url>
+  <url>
+    <loc>https://monerometrics.net/docs</loc>
+    <lastmod>${day}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>
 `,
     })

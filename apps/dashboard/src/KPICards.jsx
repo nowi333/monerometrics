@@ -1,3 +1,4 @@
+import i18n from './i18n'
 import { useTranslation } from 'react-i18next'
 import { api, formatHashrate } from './api'
 import { useNetworkInfo } from './networkStore'
@@ -40,7 +41,7 @@ export default function KPICards() {
     )
   }
 
-  const usd = (n) => n != null ? `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
+  const usd = (n) => n != null ? `$${n.toLocaleString(i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
   const havenoAsk = price?.haveno_ask ?? null
   const havenoAvg = price?.haveno_ask_avg ?? null
   const signed = (v) => `${v > 0 ? '+' : ''}${v.toFixed(2)}%`
@@ -49,8 +50,8 @@ export default function KPICards() {
   const cards = [
     {
       label: t('kpi.blockHeight'),
-      value: network.block_height.toLocaleString(),
-      detail: network.synced ? t('status.synced') : `sync ${network.sync_pct}%`,
+      value: network.block_height.toLocaleString(i18n.language),
+      detail: network.synced ? t('status.synced') : t('kpi.syncing', { pct: network.sync_pct }),
       detailColor: network.synced ? 'var(--color-success)' : 'var(--color-warning)',
       metaLabel: t('kpi.lastBlock'),
       metaValue: shortAge(network.last_block_age_seconds),

@@ -476,7 +476,7 @@ the intuitive one:
 | Venmo | 30 | 9 569 | +8.92% | yes |
 | Zelle | 466 | 298 361 | +2.60% | no |
 | US postal money order | 8 | 4 615 | +1.46% | no |
-| Revolut | 89 | 42 209 | +1.41% | yes |
+| Revolut | 89 | 42 209 | +1.41% | not classified |
 | Cash by mail | 219 | 455 897 | +1.37% | no |
 
 *USD market, 180 days to 24 August 2026, spot reference Kraken daily close.*
@@ -487,7 +487,7 @@ in at nine to fifteen percent. Rails that cannot be reversed sit near one to thr
 an envelope, the most private method on the list, is among the *cheapest* and carries the largest
 volume of any rail.
 
-The `reversible` flag is **our classification, not a Haveno field**. Methods with a handful of
+The `reversible` flag is **our classification, not a Haveno field**. Revolut is left unclassified: a transfer between Revolut accounts is final in principle, but the bank accepts fraud disputes, and its premium sits with the final rails. Methods with a handful of
 trades produce a fragile premium, the spot reference is a daily close, and trades before September
 2024 fall outside Kraken's window and carry no premium at all. Crypto pairs are excluded:
 `haveno.markets` quotes them inverted.

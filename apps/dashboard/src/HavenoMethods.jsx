@@ -1,3 +1,4 @@
+import i18n from './i18n'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from './api'
@@ -71,7 +72,7 @@ export default function HavenoMethods() {
                 </td>
                 <td className="py-2 pl-3 text-right tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>{m.trades}</td>
                 <td className="py-2 pl-3 text-right tabular-nums hidden sm:table-cell" style={{ color: 'var(--color-text-secondary)' }}>
-                  {m.volume_xmr != null ? Math.round(m.volume_xmr).toLocaleString() : '—'}
+                  {m.volume_xmr != null ? Math.round(m.volume_xmr).toLocaleString(i18n.language) : '—'}
                 </td>
                 <td className="py-2 pl-3 text-right font-semibold tabular-nums whitespace-nowrap" style={{ color }}>
                   {p > 0 ? '+' : ''}{p.toFixed(2)}%

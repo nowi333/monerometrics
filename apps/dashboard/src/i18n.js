@@ -337,6 +337,15 @@ i18n
 
 
           'footer.apiLink': 'Public API',
+
+
+          'footer.apiLabel': 'Public API:',
+
+
+          'footer.soon': 'soon',
+
+
+          'kpi.syncing': 'syncing {{pct}}%',
           'footer.refresh': 'Live · data refreshed every 30s',
           'footer.updated': 'Updated {{ago}} ago',
           'footer.live': 'Live',

@@ -1,3 +1,4 @@
+import i18n from './i18n'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import * as d3 from 'd3'
@@ -653,7 +654,7 @@ export default function ChainForkVisualizer({ hero = false }) {
           }}
         >
           <div className="font-mono mb-1.5" style={{ color: 'var(--color-text)' }}>
-            {tooltip.block.height.toLocaleString()}
+            {tooltip.block.height.toLocaleString(i18n.language)}
             <span className="ml-2" style={{ color: tooltip.isOrphan ? 'var(--color-danger)' : 'var(--color-success)' }}>
               {tooltip.isOrphan ? t('fork.orphanBlock') : t('fork.canonicalBlock')}
             </span>

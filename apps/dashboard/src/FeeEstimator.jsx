@@ -1,3 +1,4 @@
+import i18n from './i18n'
 import { useTranslation } from 'react-i18next'
 import { api } from './api'
 import Panel from './Panel'
@@ -20,7 +21,7 @@ export default function FeeEstimator() {
 
   if (status !== 'ok') return wrap(null)
 
-  const usd = (n) => n != null ? `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
+  const usd = (n) => n != null ? `$${n.toLocaleString(i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
 
   return wrap(
     <>

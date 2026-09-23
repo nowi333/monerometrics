@@ -1,3 +1,4 @@
+import i18n from './i18n'
 import { useTranslation } from 'react-i18next'
 import { timeAgo } from './api'
 import { poolColor } from './poolColors'
@@ -58,7 +59,7 @@ export default function TxResult({ tx, seenAt, onClose, onShowBlock }) {
 
       {!pending && (
         <Row label={t('tx.confirmations')} mono>
-          {conf.toLocaleString()} ·{' '}
+          {conf.toLocaleString(i18n.language)} ·{' '}
           <span style={{ color: tx.spendable ? 'var(--color-success)' : 'var(--color-warn)' }}>
             {tx.spendable ? t('tx.spendable') : t('tx.locked', { n: tx.lock_blocks })}
           </span>
@@ -68,7 +69,7 @@ export default function TxResult({ tx, seenAt, onClose, onShowBlock }) {
       {!pending && tx.block_height != null && (
         <Row label={t('tx.block')}>
           <span className="inline-flex items-center gap-3 flex-wrap">
-            <span className="font-mono">#{tx.block_height.toLocaleString()}</span>
+            <span className="font-mono">#{tx.block_height.toLocaleString(i18n.language)}</span>
             {ago != null && <span style={{ color: 'var(--color-dim)' }}>{timeAgo(ago)}</span>}
             <button onClick={() => onShowBlock(tx.block_height)} className="text-xs" style={{ color: 'var(--color-info)' }}>
               {t('tx.showBlock')}
@@ -87,7 +88,7 @@ export default function TxResult({ tx, seenAt, onClose, onShowBlock }) {
       )}
 
       {tx.fee_xmr && <Row label={t('tx.fee')} mono>{Number(tx.fee_xmr).toFixed(8)} XMR</Row>}
-      {tx.size_bytes != null && <Row label={t('tx.size')} mono>{tx.size_bytes.toLocaleString()} B</Row>}
+      {tx.size_bytes != null && <Row label={t('tx.size')} mono>{tx.size_bytes.toLocaleString(i18n.language)} B</Row>}
       <Row label={t('tx.io')} mono>
         {tx.input_count} · {tx.output_count}{tx.ring_size ? ` · ${t('tx.ring', { n: tx.ring_size })}` : ''}
       </Row>

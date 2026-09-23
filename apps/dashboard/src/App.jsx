@@ -281,7 +281,7 @@ export default function App() {
             ) : (
               <span
                 key={label}
-                aria-label={`${label} (soon)`}
+                aria-label={`${label} (${t('footer.soon')})`}
                 title={soon}
                 className="opacity-30 cursor-default"
                 style={{ color: 'var(--color-text)' }}
@@ -291,7 +291,7 @@ export default function App() {
             )
           ))}
         </div>
-        {t('footer.apiLink')} :{' '}
+        {t('footer.apiLabel')}{' '}
         <a
           className="hover:underline"
           style={{ color: 'var(--color-info)' }}

@@ -319,6 +319,15 @@ export default {
 
 
           'footer.apiLink': 'API publique',
+
+
+          'footer.apiLabel': 'API publique :',
+
+
+          'footer.soon': 'bientôt',
+
+
+          'kpi.syncing': 'synchro {{pct}} %',
           'footer.refresh': 'En direct · données mises à jour toutes les 30 s',
           'footer.updated': 'Mis à jour il y a {{ago}}',
           'footer.live': 'En direct',

@@ -1075,7 +1075,10 @@ HAVENO_WINDOWS = {'30d': '30 days', '90d': '90 days', '180d': '180 days', '1y': 
 # ACH_TRANSFER est reversible : NACHA laisse jusqu'a 60 jours pour contester un
 # debit non autorise. SWIFT est definitif : un rappel exige l'accord du
 # beneficiaire, la banque emettrice ne peut pas l'imposer.
-REVERSIBLE_METHODS = {'PAYPAL', 'VENMO', 'CASH_APP', 'TRANSFERWISE_USD', 'TRANSFERWISE', 'REVOLUT', 'WISE', 'ZELLE_REVERSIBLE', 'ACH_TRANSFER'}
+# REVOLUT n'est classe ni d'un cote ni de l'autre : un virement entre comptes
+# Revolut est definitif en principe, mais la banque accepte des contestations
+# pour fraude. Plutot que d'affirmer l'un ou l'autre, on le laisse non classe.
+REVERSIBLE_METHODS = {'PAYPAL', 'VENMO', 'CASH_APP', 'TRANSFERWISE_USD', 'TRANSFERWISE', 'WISE', 'ZELLE_REVERSIBLE', 'ACH_TRANSFER'}
 IRREVERSIBLE_METHODS = {'PAY_BY_MAIL', 'US_POSTAL_MONEY_ORDER', 'CASH_DEPOSIT', 'ZELLE', 'F2F', 'MONEY_GRAM', 'WESTERN_UNION', 'SWIFT'}
 
 

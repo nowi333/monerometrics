@@ -1,3 +1,4 @@
+import i18n from './i18n'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import InfraDiagram from './InfraDiagram'
@@ -226,7 +227,7 @@ export default function Documentation() {
               <span className="w-2 h-2 rounded-full" style={{ background: 'var(--color-success)' }} />
               <span className="absolute inset-0 w-2 h-2 rounded-full animate-ping" style={{ background: 'var(--color-success)' }} />
             </span>
-            {t('doc.usage', { count: usage.toLocaleString() })}
+            {t('doc.usage', { count: usage.toLocaleString(i18n.language) })}
           </div>
         )}
         <div className="space-y-2">

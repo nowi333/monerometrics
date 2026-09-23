@@ -1,17 +1,19 @@
 
 
+// Aucune couleur de pool ne reprend celles qui ont un sens ailleurs sur le
+// site : orange de la marque, rouge d'alerte, vert de succes, ambre de vigilance.
 export const POOL_COLORS = {
-  'supportxmr.com': '#ff6600',
-  'nanopool.org': '#06b6d4',
-  'hashvault.pro': '#22c55e',
-  'p2pool': '#3b82f6',
-  'moneroocean.stream': '#a78bfa',
-  'c3pool.com': '#f59e0b',
+  'supportxmr.com': '#0ea5e9',
+  'p2pool': '#6366f1',
+  'hashvault.pro': '#d946ef',
+  'nanopool.org': '#14b8a6',
+  'moneroocean.stream': '#a855f7',
   'kryptex.com': '#ec4899',
-  'herominers.com': '#ef4444',
-  'xmrpool.eu': '#14b8a6',
-  'ownblock.xyz': '#6366f1',
-  'monerohash.com': '#84cc16',
+  'c3pool.com': '#64748b',
+  'herominers.com': '#1e40af',
+  'xmrpool.eu': '#06b6d4',
+  'ownblock.xyz': '#a8a29e',
+  'monerohash.com': '#7dd3fc',
   'unknown': '#6b7280',
 }
 

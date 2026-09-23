@@ -1,3 +1,4 @@
+import i18n from './i18n'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, timeAgo } from './api'
@@ -96,7 +97,7 @@ export default function BlockDetailModal({ selected, onClose }) {
               <InfoTooltip text={t('block.tip.forkPoint')} />
             </span>
           )}
-          <h2 id="block-modal-title" className="text-lg font-medium ml-auto font-mono" style={{ color: 'var(--color-text)' }}>#{block.height.toLocaleString()}</h2>
+          <h2 id="block-modal-title" className="text-lg font-medium ml-auto font-mono" style={{ color: 'var(--color-text)' }}>#{block.height.toLocaleString(i18n.language)}</h2>
         </div>
 
         <div className="mb-4">
@@ -129,8 +130,8 @@ export default function BlockDetailModal({ selected, onClose }) {
             </span>
           </Row>
           <Row label={t('fork.tipTx')} tip={t('block.tip.txCount')} mono>{block.tx_count ?? ext?.tx_count ?? '—'}</Row>
-          {ext?.size_bytes != null && <Row label={t('block.size')} tip={t('block.tip.size')} mono>{ext.size_bytes.toLocaleString()} B</Row>}
-          {ext?.difficulty != null && <Row label={t('block.difficulty')} tip={t('block.tip.difficulty')} mono>{Number(ext.difficulty).toLocaleString()}</Row>}
+          {ext?.size_bytes != null && <Row label={t('block.size')} tip={t('block.tip.size')} mono>{ext.size_bytes.toLocaleString(i18n.language)} B</Row>}
+          {ext?.difficulty != null && <Row label={t('block.difficulty')} tip={t('block.tip.difficulty')} mono>{Number(ext.difficulty).toLocaleString(i18n.language)}</Row>}
           {ext?.reward_xmr != null && <Row label={t('block.reward')} mono>{Number(ext.reward_xmr).toFixed(6)} XMR</Row>}
           <Row label={t('fork.tipTime')} mono>
             {(() => {
@@ -142,9 +143,9 @@ export default function BlockDetailModal({ selected, onClose }) {
           </Row>
           {ext?.weight != null && (
             <Row label={t('block.weight')} tip={t('block.tip.weight')} mono>
-              {ext.weight.toLocaleString()}
+              {ext.weight.toLocaleString(i18n.language)}
               {ext.long_term_weight != null && ext.long_term_weight !== ext.weight
-                ? ` (${t('block.longTerm')} ${ext.long_term_weight.toLocaleString()})` : ''}
+                ? ` (${t('block.longTerm')} ${ext.long_term_weight.toLocaleString(i18n.language)})` : ''}
             </Row>
           )}
           {ext?.coinbase_hash && <Row label={t('block.coinbase')} tip={t('block.tip.coinbase')} mono>{ext.coinbase_hash}</Row>}
