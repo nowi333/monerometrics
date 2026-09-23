@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.27.1', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.27.2', lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 # Cadence de reconstruction de l'index des pools cote worker : elle borne la
 # resolution du delai de declaration qu'on peut mesurer.
@@ -169,7 +169,16 @@ app.add_middleware(CORSMiddleware, allow_origins=['https://monerometrics.net', '
 
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
-    """Answer a wrong guess with the list of interfaces that do exist."""
+    """Answer a wrong guess with the list of interfaces that do exist.
+
+    Only for a path that matches no route. A route that exists and reports a
+    missing resource, an unknown block or transaction, keeps its own message:
+    answering it with "no such endpoint" would tell the client the API is
+    wrong when it is the hash that was not found.
+    """
+    detail = getattr(exc, 'detail', None)
+    if detail and detail != 'Not Found':
+        return JSONResponse(status_code=404, content={'detail': detail})
     return JSONResponse(status_code=404, content={
         'error': 'not_found',
         'path': request.url.path,
@@ -196,13 +205,20 @@ async def health():
 
 @app.get('/info', response_model=InfoResponse)
 async def info():
+    # Compter 3,7 millions de blocs canoniques prend deux secondes : sans ce
+    # cache, chaque client distinct les payait, et la base avec lui.
+    cached = _agg_cache_get('info', 60)
+    if cached is not None:
+        return cached
     pool = get_pool()
     async with pool.acquire() as conn:
         latest = await conn.fetchval('SELECT MAX(height) FROM blocks WHERE is_canonical = true')
         total_blocks = await conn.fetchval('SELECT COUNT(*) FROM blocks WHERE is_canonical = true')
         total_orphans = await conn.fetchval('SELECT COUNT(*) FROM blocks WHERE is_canonical = false')
         total_reorgs = await conn.fetchval('SELECT COUNT(*) FROM reorgs_detected')
-    return InfoResponse(api_version=app.version, latest_indexed_height=latest, total_blocks_indexed=total_blocks or 0, total_orphan_blocks=total_orphans or 0, total_reorgs_detected=total_reorgs or 0)
+    result = InfoResponse(api_version=app.version, latest_indexed_height=latest, total_blocks_indexed=total_blocks or 0, total_orphan_blocks=total_orphans or 0, total_reorgs_detected=total_reorgs or 0)
+    _agg_cache_set('info', result)
+    return result
 
 @app.get('/usage/external', response_model=ExternalUsageResponse)
 async def usage_external():
