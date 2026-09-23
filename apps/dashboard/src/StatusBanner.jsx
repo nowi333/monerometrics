@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { api } from './api'
+import { api, timeAgo } from './api'
 import InfoTooltip from './InfoTooltip'
 import { usePolledData } from './usePolledData'
 
@@ -16,7 +16,7 @@ const COLOR = {
  * verdict dont on ne peut pas verifier les seuils est une opinion.
  */
 export default function StatusBanner() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { data, status } = usePolledData(() => api.status(), d => d && d.level, [], 60000, 0)
 
   // Meme carcasse que la carte reelle, aux memes tailles de texte : elle se
@@ -55,7 +55,24 @@ export default function StatusBanner() {
 
   if (status !== 'ok') return null
 
-  const seuils = data.signals.map(s => `${s.label} — ${s.threshold}`).join('\n')
+  // Les valeurs et les seuils arrivent en chiffres : on les formule ici, dans
+  // la langue du lecteur. Le texte anglais de l'API ne sert qu'en secours.
+  const pct = (v) => `${Number(v).toFixed(1)}%`
+  const display = (s) => {
+    if (s.value == null) return s.display
+    if (s.key === 'top_pool' || s.key === 'top2') return pct(s.value)
+    if (s.key === 'reorgs') return s.value ? t('status.depth', { n: s.value, d: s.max_depth ?? 0 }) : t('status.none')
+    if (s.key === 'tip') return timeAgo(s.value)
+    return s.display
+  }
+  const threshold = (s) => {
+    if (s.alert == null) return s.threshold
+    if (s.key === 'top_pool' || s.key === 'top2') return t('status.th.share', { w: s.watch, a: s.alert })
+    if (s.key === 'reorgs') return t('status.th.depth', { w: s.watch, a: s.alert })
+    if (s.key === 'tip') return t('status.th.tip', { a: s.alert })
+    return s.threshold
+  }
+  const seuils = data.signals.map(s => `${t(`status.sig.${s.key}`)}${i18n.language.startsWith('fr') ? ' : ' : ': '}${threshold(s)}`).join('\n')
 
   const tone = COLOR[data.chain === 'ok' && data.concentration === 'ok' ? 'ok' : (data.concentration === 'alert' || data.chain === 'alert' ? 'alert' : 'watch')]
 
@@ -84,7 +101,7 @@ export default function StatusBanner() {
           <span key={s.key}>
             {t(`status.sig.${s.key}`)}{' '}
             <span style={{ color: s.level === 'ok' ? 'var(--color-text-secondary)' : COLOR[s.level] }}>
-              {s.display}
+              {display(s)}
             </span>
           </span>
         ))}

@@ -5,9 +5,11 @@ export function useTheme() {
 
     if (typeof window === 'undefined') return 'dark'
 
-    const saved = localStorage.getItem('theme')
+    // Le stockage peut etre bloque (navigation privee stricte) : il ne doit
+    // jamais empecher l'application de demarrer.
+    let saved = null
+    try { saved = localStorage.getItem('theme') } catch { /* stockage indisponible */ }
     if (saved === 'light' || saved === 'dark') return saved
-
 
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
   })
@@ -19,7 +21,7 @@ export function useTheme() {
     } else {
       root.removeAttribute('data-theme')
     }
-    localStorage.setItem('theme', theme)
+    try { localStorage.setItem('theme', theme) } catch { /* stockage indisponible */ }
   }, [theme])
 
   const toggleTheme = () => setThemeState(t => (t === 'dark' ? 'light' : 'dark'))

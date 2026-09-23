@@ -19,7 +19,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [worker, api, mcp]
+        include:
+          - app: worker
+            imports: indexer, pool_proofs, pools, haveno, retro_pools
+          - app: api
+            imports: main
+          - app: mcp
+            imports: server
     steps:
       - uses: actions/checkout@v4
 
@@ -31,3 +37,15 @@ jobs:
           context: apps/${{ matrix.app }}
           platforms: linux/amd64
           push: false
+          load: true
+          tags: mm-${{ matrix.app }}:ci
+
+      # Une image qui se construit peut encore planter au demarrage sur un
+      # import casse : on charge chaque module comme le ferait le conteneur.
+      - name: Import check
+        run: docker run --rm mm-${{ matrix.app }}:ci python -c "import ${{ matrix.imports }}"
+
+      - name: Dependency audit
+        run: |
+          pip install --quiet pip-audit
+          pip-audit -r apps/${{ matrix.app }}/requirements.txt

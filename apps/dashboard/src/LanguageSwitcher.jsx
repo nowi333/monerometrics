@@ -48,7 +48,7 @@ function Flag({ code, w = 20 }) {
 }
 
 export default function LanguageSwitcher() {
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
   const current = i18n.language.split('-')[0]
   const active = LANGS.find(l => l.code === current) || LANGS[0]
   const [open, setOpen] = useState(false)
@@ -75,7 +75,7 @@ export default function LanguageSwitcher() {
         onClick={() => setOpen(o => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label="Language"
+        aria-label={t('lang.label')}
         className="h-10 w-10 inline-flex items-center justify-center rounded-lg border hover:opacity-80 transition-opacity"
         style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
       >

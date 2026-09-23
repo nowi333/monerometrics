@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import sys
 from contextlib import asynccontextmanager
@@ -44,7 +45,7 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version='0.27.2', lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version=discovery.API_VERSION, lifespan=lifespan)
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 # Cadence de reconstruction de l'index des pools cote worker : elle borne la
 # resolution du delai de declaration qu'on peut mesurer.
@@ -271,7 +272,7 @@ async def reorgs_stats():
     return ReorgStatsResponse(windows=windows, since=since)
 
 @app.get('/pools/distribution', response_model=PoolDistributionResponse)
-async def pools_distribution(window: str=Query('24h', regex='^(1h|6h|24h|48h|7d)$')):
+async def pools_distribution(window: str=Query('24h', pattern='^(1h|6h|24h|48h|7d)$')):
     cached = _agg_cache_get(f'pools:{window}', 60)
     if cached is not None:
         return cached
@@ -507,7 +508,7 @@ async def _tx_detail(entry: dict, current_height) -> TxDetailResponse:
                     'SELECT COUNT(*) FROM blocks WHERE height = $1 AND is_canonical = false', height)
                 rg = await conn.fetchrow(
                     'SELECT COUNT(*) AS n, MAX(depth) AS d FROM reorgs_detected '
-                    'WHERE $1 > fork_point_height AND $1 <= fork_point_height + depth', height)
+                    'WHERE $1 >= fork_point_height AND $1 < fork_point_height + depth', height)
             if row:
                 block_hash, miner_pool, pool_source = row['hash'], row['miner_pool'], row['pool_source']
             reorg = TxReorgExposure(contested=bool(contested), reorgs_touching=rg['n'] or 0,
@@ -551,7 +552,7 @@ async def _block_height_for_hash(h: str):
 
 
 @app.get('/chain/provenance', response_model=ProvenanceResponse)
-async def chain_provenance(window: str=Query('24h', regex='^(1h|6h|24h|48h|7d)$')):
+async def chain_provenance(window: str=Query('24h', pattern='^(1h|6h|24h|48h|7d)$')):
     """How our attribution was established over a window.
 
     Most trackers publish pool shares without saying where the number comes
@@ -698,8 +699,15 @@ async def network_fees():
                                updated_unix=row['ts'], tiers=tiers)
 
 
+def _decimate(points: list, max_points: int) -> list:
+    # Echantillonnage regulier qui garde toujours le premier et le dernier point.
+    if len(points) <= max_points:
+        return points
+    step = (len(points) - 1) / (max_points - 1)
+    return [points[round(i * step)] for i in range(max_points)]
+
 @app.get('/network/fees/history', response_model=FeeHistoryResponse)
-async def network_fees_history(window: str=Query('30d', regex='^(24h|7d|30d|90d|1y)$')):
+async def network_fees_history(window: str=Query('30d', pattern='^(24h|7d|30d|90d|1y)$')):
     """Normal-tier fee for the reference transaction, in XMR, over time."""
     cached = _agg_cache_get(f'fees:{window}', _series_ttl(window))
     if cached is not None:
@@ -718,9 +726,11 @@ async def network_fees_history(window: str=Query('30d', regex='^(24h|7d|30d|90d|
         return FeeHistoryResponse(window=window, reference_bytes=FEE_REFERENCE_BYTES)
     points = [FeePoint(timestamp_unix=r['ts'], normal_xmr=round(int(r['fee_normal']) * FEE_REFERENCE_BYTES / 1e12, 8)) for r in rows]
     total = len(points)
-    if len(points) > 1500:
-        step = len(points) / 1500
-        points = [points[int(i * step)] for i in range(1500)]
+    # Les frais evoluent par paliers : on garde chaque changement de valeur et
+    # le dernier point, avant d'echantillonner s'il en reste trop.
+    points = [p for i, p in enumerate(points)
+              if i == 0 or i == len(points) - 1 or p.normal_xmr != points[i - 1].normal_xmr]
+    points = _decimate(points, 1500)
     response = FeeHistoryResponse(
         window=window, reference_bytes=FEE_REFERENCE_BYTES, points=points, samples=total,
         stats=_series_stats([p.normal_xmr for p in points],
@@ -814,9 +824,8 @@ async def price():
     if cached is not None:
         return cached
 
-    official, change, source = await _official_price()
-    haveno, bid, ask = await _haveno_price()
-    book = await _haveno_depth()
+    (official, change, source), (haveno, bid, ask), book = await asyncio.gather(
+        _official_price(), _haveno_price(), _haveno_depth())
     if book.get('best_ask') is not None:
         ask = book['best_ask']
     if book.get('best_bid') is not None:
@@ -868,7 +877,7 @@ async def price():
 
 
 @app.get('/price/spread', response_model=SpreadResponse)
-async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
+async def price_spread(window: str=Query('7d', pattern='^(24h|7d|30d|90d|1y)$')):
     """Haveno peer-to-peer quotes against centralised spot, over time."""
     cached = _agg_cache_get(f'spread:{window}', _series_ttl(window))
     if cached is not None:
@@ -931,9 +940,7 @@ async def price_spread(window: str=Query('7d', regex='^(24h|7d|30d|90d|1y)$')):
 
     max_points = 1500
     kept = points
-    if len(kept) > max_points:
-        step = len(kept) / max_points
-        kept = [kept[int(i * step)] for i in range(max_points)]
+    kept = _decimate(kept, max_points)
     response = SpreadResponse(
         window=window,
         points=kept,
@@ -1024,20 +1031,22 @@ async def status():
     T = STATUS_THRESHOLDS
     signals = []
 
-    def add(key, label, value, display, level, threshold):
+    def add(key, label, value, display, level, threshold, **extra):
         signals.append(StatusSignal(key=key, label=label, value=value,
-                                    display=display, level=level, threshold=threshold))
+                                    display=display, level=level, threshold=threshold, **extra))
 
     share = pools.top_pool_share or 0.0
     lvl = 'alert' if share >= T['top_pool_alert'] else 'watch' if share >= T['top_pool_watch'] else 'ok'
     add('top_pool', 'largest pool', round(share, 2), f'{share:.1f}%', lvl,
-        f">= {T['top_pool_watch']}% watch, >= {T['top_pool_alert']}% alert")
+        f">= {T['top_pool_watch']}% watch, >= {T['top_pool_alert']}% alert",
+        watch=T['top_pool_watch'], alert=T['top_pool_alert'])
 
     named = sorted((d.percentage for d in pools.distribution if d.pool != 'unknown'), reverse=True)
     top2 = round(sum(named[:2]), 2)
     lvl = 'alert' if top2 >= T['top2_alert'] else 'watch' if top2 >= T['top2_watch'] else 'ok'
     add('top2', 'two largest pools', top2, f'{top2:.1f}%', lvl,
-        f">= {T['top2_watch']}% watch, >= {T['top2_alert']}% alert")
+        f">= {T['top2_watch']}% watch, >= {T['top2_alert']}% alert",
+        watch=T['top2_watch'], alert=T['top2_alert'])
 
     w24 = next((w for w in stats.windows if w.window == '24h'), None)
     depth = (w24.max_depth or 0) if w24 else 0
@@ -1045,12 +1054,13 @@ async def status():
     lvl = 'alert' if depth >= T['reorg_depth_alert'] else 'watch' if depth >= T['reorg_depth_watch'] else 'ok'
     add('reorgs', 'reorganisations, 24h', count,
         f'{count} · max depth {depth}' if count else 'none', lvl,
-        f"depth >= {T['reorg_depth_watch']} watch, >= {T['reorg_depth_alert']} alert")
+        f"depth >= {T['reorg_depth_watch']} watch, >= {T['reorg_depth_alert']} alert",
+        watch=T['reorg_depth_watch'], alert=T['reorg_depth_alert'], max_depth=depth)
 
     age = net.last_block_age_seconds or 0
     lvl = 'alert' if age >= T['stale_tip_seconds'] else 'ok'
     add('tip', 'last block', age, f'{age}s ago', lvl,
-        f">= {T['stale_tip_seconds']}s alert")
+        f">= {T['stale_tip_seconds']}s alert", alert=T['stale_tip_seconds'])
 
     chain_sigs = [x for x in signals if x.key in ('reorgs', 'tip')]
     conc_sigs = [x for x in signals if x.key in ('top_pool', 'top2')]
@@ -1098,10 +1108,16 @@ async def _fetch_source(client, src):
     """Lit une source. Une panne chez l'une ne doit pas vider le bandeau."""
     try:
         headers = {'User-Agent': 'monerometrics/1.0', 'Range': f"bytes=0-{src['max_bytes']}"}
-        r = await client.get(src['url'], headers=headers)
-        if r.status_code not in (200, 206):
-            raise ValueError(f'status {r.status_code}')
-        raw = r.content[:src['max_bytes']]
+        # Certains serveurs ignorent Range : on coupe la lecture nous-memes.
+        buf = bytearray()
+        async with client.stream('GET', src['url'], headers=headers) as r:
+            if r.status_code not in (200, 206):
+                raise ValueError(f'status {r.status_code}')
+            async for chunk in r.aiter_bytes():
+                buf += chunk
+                if len(buf) >= src['max_bytes']:
+                    break
+        raw = bytes(buf[:src['max_bytes']])
         if src['kind'] == 'rss':
             return newsfeed.parse_rss(raw.decode('utf-8', 'ignore'), src['prefix'])
         return newsfeed.parse_atom(ElementTree.fromstring(raw), src['prefix'], src.get('categories'))
@@ -1119,7 +1135,8 @@ async def news():
         return cached
 
     async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-        groups = [(src['id'], await _fetch_source(client, src)) for src in NEWS_SOURCES]
+        fetched = await asyncio.gather(*(_fetch_source(client, src) for src in NEWS_SOURCES))
+    groups = [(src['id'], items) for src, items in zip(NEWS_SOURCES, fetched)]
 
     if not any(items for _id, items in groups):
         # Une coupure passagere ne doit pas faire disparaitre le bandeau.
@@ -1148,7 +1165,7 @@ async def haveno_book():
     if cached is not None:
         return _with_age(cached)
 
-    official, _, _ = await _official_price()
+    official = await _spot_usd()
     rows_by_side = {'asks': [], 'bids': []}
     async with httpx.AsyncClient(timeout=12) as client:
         try:
@@ -1227,8 +1244,8 @@ async def haveno_book():
 
 
 @app.get('/haveno/methods', response_model=HavenoMethodsResponse)
-async def haveno_methods(window: str=Query('180d', regex='^(30d|90d|180d|1y|all)$'),
-                         currency: str=Query('USD', regex='^(USD|EUR)$')):
+async def haveno_methods(window: str=Query('180d', pattern='^(30d|90d|180d|1y|all)$'),
+                         currency: str=Query('USD', pattern='^(USD|EUR)$')):
     """Executed Haveno trades grouped by payment method, priced against centralized spot."""
     cached = _agg_cache_get(f'hvmethods:{window}:{currency}', 900)
     if cached is not None:
@@ -1271,8 +1288,8 @@ async def haveno_methods(window: str=Query('180d', regex='^(30d|90d|180d|1y|all)
 
 
 @app.get('/haveno/liquidity', response_model=HavenoLiquidityResponse)
-async def haveno_liquidity(window: str=Query('90d', regex='^(24h|7d|30d|90d|1y|all)$'),
-                           currency: str=Query('USD', regex='^(USD|EUR|AUD|GBP|BTC)$')):
+async def haveno_liquidity(window: str=Query('90d', pattern='^(24h|7d|30d|90d|1y|all)$'),
+                           currency: str=Query('USD', pattern='^(USD|EUR|AUD|GBP|BTC)$')):
     """Resting liquidity and open offer count on Haveno over time."""
     cached = _agg_cache_get(f'hvliq:{window}:{currency}', 600)
     if cached is not None:
@@ -1299,9 +1316,7 @@ async def haveno_liquidity(window: str=Query('90d', regex='^(24h|7d|30d|90d|1y|a
     total = len(points)
     max_points = 1500
     kept = points
-    if len(kept) > max_points:
-        step = len(kept) / max_points
-        kept = [kept[int(i * step)] for i in range(max_points)]
+    kept = _decimate(kept, max_points)
     response = HavenoLiquidityResponse(
         window=window, currency=currency, points=kept,
         current_liquidity=points[-1].max_liquidity if points else None,
@@ -1315,7 +1330,7 @@ async def haveno_liquidity(window: str=Query('90d', regex='^(24h|7d|30d|90d|1y|a
 
 @app.get('/haveno/trades', response_model=HavenoTradesResponse)
 async def haveno_trades(limit: int=Query(100, ge=1, le=1000),
-                        currency: str=Query('USD', regex='^(USD|EUR|AUD|GBP|BTC)$')):
+                        currency: str=Query('USD', pattern='^(USD|EUR|AUD|GBP|BTC)$')):
     """Recent executed Haveno trades with their payment method."""
     pool = get_pool()
     try:
@@ -1341,7 +1356,7 @@ async def haveno_trades(limit: int=Query(100, ge=1, le=1000),
     return HavenoTradesResponse(currency=currency, count=len(trades), trades=trades)
 
 @app.get('/pools/latency', response_model=PoolLatencyResponse)
-async def pools_latency(window: str=Query('7d', regex='^(24h|48h|7d|30d)$')):
+async def pools_latency(window: str=Query('7d', pattern='^(24h|48h|7d|30d)$')):
     """How long each pool takes to publicly claim a block it mined.
 
     Pools report their own hashrate share from these announcements. A pool that
@@ -1356,12 +1371,15 @@ async def pools_latency(window: str=Query('7d', regex='^(24h|48h|7d|30d)$')):
     pool_obj = get_pool()
     async with pool_obj.acquire() as conn:
         rows = await conn.fetch(f"""
+            -- L'horodatage d'un bloc est choisi par le mineur et peut devancer
+            -- l'horloge reelle : on borne a zero plutot que d'afficher une
+            -- latence negative.
             SELECT miner_pool AS pool,
                    COUNT(*) AS blocks,
                    percentile_cont(0.5) WITHIN GROUP (
-                       ORDER BY EXTRACT(EPOCH FROM (pool_attributed_at - timestamp_human))) AS median_s,
+                       ORDER BY GREATEST(0, EXTRACT(EPOCH FROM (pool_attributed_at - timestamp_human)))) AS median_s,
                    percentile_cont(0.9) WITHIN GROUP (
-                       ORDER BY EXTRACT(EPOCH FROM (pool_attributed_at - timestamp_human))) AS p90_s
+                       ORDER BY GREATEST(0, EXTRACT(EPOCH FROM (pool_attributed_at - timestamp_human)))) AS p90_s
             FROM blocks
             WHERE is_canonical = true
               AND pool_source = 'pool_api'
@@ -1407,7 +1425,7 @@ ORPHAN_WINDOWS = {'24h': '24 hours', '48h': '48 hours', '7d': '7 days', '30d': '
 
 
 @app.get('/orphans/recent', response_model=OrphansResponse)
-async def orphans_recent(window: str=Query('30d', regex='^(24h|48h|7d|30d|90d|180d|1y|all)$'),
+async def orphans_recent(window: str=Query('30d', pattern='^(24h|48h|7d|30d|90d|180d|1y|all)$'),
                          limit: int=Query(500, ge=1, le=500)):
     """Orphan blocks over a time window, newest first.
 
@@ -1556,16 +1574,23 @@ async def network_info():
     _network_info_cache['timestamp'] = now
     return response
 
+HASHRATE_PER_BLOCK = {'1h', '24h'}
+
 @app.get('/network/hashrate', response_model=HashrateResponse)
-async def network_hashrate(window: str=Query('30d', regex=WINDOW_REGEX)):
+async def network_hashrate(window: str=Query('30d', pattern=WINDOW_REGEX)):
     cached = _agg_cache_get(f'hashrate:{window}', _series_ttl(window))
     if cached is not None:
         return cached
     interval, step = WINDOW_CONFIG[window]
     bucket_size = step if isinstance(step, str) else f'{step} seconds'
+    # Sur une heure ou un jour, une tranche fixe laisse des trous (un bloc toutes
+    # les deux minutes en moyenne) : chaque bloc devient son propre point.
+    per_block = window in HASHRATE_PER_BLOCK
+    if per_block:
+        bucket_size = 'block'
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(f"\n            SELECT {_bucket('timestamp_human', step)} AS bucket,\n                   (AVG(difficulty) / 120)::bigint AS hashrate_h_s\n            FROM blocks\n            WHERE is_canonical = true\n              AND timestamp_unix > 0\n              AND timestamp_human >= NOW() - INTERVAL '{interval}'\n            GROUP BY bucket\n            ")
+        rows = await conn.fetch(f"\n            SELECT {'timestamp_human' if per_block else _bucket('timestamp_human', step)} AS bucket,\n                   (AVG(difficulty) / 120)::bigint AS hashrate_h_s\n            FROM blocks\n            WHERE is_canonical = true\n              AND timestamp_unix > 0\n              AND timestamp_human >= NOW() - INTERVAL '{interval}'\n            GROUP BY bucket\n            ")
     # Sans ORDER BY, Postgres agrege par hachage au lieu de trier 1,3 million de
     # lignes pour en rendre 262 : deux fois plus rapide sur cinq ans. Le tri se
     # fait ici, sur les points rendus.
@@ -1579,7 +1604,7 @@ async def network_hashrate(window: str=Query('30d', regex=WINDOW_REGEX)):
     return response
 
 @app.get('/network/blocktime', response_model=BlocktimeResponse)
-async def network_blocktime(window: str=Query('24h', regex=WINDOW_REGEX)):
+async def network_blocktime(window: str=Query('24h', pattern=WINDOW_REGEX)):
     cached = _agg_cache_get(f'blocktime:{window}', _series_ttl(window))
     if cached is not None:
         return cached
@@ -1596,15 +1621,13 @@ async def network_blocktime(window: str=Query('24h', regex=WINDOW_REGEX)):
         avg = 0.0
         median = 0
     max_points = 1500
-    if len(points) > max_points:
-        step = len(points) / max_points
-        points = [points[int(i * step)] for i in range(max_points)]
+    points = _decimate(points, max_points)
     response = BlocktimeResponse(window=window, avg_delta=round(avg, 2), median_delta=median, points=points)
     _agg_cache_set(f'blocktime:{window}', response)
     return response
 
 @app.get('/network/mempool', response_model=MempoolResponse)
-async def network_mempool(window: str=Query('24h', regex=WINDOW_REGEX)):
+async def network_mempool(window: str=Query('24h', pattern=WINDOW_REGEX)):
     cached = _agg_cache_get(f'mempool:{window}', _series_ttl(window))
     if cached is not None:
         return cached
@@ -1630,7 +1653,7 @@ async def network_mempool(window: str=Query('24h', regex=WINDOW_REGEX)):
     return response
 
 @app.get('/network/emission', response_model=EmissionResponse)
-async def network_emission(window: str=Query('30d', regex=WINDOW_REGEX)):
+async def network_emission(window: str=Query('30d', pattern=WINDOW_REGEX)):
     cached = _agg_cache_get(f'emission:{window}', _series_ttl(window))
     if cached is not None:
         return cached

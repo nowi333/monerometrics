@@ -52,6 +52,11 @@ i18n
           'status.sig.top2': 'two largest pools',
           'status.sig.reorgs': 'reorgs 24h',
           'status.sig.tip': 'last block',
+          'status.none': 'none',
+          'status.depth': '{{n}} · max depth {{d}}',
+          'status.th.share': '≥ {{w}}% watch, ≥ {{a}}% alert',
+          'status.th.depth': 'depth ≥ {{w}} watch, ≥ {{a}} alert',
+          'status.th.tip': '≥ {{a}} s alert',
           'status.info': 'A verdict computed from four live readings, each against a threshold we set ourselves — nothing in the Monero protocol defines a pool share as high. The thresholds are listed below so the verdict can be checked rather than believed, and the same figures are served by /status.',
           'refresh.live': 'live',
           'refresh.title': 'Dashboard last updated at {{clock}}',
@@ -545,6 +550,11 @@ i18n
           'status.sig.top2': 'deux plus gros pools',
           'status.sig.reorgs': 'réorgs 24h',
           'status.sig.tip': 'dernier bloc',
+          'status.none': 'aucune',
+          'status.depth': '{{n}} · profondeur max {{d}}',
+          'status.th.share': '≥ {{w}} % vigilance, ≥ {{a}} % alerte',
+          'status.th.depth': 'profondeur ≥ {{w}} vigilance, ≥ {{a}} alerte',
+          'status.th.tip': '≥ {{a}} s alerte',
           'status.info': 'Un verdict calculé à partir de quatre mesures en direct, chacune comparée à un seuil que nous avons fixé nous-mêmes — rien dans le protocole Monero ne définit une part de pool comme élevée. Les seuils sont listés ci-dessous pour que le verdict se vérifie au lieu de se croire, et les mêmes chiffres sont servis par /status.',
           'refresh.live': 'à jour',
           'refresh.title': 'Tableau de bord actualisé à {{clock}}',
@@ -1038,6 +1048,11 @@ i18n
           'status.sig.top2': 'dos mayores pools',
           'status.sig.reorgs': 'reorgs 24h',
           'status.sig.tip': 'último bloque',
+          'status.none': 'ninguna',
+          'status.depth': '{{n}} · profundidad máx. {{d}}',
+          'status.th.share': '≥ {{w}} % vigilancia, ≥ {{a}} % alerta',
+          'status.th.depth': 'profundidad ≥ {{w}} vigilancia, ≥ {{a}} alerta',
+          'status.th.tip': '≥ {{a}} s alerta',
           'status.info': 'Un veredicto calculado a partir de cuatro medidas en vivo, cada una comparada con un umbral que fijamos nosotros — nada en el protocolo de Monero define una cuota de pool como alta. Los umbrales se listan abajo para que el veredicto se verifique en vez de creerse, y las mismas cifras las sirve /status.',
           'refresh.live': 'al día',
           'refresh.title': 'Panel actualizado a las {{clock}}',
@@ -1497,5 +1512,11 @@ i18n
       },
     },
   })
+
+// La langue de la page suit celle de l'interface : lecteurs d'ecran,
+// cesure et correcteurs s'y fient.
+const syncLang = (lng) => { document.documentElement.lang = (lng || 'en').split('-')[0] }
+syncLang(i18n.language)
+i18n.on('languageChanged', syncLang)
 
 export default i18n

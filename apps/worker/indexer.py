@@ -27,6 +27,7 @@ HEARTBEAT_FILE = os.getenv('HEARTBEAT_FILE', '/tmp/worker-heartbeat')
 # minees, rien dans la chaine ne dit combien etaient en attente hier. Ces
 # instantanes sont la seule trace qui existera jamais, et ils coutent 66 Mo par
 # an. Les effacer au bout de trois mois etait une economie de bout de chandelle.
+P2POOL_MIN_OUTPUTS = int(os.getenv('P2POOL_MIN_OUTPUTS', '8'))
 MEMPOOL_RETENTION_DAYS = int(os.getenv('MEMPOOL_RETENTION_DAYS', '1825'))
 MEMPOOL_PRUNE_INTERVAL = int(os.getenv('MEMPOOL_PRUNE_INTERVAL', '3600'))
 PRICE_INTERVAL = int(os.getenv('PRICE_INTERVAL', '600'))
@@ -112,7 +113,10 @@ def detect_pool(block: dict) -> tuple[str, str | None]:
             return claimed, 'pool_api_unproven'
         return claimed, 'pool_api'
 
-    if mt and len(mt.get('vout') or []) > 1:
+    # P2Pool paie chaque detenteur de part directement dans la coinbase : des
+    # dizaines de sorties. Deux ou trois sorties restent courantes ailleurs
+    # (solo, pools a sortie de change), d'ou un seuil bien au-dessus.
+    if mt and len(mt.get('vout') or []) >= P2POOL_MIN_OUTPUTS:
         return 'p2pool', 'coinbase_heuristic'
 
     return 'unknown', None
@@ -144,6 +148,7 @@ def persist_pool_sources(conn: psycopg.Connection) -> None:
     conn.commit()
 
 PROOF_BATCH = int(os.getenv('PROOF_BATCH', '60'))
+_proof_tried: set[str] = set()
 
 
 def verify_proof_keys(client: httpx.Client) -> None:
@@ -193,12 +198,16 @@ def reattribute_recent_unknown(client: httpx.Client, conn: psycopg.Connection,
 
     by_proof = 0
     proven = set()
-    for height, h in todo[:PROOF_BATCH]:
+    # Un bloc deja passe au crible des cles de vue n'a pas a etre retelecharge a
+    # chaque tour : les cles ne changent qu'au redemarrage.
+    untried = [(height, h) for height, h in todo if h not in _proof_tried]
+    for height, h in untried[:PROOF_BATCH]:
         try:
             mt = _miner_tx(get_block_by_height(client, height))
             pool = pool_proofs.identify(mt) if mt else None
         except Exception:
             continue
+        _proof_tried.add(h)
         if pool:
             with conn.cursor() as cur:
                 cur.execute('UPDATE blocks SET miner_pool = %s, pool_source = %s WHERE hash = %s', (pool, 'viewkey_proof', h))
@@ -206,6 +215,8 @@ def reattribute_recent_unknown(client: httpx.Client, conn: psycopg.Connection,
             by_proof += 1
     if by_proof:
         conn.commit()
+    if len(_proof_tried) > 5000:
+        _proof_tried.clear()
 
     by_api = 0
     with conn.cursor() as cur:

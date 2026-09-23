@@ -187,11 +187,13 @@ def output_belongs_to(out_key: bytes, tx_pub: bytes, secret_view: bytes,
     derivation = 8 * viewkey * R ; P = Hs(derivation || varint(i)) * G + B
     """
     a = int.from_bytes(secret_view, "little") % L
-    R = _decompress(tx_pub)
-    deriv = _scalarmult(_scalarmult(R, a), 8)
-    scalar = _hash_to_scalar(_compress(deriv) + _varint(index))
-    P = _add(_scalarmult(G, scalar), _decompress(spend_pub))
-    return _compress(P) == out_key
+    deriv = _compress(_scalarmult(_scalarmult(_decompress(tx_pub), a), 8))
+    return _output_matches(out_key, deriv, _decompress(spend_pub), index)
+
+
+def _output_matches(out_key: bytes, deriv: bytes, B, index: int) -> bool:
+    scalar = _hash_to_scalar(deriv + _varint(index))
+    return _compress(_add(_scalarmult(G, scalar), B)) == out_key
 
 
 def load_pools(path: str | None = None) -> dict:
@@ -207,6 +209,8 @@ def load_pools(path: str | None = None) -> dict:
 
 _POOLS = None
 _KEYS = {}
+# Point B de chaque cle de depense, decompresse une seule fois.
+_SPEND_POINTS = {}
 VERIFIED = set()
 
 
@@ -287,10 +291,24 @@ def identify(miner_tx: dict) -> str | None:
     if not outs:
         return None
 
+    # La derivation 8*a*R ne depend que de la transaction et de la cle de vue :
+    # une multiplication scalaire par pool, pas une par sortie.
+    try:
+        R_point = _decompress(R)
+    except Exception:
+        return None
     for name, (vk, spend) in _KEYS.items():
+        try:
+            a = int.from_bytes(vk, "little") % L
+            deriv = _compress(_scalarmult(_scalarmult(R_point, a), 8))
+            B = _SPEND_POINTS.get(spend)
+            if B is None:
+                B = _SPEND_POINTS[spend] = _decompress(spend)
+        except Exception:
+            continue
         for i, out_key in outs:
             try:
-                if output_belongs_to(out_key, R, vk, spend, i):
+                if _output_matches(out_key, deriv, B, i):
                     return name
             except Exception:
                 continue

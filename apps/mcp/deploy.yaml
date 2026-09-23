@@ -19,10 +19,10 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: mcp
-          image: ghcr.io/nowi333/monerometrics-mcp:0.2.0
+          image: ghcr.io/nowi333/monerometrics-mcp:0.3.0
           env:
             - name: MM_API_BASE
-              value: "https://api.monerometrics.net"
+              value: "http://api.monerometrics.svc.cluster.local"
             - name: MCP_HOST
               value: "0.0.0.0"
             - name: MCP_PORT

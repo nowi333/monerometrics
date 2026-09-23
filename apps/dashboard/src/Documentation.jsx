@@ -25,7 +25,7 @@ const ENDPOINTS = [
   { m: 'GET', p: '/chain/window', k: 'chainWindow', q: 'from=INT&to=INT' },
   { m: 'GET', p: '/chain/block/{hash}', k: 'chainBlock' },
   { m: 'GET', p: '/chain/provenance', k: 'chainProvenance', q: 'window=1h|6h|24h|48h|7d' },
-  { m: 'GET', p: '/chain/fork-window', k: 'chainForkWindow', q: 'limit=10..500' },
+  { m: 'GET', p: '/chain/fork-window', k: 'chainForkWindow', q: 'limit=10..1000' },
   { m: 'GET', p: '/reorgs', k: 'reorgs', q: 'limit=1..1000' },
   { m: 'GET', p: '/reorgs/stats', k: 'reorgsStats' },
   { m: 'GET', p: '/orphans/recent', k: 'orphansRecent', q: 'window=24h|48h|7d|30d|90d|180d|1y|all' },

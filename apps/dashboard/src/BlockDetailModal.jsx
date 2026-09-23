@@ -71,7 +71,7 @@ export default function BlockDetailModal({ selected, onClose }) {
         style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', animation: 'mmPop 0.25s cubic-bezier(0.34,1.56,0.64,1)' }}
       >
         <button
-          onClick={onClose} aria-label="Close"
+          onClick={onClose} aria-label={t('donate.close')}
           className="absolute top-3 right-3 opacity-60 hover:opacity-100 transition-opacity"
           style={{ color: 'var(--color-dim)' }}
         >

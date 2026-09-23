@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
@@ -11,6 +13,8 @@ ANONPAY = (
     '&name=monerometrics&description=Support%20monerometrics&buttonbgcolor=ff6600'
     f'&address={XMR_DONATION}'
 )
+API_VERSION = '0.28.0'
+RATE_LIMIT = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 CONTACT_EMAIL = 'contact@monerometrics.net'
 SUMMARY = 'Reorg-aware Monero (XMR) network observatory: chain reorganizations, orphan blocks, mining-pool centralization with cryptographically verified attribution.'
 
@@ -38,7 +42,7 @@ def _agent_card() -> dict:
             {'url': BASE, 'transport': 'HTTP+JSON'},
         ],
         'provider': {'organization': 'monerometrics', 'url': SITE},
-        'version': '0.17.0',
+        'version': API_VERSION,
         'documentationUrl': f'{BASE}/docs',
         'capabilities': {'streaming': False, 'pushNotifications': False, 'stateTransitionHistory': False},
         'defaultInputModes': ['text/plain', 'application/json'],
@@ -66,7 +70,7 @@ def _agents_json() -> dict:
         'openapi': f'{BASE}/openapi.json',
         'mcp': f'{BASE}/mcp',
         'authentication': {'type': 'none'},
-        'pricing': {'model': 'free', 'rateLimit': '120 requests/minute per IP'},
+        'pricing': {'model': 'free', 'rateLimit': f'{RATE_LIMIT} requests/minute per IP'},
         'agents': [_agent_card()],
     }
 
@@ -136,7 +140,7 @@ def _payment() -> dict:
         'paymentRequired': False,
         'pricing': 'free',
         'description': 'This API is free and unmetered within its rate limit. No payment is required and no credentials are accepted.',
-        'rateLimit': {'requests': 120, 'window': '1m', 'scope': 'ip'},
+        'rateLimit': {'requests': RATE_LIMIT, 'window': '1m', 'scope': 'ip'},
         'donation': {
             'optional': True,
             'note': 'Voluntary. Nothing is unlocked, rate-limited or degraded by donating.',
@@ -233,7 +237,7 @@ async def llms():
         '',
         f'> {SUMMARY}',
         '',
-        'Free, no API key, no account, no tracking. Rate limit 120 requests/minute per IP.',
+        f'Free, no API key, no account, no tracking. Rate limit {RATE_LIMIT} requests/minute per IP.',
         '',
         '## Interfaces',
         f'- OpenAPI: {BASE}/openapi.json',

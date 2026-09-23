@@ -27,6 +27,9 @@ const CANONICAL_Y = 80
 const FORK_Y = 180
 const LANE_H = 100
 const CHUNK = 250
+// Le rafraichissement ne relit que la tete : le worker revise au plus sa
+// fenetre de confirmation (60 blocs), au-dela rien ne bouge plus.
+const POLL_LIMIT = 70
 const BUFFER = 45
 const MAX_VISIBLE = 280
 const COVERAGE_START = 3490000
@@ -97,30 +100,44 @@ export default function ChainForkVisualizer({ hero = false }) {
 
   const mergeBlocks = useCallback((list) => {
     const map = blocksRef.current
+    let changed = false
     for (const b of list) {
       let entry = map.get(b.height)
       if (!entry) { entry = { canonical: null, orphans: [] }; map.set(b.height, entry) }
-      if (b.is_canonical) entry.canonical = b
-      else if (!entry.orphans.some(o => o.hash === b.hash)) entry.orphans.push(b)
-      if (b.is_fork_point) reorgsRef.current.add(b.height)
+      if (b.is_canonical) {
+        const c = entry.canonical
+        if (!c || c.hash !== b.hash || c.miner_pool !== b.miner_pool || c.pool_source !== b.pool_source) {
+          entry.canonical = b
+          changed = true
+        }
+      } else if (!entry.orphans.some(o => o.hash === b.hash)) { entry.orphans.push(b); changed = true }
+      if (b.is_fork_point && !reorgsRef.current.has(b.height)) { reorgsRef.current.add(b.height); changed = true }
       const r = rangeRef.current
       if (r.min === null || b.height < r.min) r.min = b.height
       if (r.max === null || b.height > r.max) r.max = b.height
     }
+    return changed
   }, [])
 
-  const fetchChunk = useCallback((to) => {
+  const chunkLoaded = (to) => {
+    const map = blocksRef.current
+    for (let h = Math.max(0, to - CHUNK + 1); h <= to; h++) if (!map.get(h)?.canonical) return false
+    return true
+  }
+
+  const fetchChunk = useCallback((to, limit = CHUNK) => {
     const key = to == null ? 'tip' : to
     if (inflightRef.current.has(key)) return Promise.resolve()
     inflightRef.current.add(key)
     attemptedRef.current.add(key)
     if (to != null) queueMicrotask(() => setLoadingMore(true))
-    return api.chainForkWindow(CHUNK, to)
+    return api.chainForkWindow(limit, to)
       .then(d => {
         tipRef.current = d.tip_height || tipRef.current
         if (anchorRef.current == null && d.tip_height) anchorRef.current = d.tip_height
         if (d && d.blocks && d.blocks.length > 0) {
-          mergeBlocks(d.blocks)
+          // Rien de neuf : pas de nouvel etat, donc pas de redessin du SVG.
+          if (!mergeBlocks(d.blocks)) return
           let orphans = false
           for (const e of blocksRef.current.values()) { if (e.orphans.length) { orphans = true; break } }
           setStats({ blocks: blocksRef.current.size, reorgs: reorgsRef.current.size, hasOrphans: orphans, lanes: countLanes(blocksRef.current) })
@@ -136,7 +153,7 @@ export default function ChainForkVisualizer({ hero = false }) {
 
   useEffect(() => {
     let id = null
-    const poll = () => { attemptedRef.current.delete('tip'); fetchChunk(null) }
+    const poll = () => { attemptedRef.current.delete('tip'); fetchChunk(null, POLL_LIMIT) }
     const start = () => { if (!id) id = setInterval(poll, 30000) }
     const stop = () => { if (id) { clearInterval(id); id = null } }
     const onVisibility = () => {
@@ -239,7 +256,7 @@ export default function ChainForkVisualizer({ hero = false }) {
 
       for (let h = Math.max(0, drawMin); h <= drawMax + CHUNK; h += CHUNK) {
         const to = chunkToFor(h, tipRef.current)
-        if (to >= 0 && !attemptedRef.current.has(to)) fetchChunk(to)
+        if (to >= 0 && !attemptedRef.current.has(to) && !chunkLoaded(to)) fetchChunk(to)
       }
 
       content.selectAll('*').remove()

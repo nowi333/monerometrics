@@ -416,7 +416,7 @@ is rate-limited (300 requests/minute; Tor traffic has its own shared bucket). CO
 | `GET /chain/window?from=&to=` | Raw block window between two heights (max 1000 blocks). |
 | `GET /chain/provenance?window=` | Evidence quality of our own attribution: proven cryptographically, claimed by a pool API, inferred, or unattributed, plus claims a pool could not prove with its own key. `window` = `1h\|6h\|24h\|48h\|7d`. |
 | `GET /chain/block/{hash}` | Full detail for one block, read live from the node, plus the pool attribution and, for proven blocks, the public proof inputs so anyone can re-verify it. |
-| `GET /chain/fork-window?limit=` | Latest N blocks including orphans, with fork-point flags. `limit` = 10..500. |
+| `GET /chain/fork-window?limit=` | Latest N blocks including orphans, with fork-point flags. `limit` = 10..1000. |
 | `GET /reorgs?limit=` | Most recent detected reorganizations. `limit` = 1..1000. |
 | `GET /reorgs/stats` | Reorg statistics over 24h / 7d / 30d / 90d / everything recorded (count, avg and max depth, affected tx), plus the date watching began. |
 | `GET /orphans/recent?window=` | Orphan blocks with their competing canonical block. `window` = `24h\|48h\|7d\|30d\|90d\|180d\|1y\|all`. |

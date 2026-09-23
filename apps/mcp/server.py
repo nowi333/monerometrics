@@ -10,6 +10,7 @@ SERIES_WINDOWS = ("1h", "24h", "7d", "30d", "90d", "1y", "5y")
 AGG_WINDOWS = ("1h", "6h", "24h", "48h", "7d")
 SPREAD_WINDOWS = ("24h", "7d", "30d", "90d", "1y")
 METHOD_WINDOWS = ("30d", "90d", "180d", "1y", "all")
+ORPHAN_WINDOWS = ("24h", "48h", "7d", "30d", "90d", "180d", "1y", "all")
 
 mcp = FastMCP("monerometrics", host=HOST, port=PORT, stateless_http=True, json_response=True)
 
@@ -22,6 +23,12 @@ _client = httpx.AsyncClient(
 
 async def _get(path: str, params: dict | None = None):
     r = await _client.get(path, params=params)
+    r.raise_for_status()
+    return r.json()
+
+
+async def _post(path: str, body: dict):
+    r = await _client.post(path, json=body)
     r.raise_for_status()
     return r.json()
 
@@ -122,10 +129,10 @@ async def reorg_stats() -> dict:
 
 
 @mcp.tool()
-async def recent_orphans(limit: int = 20) -> dict:
-    """Recent orphan blocks with their canonical counterpart at the same height. limit 1..50."""
+async def recent_orphans(limit: int = 20, window: str = "all") -> dict:
+    """Most recent orphan blocks with their canonical counterpart at the same height, newest first. limit 1..50; window in 24h,48h,7d,30d,90d,180d,1y,all (default all, so the last N orphans are returned however old they are)."""
     limit = max(1, min(int(limit), 50))
-    return await _get("/orphans/recent", {"limit": limit})
+    return await _get("/orphans/recent", {"limit": limit, "window": _one_of(window, ORPHAN_WINDOWS, "window")})
 
 
 @mcp.tool()
@@ -175,6 +182,15 @@ async def search_block(query: str) -> dict:
     if len(h) == 64 and all(c in "0123456789abcdef" for c in h):
         return await _get(f"/chain/block/{h}")
     raise ValueError("query must be a block height (number) or a 64-character hex hash")
+
+
+@mcp.tool()
+async def lookup_transaction(tx_hash: str) -> dict:
+    """Look up a transaction by its 64-character hash: whether it is in the mempool or mined, its block, confirmations, whether it is spendable yet, the pool that mined its block, and whether that height was ever contested by a reorg. No amounts, senders or recipients: the protocol encrypts them."""
+    h = tx_hash.strip().lower()
+    if len(h) != 64 or any(c not in "0123456789abcdef" for c in h):
+        raise ValueError("tx_hash must be 64 hex characters")
+    return await _post("/chain/search", {"query": h})
 
 
 @mcp.tool()

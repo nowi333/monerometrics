@@ -419,6 +419,11 @@ class StatusSignal(BaseModel):
     display: Optional[str] = None
     level: str = 'ok'
     threshold: Optional[str] = None
+    # Les memes seuils en chiffres, pour que chaque client les formule dans sa
+    # langue au lieu de reprendre `display` et `threshold`, rediges en anglais.
+    watch: Optional[float] = None
+    alert: Optional[float] = None
+    max_depth: Optional[int] = None
 
 
 class StatusResponse(BaseModel):
@@ -534,7 +539,7 @@ class OrderBookResponse(BaseModel):
 
 class SearchRequest(BaseModel):
     """A 64-character hash, sent in the body so it never appears in a URL."""
-    query: str
+    query: str = Field(max_length=128)
 
 
 class TxReorgExposure(BaseModel):
