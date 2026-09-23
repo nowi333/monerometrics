@@ -1,9 +1,10 @@
 
 
 // Aucune couleur de pool ne reprend celles qui ont un sens ailleurs sur le
-// site : orange de la marque, rouge d'alerte, vert de succes, ambre de vigilance.
+// site (rouge d'alerte, vert de succes, ambre de vigilance). supportxmr garde
+// l'orange Monero, sa couleur historique sur le site.
 export const POOL_COLORS = {
-  'supportxmr.com': '#0ea5e9',
+  'supportxmr.com': '#ff6600',
   'p2pool': '#6366f1',
   'hashvault.pro': '#d946ef',
   'nanopool.org': '#14b8a6',
