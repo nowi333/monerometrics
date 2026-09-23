@@ -109,6 +109,28 @@
     access_time: preserve
   become: true
 
+- name: Rotate the ModSecurity audit log
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/modsecurity
+    content: |
+      {{ modsecurity_audit_log_file }} {
+          su root adm
+          daily
+          rotate {{ modsecurity_audit_log_rotate_days }}
+          compress
+          delaycompress
+          missingok
+          notifempty
+          create 0640 www-data adm
+          postrotate
+              systemctl reload nginx > /dev/null 2>&1 || true
+          endscript
+      }
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
 - name: Validate nginx config syntax (with ModSecurity loaded)
   ansible.builtin.command: nginx -t
   become: true

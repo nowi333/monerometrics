@@ -11,7 +11,15 @@ modsecurity_crs_version: "v4.25.0"
 modsecurity_crs_repo: "https://github.com/coreruleset/coreruleset.git"
 modsecurity_crs_install_dir: "/etc/nginx/modsec/crs"
 
-modsecurity_audit_log_parts: "ABCFHZ"
+# A (horodatage, IP Cloudflare), F (reponse), H (regles declenchees, avec l'URI),
+# Z (fin). Ni B (en-tetes, dont CF-Connecting-IP, l'IP du visiteur) ni C (corps
+# de requete, ou transitent les hashes recherches) : ils n'apportent rien a
+# l'analyse d'un blocage et contrediraient ce que le site promet.
+modsecurity_audit_log_parts: "AFHZ"
+# Seuls les blocages du WAF sont journalises, pas les 429 ou 503 de l'API.
+modsecurity_audit_relevant_status: "^403$"
+# Rotation quotidienne, trois jours gardes : de quoi analyser un incident.
+modsecurity_audit_log_rotate_days: 3
 modsecurity_audit_log_type: "Serial"
 modsecurity_audit_log_file: "/var/log/modsec_audit.log"
 

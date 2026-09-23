@@ -16,7 +16,7 @@ SecDataDir /tmp/
 SecTmpSaveUploadedFiles Off
 
 SecAuditEngine RelevantOnly
-SecAuditLogRelevantStatus "^(?:5|4(?!04))"
+SecAuditLogRelevantStatus "{{ modsecurity_audit_relevant_status }}"
 SecAuditLogParts {{ modsecurity_audit_log_parts }}
 SecAuditLogType {{ modsecurity_audit_log_type }}
 SecAuditLog {{ modsecurity_audit_log_file }}

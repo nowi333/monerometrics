@@ -10,7 +10,7 @@ export const POOL_COLORS = {
   'nanopool.org': '#14b8a6',
   'moneroocean.stream': '#a855f7',
   'kryptex.com': '#ec4899',
-  'c3pool.com': '#64748b',
+  'c3pool.com': '#166534',
   'herominers.com': '#1e40af',
   'xmrpool.eu': '#06b6d4',
   'ownblock.xyz': '#a8a29e',
