@@ -27,7 +27,7 @@ output "bastion_private_ip" {
 
 output "bastion_ssh_command" {
   description = "Commande SSH vers le bastion."
-  value       = "ssh nowi333@${module.bastion.public_ipv4}"
+  value       = "ssh ${var.admin_username}@${module.bastion.public_ipv4}"
 }
 
 output "edge_public_ip" {
@@ -42,7 +42,7 @@ output "edge_private_ip" {
 
 output "edge_ssh_command" {
   description = "Commande SSH vers l'edge via ProxyJump bastion (reseau prive)."
-  value       = "ssh -J nowi333@${module.bastion.public_ipv4} nowi333@${module.edge.private_ip}"
+  value       = "ssh -J ${var.admin_username}@${module.bastion.public_ipv4} ${var.admin_username}@${module.edge.private_ip}"
 }
 
 output "k3s_private_ip" {
@@ -52,7 +52,7 @@ output "k3s_private_ip" {
 
 output "k3s_ssh_command" {
   description = "Commande SSH vers k3s via ProxyJump bastion (reseau prive)."
-  value       = "ssh -J nowi333@${module.bastion.public_ipv4} nowi333@${module.k3s.private_ip}"
+  value       = "ssh -J ${var.admin_username}@${module.bastion.public_ipv4} ${var.admin_username}@${module.k3s.private_ip}"
 }
 
 output "k3s_data_volume_device" {

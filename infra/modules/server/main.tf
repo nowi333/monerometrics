@@ -30,8 +30,11 @@ resource "hcloud_server" "this" {
 
 
 
+  # cloud-init ne s'execute qu'a la creation du serveur : le modifier ensuite
+  # ne doit jamais faire detruire une machine en production. Les pare-feux
+  # s'attachent par label, et le groupe de placement n'est pas gere ici.
   lifecycle {
-    ignore_changes = [ssh_keys]
+    ignore_changes = [ssh_keys, user_data, firewall_ids, placement_group_id]
   }
 }
 

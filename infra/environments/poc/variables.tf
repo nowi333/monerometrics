@@ -45,3 +45,15 @@ variable "k3s_data_volume_size" {
   type        = number
   default     = 128
 }
+
+variable "owner" {
+  description = "Valeur du label owner sur les ressources Hetzner."
+  type        = string
+  default     = "nowi333"
+}
+
+variable "admin_username" {
+  description = "Compte d'administration cree par cloud-init, et utilise dans les commandes SSH affichees."
+  type        = string
+  default     = "nowi333"
+}
