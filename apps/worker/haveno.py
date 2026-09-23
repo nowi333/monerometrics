@@ -39,25 +39,9 @@ DDL = [
         PRIMARY KEY (currency, period_start)
     )
     """,
-    """
-    CREATE TABLE IF NOT EXISTS haveno_offers (
-        observed_at    TIMESTAMPTZ NOT NULL,
-        currency       TEXT NOT NULL,
-        side           TEXT NOT NULL,
-        offer_id       TEXT NOT NULL,
-        offer_date     TIMESTAMPTZ,
-        amount         NUMERIC(18,6),
-        min_amount     NUMERIC(18,6),
-        price          NUMERIC(18,8),
-        payment_method TEXT,
-        PRIMARY KEY (observed_at, currency, side, offer_id)
-    )
-    """,
-    'CREATE INDEX IF NOT EXISTS haveno_offers_time_idx ON haveno_offers (observed_at DESC)',
     # Une ligne par etat distinct d'une offre, avec sa premiere et sa derniere
     # observation, au lieu d'une copie du carnet entier toutes les dix minutes :
-    # meme information, une centaine de fois moins de place. L'ancienne table
-    # haveno_offers reste en lecture pour l'historique deja releve.
+    # meme information, une centaine de fois moins de place.
     """
     CREATE TABLE IF NOT EXISTS haveno_offer_spans (
         currency       TEXT NOT NULL,
