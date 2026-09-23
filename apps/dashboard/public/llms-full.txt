@@ -34,7 +34,9 @@ hour to five years.
 - Orphan block: a valid block that was mined but is not part of the final canonical
   chain, because a competing block at the same height won. Orphans are kept in history
   and shown next to the canonical chain.
-- Fork point: the last common block shared by the canonical chain and an orphan branch.
+- Fork point: the height of the first block that was replaced. The branches share every
+  block below it; a reorg of depth N rewrote the heights from the fork point to the fork
+  point plus N minus one.
 - Nakamoto coefficient: the minimum number of mining pools that together produce more
   than 50% of blocks over a window. Lower means more centralized.
 - Largest-pool share: the percentage of blocks produced by the single biggest pool
@@ -47,13 +49,22 @@ hour to five years.
 
 ## How reorg and orphan detection works
 
-The indexer follows the node's tip and, on every poll, re-checks a rolling window of
-recent blocks against the node. When a previously-seen block at a given height is
-replaced by a different hash, the old block is recorded as an orphan and a reorg event
-is written with its fork point, depth and the number of affected transactions. Because
-this only works in real time, reorgs and orphans are captured from the moment live
-indexing began; they cannot be reconstructed for the distant past, since the node only
-retains the winning chain.
+Two passes run on every poll (every 30 seconds).
+
+- Reorgs: the indexer re-checks a rolling window of the last 60 blocks against the node.
+  When a block it had already indexed at a given height has been replaced by a different
+  hash, the old block is recorded as an orphan and a reorg event is written with its fork
+  point, depth and the number of affected transactions.
+- Orphans: most competing blocks are settled within seconds, before the next poll, so the
+  rescan alone would miss them. The indexer therefore also reads the node's own
+  alternative chains and records every competing block the node has seen as an orphan,
+  including those that never became canonical. The node keeps these blocks across
+  restarts and accepts inbound peers, which widens what it sees.
+
+Both only work in real time: reorgs and orphans are captured from the moment live
+indexing began, and cannot be reconstructed for the distant past, since the network only
+retains the winning chain. Orphan counts reflect what one node observed; another node may
+have seen a few competing blocks this one did not.
 
 ## How mining-pool attribution works
 
@@ -147,7 +158,7 @@ machine-readable description at /openapi.json.
 - GET /network/fees — current Monero fee tiers; /network/fees/history?window= for the time series.
 - GET /reorgs — detected chain reorganizations.
 - GET /reorgs/stats — reorg counts, depth and affected transactions over windows.
-- GET /orphans/recent?limit= — recent orphan blocks with their canonical counterpart.
+- GET /orphans/recent?window=24h|48h|7d|30d|90d|180d|1y|all&limit= — orphan blocks over a window (default 30d, newest first, limit up to 500), each with its canonical counterpart at the same height.
 - GET /chain/window?from=&to= — canonical blocks in a height range.
 - GET /chain/fork-window?limit=&to= — canonical chain plus competing orphans around a height; `to` selects the window, enabling browsing down to the genesis block.
 - GET /chain/block/{hash} — full detail for one block (height, prev hash, size, difficulty, reward, coinbase, tx list, merge-mining tags).

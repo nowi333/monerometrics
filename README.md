@@ -357,6 +357,8 @@ PostgreSQL, read-only from the API's point of view. Two tables carry the chain r
   pool's own claim. `reward_xmr` is an exact `NUMERIC`, never a float.
 - **`reorgs_detected`**, one row per detected event: `fork_point_height`, `depth`,
   `old_chain_tip_hash`, `new_chain_tip_hash`, `affected_tx_count`, `detected_at`.
+  `fork_point_height` is the first height that was replaced: the event rewrote heights
+  `fork_point_height` to `fork_point_height + depth - 1`.
 
 The orphan/canonical split is what powers the fork visualizer and the `/orphans/recent` and
 `/reorgs/stats` endpoints.
