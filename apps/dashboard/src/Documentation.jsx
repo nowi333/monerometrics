@@ -11,23 +11,33 @@ const ONION_HOST = '6wbhchvavey26lbtscl6w6qg76balycixtsklcggrsslyk4xah6sbbad.oni
 const ENDPOINTS = [
   { m: 'GET', p: '/health', k: 'health' },
   { m: 'GET', p: '/info', k: 'info' },
+  { m: 'GET', p: '/status', k: 'status' },
+  { m: 'GET', p: '/usage/external', k: 'usageExternal' },
   { m: 'GET', p: '/network/info', k: 'networkInfo' },
   { m: 'GET', p: '/network/hashrate', k: 'networkHashrate', q: 'window=1h|24h|7d|30d|90d|1y|5y' },
-  { m: 'GET', p: '/network/blocktime', k: 'networkBlocktime', q: 'window=1h|24h|7d|30d' },
+  { m: 'GET', p: '/network/blocktime', k: 'networkBlocktime', q: 'window=1h|24h|7d|30d|90d|1y|5y' },
   { m: 'GET', p: '/network/mempool', k: 'networkMempool', q: 'window=1h|24h|7d|30d|90d|1y|5y' },
   { m: 'GET', p: '/network/emission', k: 'networkEmission', q: 'window=24h|7d|30d|90d|1y|5y' },
-  { m: 'GET', p: '/price/spread', k: 'priceSpread', q: 'window=24h|7d|30d|90d|1y' },
-  { m: 'GET', p: '/haveno/methods', k: 'havenoMethods', q: 'window=30d|90d|180d|1y|all&currency=USD|EUR' },
-  { m: 'GET', p: '/haveno/liquidity', k: 'havenoLiquidity', q: 'window=24h|7d|30d|90d|1y|all&currency=USD|EUR|AUD|GBP' },
-  { m: 'GET', p: '/haveno/trades', k: 'havenoTrades', q: 'limit=1..1000&currency=USD|EUR|AUD|GBP' },
-  { m: 'GET', p: '/haveno/book', k: 'havenoBook', q: '' },
+  { m: 'GET', p: '/network/fees', k: 'networkFees' },
+  { m: 'GET', p: '/network/fees/history', k: 'networkFeesHistory', q: 'window=24h|7d|30d|90d|1y' },
+  { m: 'POST', p: '/chain/search', k: 'chainSearch' },
   { m: 'GET', p: '/chain/window', k: 'chainWindow', q: 'from=INT&to=INT' },
+  { m: 'GET', p: '/chain/block/{hash}', k: 'chainBlock' },
+  { m: 'GET', p: '/chain/provenance', k: 'chainProvenance', q: 'window=1h|6h|24h|48h|7d' },
   { m: 'GET', p: '/chain/fork-window', k: 'chainForkWindow', q: 'limit=10..500' },
   { m: 'GET', p: '/reorgs', k: 'reorgs', q: 'limit=1..1000' },
   { m: 'GET', p: '/reorgs/stats', k: 'reorgsStats' },
-  { m: 'GET', p: '/orphans/recent', k: 'orphansRecent', q: 'limit=1..500' },
+  { m: 'GET', p: '/orphans/recent', k: 'orphansRecent', q: 'window=24h|48h|7d|30d|90d|180d|1y|all' },
   { m: 'GET', p: '/pools/distribution', k: 'poolsDistribution', q: 'window=1h|6h|24h|48h|7d' },
   { m: 'GET', p: '/pools/sources', k: 'poolsSources' },
+  { m: 'GET', p: '/pools/latency', k: 'poolsLatency', q: 'window=24h|48h|7d|30d' },
+  { m: 'GET', p: '/price', k: 'price' },
+  { m: 'GET', p: '/price/spread', k: 'priceSpread', q: 'window=24h|7d|30d|90d|1y' },
+  { m: 'GET', p: '/haveno/book', k: 'havenoBook' },
+  { m: 'GET', p: '/haveno/methods', k: 'havenoMethods', q: 'window=30d|90d|180d|1y|all&currency=USD|EUR' },
+  { m: 'GET', p: '/haveno/liquidity', k: 'havenoLiquidity', q: 'window=24h|7d|30d|90d|1y|all&currency=USD|EUR|AUD|GBP' },
+  { m: 'GET', p: '/haveno/trades', k: 'havenoTrades', q: 'limit=1..1000&currency=USD|EUR|AUD|GBP' },
+  { m: 'GET', p: '/news', k: 'news' },
 ]
 
 const ICON_MAIL = 'M2.4 6.6A2.4 2.4 0 0 1 4.8 4.2h14.4a2.4 2.4 0 0 1 2.4 2.4v10.8a2.4 2.4 0 0 1-2.4 2.4H4.8a2.4 2.4 0 0 1-2.4-2.4V6.6Zm2.7-.6 6.9 5.52L18.9 6H5.1Zm14.7 1.62-7.35 5.88a1.2 1.2 0 0 1-1.5 0L4.2 7.62V17.4h15.6V7.62Z'
@@ -233,7 +243,9 @@ export default function Documentation() {
           {ENDPOINTS.map(e => (
             <div key={e.p} className="mm-node rounded border p-3">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>{e.m}</span>
+                <span className="text-xs font-mono px-2 py-0.5 rounded" style={e.m === 'GET'
+                  ? { background: 'var(--color-success-bg)', color: 'var(--color-success)' }
+                  : { background: 'color-mix(in srgb, var(--color-accent) 14%, transparent)', color: 'var(--color-accent)' }}>{e.m}</span>
                 <code className="text-sm font-mono break-all" style={{ color: 'var(--color-text)' }}>{e.p}</code>
                 {e.q && <code className="text-xs font-mono break-all min-w-0" style={{ color: 'var(--color-dim)' }}>?{e.q}</code>}
               </div>
