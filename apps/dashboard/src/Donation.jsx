@@ -6,6 +6,10 @@ const XMR_DONATION_ADDRESS = '41mkUSrcAvdGw9E19a83rsh9zdSNC7m8PP34NvmRCCPLZVot61
 const INFRA_COST = 40
 const REPO_URL = 'https://github.com/nowi333/monerometrics'
 const ANONPAY_URL = `https://trocador.app/anonpay/?ticker_to=xmr&network_to=Mainnet&donation=True&name=${encodeURIComponent('monerometrics')}&description=${encodeURIComponent('Support monerometrics')}&buttonbgcolor=ff6600&address=${XMR_DONATION_ADDRESS}`
+// Sur le service onion, rien ne doit sortir vers le web clair : le widget
+// Trocador en est absent, l'adresse et le QR code suffisent.
+const IS_ONION = typeof window !== 'undefined' && window.location.hostname.endsWith('.onion')
+
 const ADDRESS_CONFIGURED =
   /^4[0-9AB][1-9A-HJ-NP-Za-km-z]{93}$/.test(XMR_DONATION_ADDRESS)
 
@@ -112,7 +116,7 @@ export default function Donation() {
                 {copied ? t('donate.copied') : t('donate.copy')}
               </span>
             </button>
-            <div className="flex flex-wrap gap-2">
+            {!IS_ONION && <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setPayOpen(true)}
                 className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg border transition-all hover:brightness-110 active:scale-[0.98]"
@@ -124,7 +128,7 @@ export default function Donation() {
                 </svg>
                 {t('donate.anyCoin')}
               </button>
-            </div>
+            </div>}
           </div>
         </div>
       </div>

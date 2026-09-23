@@ -20,6 +20,12 @@ spec:
       containers:
         - name: mcp
           image: ghcr.io/nowi333/monerometrics-mcp:0.4.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
           env:
             - name: MM_API_BASE
               value: "http://api.monerometrics.svc.cluster.local"

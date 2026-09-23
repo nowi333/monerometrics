@@ -58,7 +58,13 @@ export function usePolledData(fetcher, ready, deps = [], interval = 30000, jitte
     const stop = () => { if (id) { clearInterval(id); id = null } }
     const onVisibility = () => {
       if (document.hidden) stop()
-      else { load(); start() }
+      else {
+        // Au retour sur l'onglet, tous les panneaux se reveillent ensemble :
+        // le meme decalage aleatoire qu'au demarrage etale la rafale.
+        if (firstId) clearTimeout(firstId)
+        firstId = setTimeout(() => load(), jitterMs ? Math.random() * jitterMs : 0)
+        start()
+      }
     }
 
     // Seize panneaux qui demarrent ensemble envoyaient dix-sept requetes dans la

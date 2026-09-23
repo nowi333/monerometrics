@@ -5,6 +5,7 @@ import time
 import threading
 import logging
 from decimal import Decimal
+from urllib.parse import quote
 from datetime import datetime, timezone
 import httpx
 import haveno
@@ -88,7 +89,7 @@ else:
     PG_PASSWORD = os.getenv('POSTGRES_PASSWORD') or os.getenv('PG_PASSWORD', '')
     PG_DB = os.getenv('POSTGRES_DB') or os.getenv('PG_DB', 'monerometrics')
     _source = 'env vars (fallback)'
-DATABASE_URL = os.getenv('DATABASE_URL', f'postgresql://{PG_USER}:{PG_PASSWORD}@postgres:5432/{PG_DB}')
+DATABASE_URL = os.getenv('DATABASE_URL', f"postgresql://{quote(PG_USER or '', safe='')}:{quote(PG_PASSWORD or '', safe='')}@postgres:5432/{PG_DB}")
 _pool_index: dict[str, str] = {}
 _pool_index_last_refresh = 0.0
 _pool_index_last_full = 0.0

@@ -97,7 +97,20 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version=discovery.API_VERSION, lifespan=lifespan)
+app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version=discovery.API_VERSION, lifespan=lifespan, docs_url=None)
+
+# Swagger fige a une version precise : « @5 » chargeait la derniere 5.x publiee,
+# quelle qu'elle soit, sur notre domaine.
+SWAGGER_UI_VERSION = '5.33.0'
+
+
+@app.get('/docs', include_in_schema=False)
+async def swagger_ui():
+    from fastapi.openapi.docs import get_swagger_ui_html
+    base = f'https://cdn.jsdelivr.net/npm/swagger-ui-dist@{SWAGGER_UI_VERSION}'
+    return get_swagger_ui_html(openapi_url=app.openapi_url, title=f'{app.title} - Swagger UI',
+                               swagger_js_url=f'{base}/swagger-ui-bundle.js',
+                               swagger_css_url=f'{base}/swagger-ui.css')
 RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 # Cadence de reconstruction de l'index des pools cote worker : elle borne la
 # resolution du delai de declaration qu'on peut mesurer.

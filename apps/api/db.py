@@ -1,4 +1,5 @@
 import os
+from urllib.parse import quote
 import asyncpg
 from typing import Optional
 
@@ -31,7 +32,8 @@ def get_database_url() -> tuple[str, str]:
         source = 'env vars (fallback)'
     host = os.getenv('POSTGRES_HOST', 'postgres')
     port = os.getenv('POSTGRES_PORT', '5432')
-    return (f'postgresql://{user}:{password}@{host}:{port}/{db}', source)
+    # Un caractere comme @ ou / dans le mot de passe casserait l'URL.
+    return (f'postgresql://{quote(user or "", safe="")}:{quote(password or "", safe="")}@{host}:{port}/{db}', source)
 _pool: Optional[asyncpg.Pool] = None
 
 async def init_pool(database_url: str) -> asyncpg.Pool:

@@ -7,11 +7,17 @@ const API_BASE = isOnion
   ? '/api'
   : import.meta.env.VITE_API_URL || 'https://api.monerometrics.net'
 
+// Au-dela, une requete est abandonnee : sans limite, un appel bloque laissait
+// les suivants s'empiler a chaque rafraichissement.
+const TIMEOUT_MS = 20000
+const timeoutSignal = () => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(TIMEOUT_MS) : undefined)
+
 async function fetchJSON(path) {
   const url = `${API_BASE}${path}`
   const response = await fetch(url, {
     method: 'GET',
     headers: { Accept: 'application/json' },
+    signal: timeoutSignal(),
   })
   if (!response.ok) {
     const err = new Error(`API ${path} returned ${response.status}`)
@@ -30,6 +36,7 @@ async function postJSON(path, body) {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal: timeoutSignal(),
   })
   if (!response.ok) {
     const err = new Error(`API ${path} returned ${response.status}`)
