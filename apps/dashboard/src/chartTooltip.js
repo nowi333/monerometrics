@@ -5,6 +5,30 @@
 // suit donc le theme clair comme le sombre sans conversion.
 
 let el = null
+let activeChart = null
+
+// La bulle est fixee a l'ecran, pas a la carte. Sur mobile, un toucher la
+// laisse ouverte (aucune sortie de souris ne vient la fermer) : sans ce qui
+// suit, elle restait en place pendant qu'on faisait defiler la page. On la
+// ferme donc des que la page defile ou qu'on touche ailleurs que le graphique.
+function hide() {
+  if (el) el.style.opacity = '0'
+  const chart = activeChart
+  activeChart = null
+  if (!chart || !chart.canvas || !chart.canvas.isConnected) return
+  try {
+    chart.setActiveElements([])
+    chart.tooltip.setActiveElements([], { x: 0, y: 0 })
+    chart.update('none')
+  } catch { /* graphique deja detruit */ }
+}
+
+function listen() {
+  window.addEventListener('scroll', hide, { passive: true, capture: true })
+  window.addEventListener('touchstart', (e) => {
+    if (activeChart && e.target !== activeChart.canvas) hide()
+  }, { passive: true })
+}
 
 // Un seul element pour toute la page : il ne peut y avoir qu'une bulle a la
 // fois, et le placer sur <body> le met hors de portee des rendus de React.
@@ -27,6 +51,7 @@ function element() {
     maxWidth: '260px',
   })
   document.body.appendChild(el)
+  listen()
   return el
 }
 
@@ -45,8 +70,10 @@ export function externalTooltip(context) {
 
   if (!tooltip || tooltip.opacity === 0) {
     box.style.opacity = '0'
+    if (activeChart === chart) activeChart = null
     return
   }
+  activeChart = chart
 
   const title = (tooltip.title || []).join(' ')
   const rows = (tooltip.body || []).map((b, i) => {
