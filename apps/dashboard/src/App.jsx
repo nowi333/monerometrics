@@ -311,30 +311,45 @@ export default function App() {
             {ONION_HOST}
           </a>
         </div>
-        <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+        {/* En pyramide : le site qui s'appuie sur nos donnees en tete, les
+            annuaires ou l'on est reference en dessous. */}
+        <div className="mt-3 flex flex-col items-center gap-2">
           <a
-            href="https://monerica.com/site/monerometrics"
+            href="https://xmrhub.org"
             target="_blank"
             rel="noopener noreferrer"
-            title="Review monerometrics on Monerica"
-            className="mm-badge inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px]"
+            title={t('footer.xmrhub')}
+            className="mm-badge inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium"
             style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 28%, var(--color-border))', color: 'var(--color-text-secondary)' }}
           >
-            <span className="inline-flex items-center rounded-sm bg-white px-1 py-0.5" style={{ lineHeight: 0 }}>
-              <img src="/monerica-logo.png" alt="Monerica" style={{ height: 11, width: 'auto', display: 'block' }} />
-            </span>
-            {t('footer.monerica')}
+            <img src="/xmrhub-mark.png" alt="" width="22" height="22" style={{ display: 'block' }} />
+            {t('footer.xmrhub')}
           </a>
-          <a
-            href="https://xmr.club/tools/monerometrics/reviews"
-            target="_blank"
-            rel="noopener noreferrer"
-            title={t('footer.xmrclub')}
-            className="mm-badge-img inline-flex items-center"
-            style={{ lineHeight: 0 }}
-          >
-            <img src="/xmrclub-badge.svg" alt={t('footer.xmrclub')} style={{ height: 26, width: 'auto', display: 'block' }} />
-          </a>
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <a
+              href="https://monerica.com/site/monerometrics"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Review monerometrics on Monerica"
+              className="mm-badge inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px]"
+              style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 28%, var(--color-border))', color: 'var(--color-text-secondary)' }}
+            >
+              <span className="inline-flex items-center rounded-sm bg-white px-1 py-0.5" style={{ lineHeight: 0 }}>
+                <img src="/monerica-logo.png" alt="Monerica" style={{ height: 11, width: 'auto', display: 'block' }} />
+              </span>
+              {t('footer.monerica')}
+            </a>
+            <a
+              href="https://xmr.club/tools/monerometrics/reviews"
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t('footer.xmrclub')}
+              className="mm-badge-img inline-flex items-center"
+              style={{ lineHeight: 0 }}
+            >
+              <img src="/xmrclub-badge.svg" alt={t('footer.xmrclub')} style={{ height: 26, width: 'auto', display: 'block' }} />
+            </a>
+          </div>
         </div>
       </footer>
       </div>
