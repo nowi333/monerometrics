@@ -312,3 +312,8 @@ button:not(:disabled),
   background: linear-gradient(to left,
     color-mix(in srgb, var(--color-success) 7%, var(--color-card)) 88%, transparent);
 }
+
+/* Bloc du visualiseur atteint au clavier : le contour du navigateur ne
+   s'applique pas aux groupes SVG, on le dessine nous-memes. */
+.mm-fork-block:focus { outline: none; }
+.mm-fork-block:focus-visible rect:first-of-type { stroke: var(--color-accent); stroke-width: 2.5px; }

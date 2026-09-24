@@ -146,6 +146,15 @@ i18n
 
 
           'fork.title': 'Chain visualizer',
+
+
+          'fork.a11yBlock': 'Block #{{height}}, {{pool}}. Press Enter for details.',
+
+
+          'fork.a11yOrphan': 'Orphan block #{{height}}, {{pool}}. Press Enter for details.',
+
+
+          'fork.a11yHelp': 'Chain fork visualizer. Arrow keys move along the chain, + and - zoom, 0 returns to the tip, Tab reaches each block.',
           'fork.orphans': 'Orphan blocks',
           'fork.branchDepth': 'competing branch, {{count}} blocks',
           'fork.legendTitle': 'Dot = how the pool was established',

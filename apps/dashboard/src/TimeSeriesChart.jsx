@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { tooltipPlugin } from './chartTooltip'
+import { useThemeColors } from './chartTheme'
 import { crosshair, lastValueTag } from './chartTools'
 import ChartNavigator from './ChartNavigator'
 import { Line } from 'react-chartjs-2'
@@ -16,6 +17,7 @@ Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, L
 
 // En deca de ce nombre de points visibles, zoomer n'apporte plus rien.
 const MIN_POINTS = 5
+
 
 function rgba(hex, a) {
   const n = parseInt(hex.slice(1), 16)
@@ -67,6 +69,10 @@ export default function TimeSeriesChart({
   const plotRef = useRef(null)
   const chartRef = useRef(null)
   const readoutRef = useRef(null)
+  const switchTimer = useRef(null)
+  const theme = useThemeColors()
+
+  useEffect(() => () => clearTimeout(switchTimer.current), [])
 
   const { data, status } = usePolledData(
     () => fetcher(window_),
@@ -91,7 +97,10 @@ export default function TimeSeriesChart({
     setWindow(w)
     // Une plage gardee d'une fenetre a l'autre designerait des dates sans rapport.
     setRange([0, 1])
-    setTimeout(() => setSwitching(false), 8000)
+    // Filet de securite si la reponse n'arrive jamais ; annule a chaque
+    // nouveau changement et au demontage.
+    clearTimeout(switchTimer.current)
+    switchTimer.current = setTimeout(() => setSwitching(false), 8000)
   }
 
   const clamp = useCallback(([lo, hi], n) => {
@@ -192,7 +201,9 @@ export default function TimeSeriesChart({
           <p className={`${headlineClass} font-medium mt-1 flex flex-wrap items-baseline gap-2`} style={{ color }}>
             <span ref={readoutRef}>{format(current)}</span>
             {change != null && (
-              <span className="text-xs font-mono" style={{ color: change >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              // Couleur neutre : une hausse n'est pas toujours une bonne nouvelle
+              // (temps de bloc, mempool), le vert et le rouge le laissaient croire.
+              <span className="text-xs font-mono" style={{ color: 'var(--color-text-secondary)' }}>
                 {change >= 0 ? '+' : ''}{change.toFixed(change > -1 && change < 1 ? 2 : 1)}%
               </span>
             )}
@@ -252,7 +263,7 @@ export default function TimeSeriesChart({
     datasets.push({
       label: referenceY.label,
       data: visible.map(() => referenceY.value),
-      borderColor: 'rgba(34,197,94,0.9)',
+      borderColor: theme.success,
       borderWidth: 2,
       borderDash: [6, 4],
       pointRadius: 0,
@@ -294,7 +305,7 @@ export default function TimeSeriesChart({
     plugins: {
       legend: {
         display: showLegend != null ? showLegend : (!!referenceY || !!extraSeries),
-        labels: { color: '#8b9099', font: { size: 11 }, usePointStyle: true, pointStyle: 'line', boxWidth: 22, boxHeight: 2 },
+        labels: { color: theme.dim, font: { size: 11 }, usePointStyle: true, pointStyle: 'line', boxWidth: 22, boxHeight: 2 },
       },
       crosshair: { format, labels: visible.map(p => p.full ?? p.label) },
       lastValueTag: { format, color },
@@ -307,11 +318,11 @@ export default function TimeSeriesChart({
       },
     },
     scales: {
-      x: { ticks: { color: '#8b9099', font: { size: 10 }, maxRotation: 0, autoSkip: true, autoSkipPadding: 6, maxTicksLimit: 6 }, grid: { display: false } },
+      x: { ticks: { color: theme.dim, font: { size: 10 }, maxRotation: 0, autoSkip: true, autoSkipPadding: 6, maxTicksLimit: 6 }, grid: { display: false } },
       y: {
         max: yMax ?? undefined,
-        ticks: { color: '#8b9099', font: { size: 10 }, callback: (v) => format(v) },
-        grid: { color: 'rgba(255,255,255,0.05)' },
+        ticks: { color: theme.dim, font: { size: 10 }, callback: (v) => format(v) },
+        grid: { color: theme.grid },
       },
     },
   }

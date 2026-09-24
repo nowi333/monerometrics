@@ -8,8 +8,14 @@ metadata:
     app.kubernetes.io/part-of: monerometrics
 spec:
   replicas: 1
+  # Le nouveau pod doit etre pret avant que l'ancien ne s'arrete : avec
+  # Recreate, chaque deploiement coupait l'API quelques secondes, et le proxy
+  # repondait 503 sans en-tetes CORS.
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: api
@@ -28,6 +34,7 @@ spec:
       labels:
         app: api
     spec:
+      terminationGracePeriodSeconds: 30
       imagePullSecrets:
         - name: ghcr-pull-secret
       containers:
@@ -64,6 +71,13 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+          # Le pod qui s'arrete continue de servir dix secondes, le temps que
+          # Traefik le retire de sa rotation : sans ce delai, les requetes en
+          # vol pendant la bascule recevaient un 502.
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "10"]
           livenessProbe:
             httpGet:
               path: /health

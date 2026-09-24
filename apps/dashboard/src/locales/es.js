@@ -128,6 +128,15 @@ export default {
 
 
           'fork.title': 'Visualizador de cadena',
+
+
+          'fork.a11yBlock': 'Bloque n.º {{height}}, {{pool}}. Intro para el detalle.',
+
+
+          'fork.a11yOrphan': 'Bloque huérfano n.º {{height}}, {{pool}}. Intro para el detalle.',
+
+
+          'fork.a11yHelp': 'Visualizador de la cadena. Las flechas se desplazan por la cadena, + y - hacen zoom, 0 vuelve a la cima, Tab alcanza cada bloque.',
           'fork.orphans': 'Bloques huérfanos',
           'fork.branchDepth': 'rama competidora, {{count}} bloques',
           'fork.legendTitle': 'Punto = cómo se estableció la pool',

@@ -200,15 +200,29 @@ export default function ChainForkVisualizer({ hero = false }) {
 
     const drawBlock = (block, y, isOrphan) => {
       const x = worldX(block.height)
+      const open = () => {
+        setTooltip(null)
+        setInteracted(true)
+        setSelected({ block, isOrphan, agoSeconds: Math.floor(Date.now() / 1000) - block.timestamp_unix })
+      }
+      // Chaque bloc est atteignable au clavier (Tab) et s'ouvre avec Entree
+      // ou Espace, comme au clic.
       const blockG = content.append('g').style('cursor', 'pointer')
+        .attr('tabindex', 0)
+        .attr('role', 'button')
+        .attr('class', 'mm-fork-block')
+        .attr('aria-label', t(isOrphan ? 'fork.a11yOrphan' : 'fork.a11yBlock', {
+          height: block.height.toLocaleString(i18n.language), pool: block.miner_pool || 'unknown',
+        }))
+        .on('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); open() }
+        })
         .on('mouseenter', (event) => setTooltip({ x: event.clientX, y: event.clientY, block, isOrphan, agoSeconds: Math.floor(Date.now() / 1000) - block.timestamp_unix }))
         .on('mousemove', (event) => setTooltip(prev => prev ? { ...prev, x: event.clientX, y: event.clientY } : null))
         .on('mouseleave', () => setTooltip(null))
         .on('click', (event) => {
           event.stopPropagation()
-          setTooltip(null)
-          setInteracted(true)
-          setSelected({ block, isOrphan, agoSeconds: Math.floor(Date.now() / 1000) - block.timestamp_unix })
+          open()
         })
 
       const pool = block.miner_pool
@@ -432,6 +446,19 @@ export default function ChainForkVisualizer({ hero = false }) {
 
   const handleZoomIn = () => { if (zoomRef.current && svgRef.current) d3.select(svgRef.current).transition().duration(200).call(zoomRef.current.scaleBy, 1.4) }
   const handleZoomOut = () => { if (zoomRef.current && svgRef.current) d3.select(svgRef.current).transition().duration(200).call(zoomRef.current.scaleBy, 0.7) }
+  // Deplacement et zoom au clavier, sur la zone du graphe.
+  const onSvgKeyDown = (e) => {
+    if (!zoomRef.current || !svgRef.current) return
+    const sel = d3.select(svgRef.current)
+    const k = e.key
+    if (k === 'ArrowLeft' || k === 'ArrowRight') {
+      e.preventDefault()
+      setInteracted(true)
+      sel.transition().duration(150).call(zoomRef.current.translateBy, k === 'ArrowLeft' ? STEP * 3 : -STEP * 3, 0)
+    } else if (k === '+' || k === '=') { e.preventDefault(); handleZoomIn() }
+    else if (k === '-') { e.preventDefault(); handleZoomOut() }
+    else if (k === '0') { e.preventDefault(); handleReset() }
+  }
   const handleReset = () => { hasInteractedRef.current = false; highlightRef.current = null; anchorRef.current = tipRef.current; bump() }
   const toggleFullscreen = () => {
     if (!containerRef.current) return
@@ -589,6 +616,10 @@ export default function ChainForkVisualizer({ hero = false }) {
         <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '8px', background: 'var(--color-bg)' }}>
           <svg
             ref={svgRef}
+            tabIndex={0}
+            role="group"
+            aria-label={t('fork.a11yHelp')}
+            onKeyDown={onSvgKeyDown}
             style={{ width: '100%', height: isFullscreen ? '80vh' : `${panelH}px`, display: 'block', cursor: 'grab' }}
           />
           {!interacted && (

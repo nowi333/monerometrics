@@ -6,6 +6,7 @@ import { api } from './api'
 import Panel from './Panel'
 import { usePolledData } from './usePolledData'
 import { curves, reach } from './bookDepth'
+import { useThemeColors } from './chartTheme'
 
 Chart.register(LineElement, PointElement, LinearScale, Tooltip, Filler)
 
@@ -71,6 +72,7 @@ const crosshair = {
 
 export default function OrderBookDepth() {
   const { t } = useTranslation()
+  const theme = useThemeColors()
   const chartRef = useRef(null)
   const [hover, setHover] = useState(null)
   const { data, status } = usePolledData(
@@ -145,14 +147,14 @@ export default function OrderBookDepth() {
         type: 'linear',
         min: xMin,
         max: xMax,
-        title: { display: true, text: t('haveno.book.axisX'), color: '#8b9099', font: { size: 10 } },
-        ticks: { color: '#8b9099', font: { size: 10 }, callback: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 10) / 10}%` },
+        title: { display: true, text: t('haveno.book.axisX'), color: theme.dim, font: { size: 10 } },
+        ticks: { color: theme.dim, font: { size: 10 }, callback: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 10) / 10}%` },
         grid: { color: 'rgba(139,144,153,0.10)' },
       },
       y: {
         beginAtZero: true,
-        title: { display: true, text: t('haveno.book.axisY'), color: '#8b9099', font: { size: 10 } },
-        ticks: { color: '#8b9099', font: { size: 10 } },
+        title: { display: true, text: t('haveno.book.axisY'), color: theme.dim, font: { size: 10 } },
+        ticks: { color: theme.dim, font: { size: 10 } },
         grid: { color: 'rgba(139,144,153,0.10)' },
       },
     },
