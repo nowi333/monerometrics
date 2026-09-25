@@ -66,7 +66,8 @@ edge serves the static dashboard and reverse-proxies the API to the **k3s** node
 application core runs: a Monero node, the indexer, PostgreSQL and the API.
 
 A second, independent path exists: a **Tor hidden service** running on the edge, which bypasses
-Cloudflare entirely and serves both the dashboard and the API on a single origin.
+Cloudflare entirely and serves both the dashboard and the API on a single origin, behind the same
+WAF.
 
 ```mermaid
 flowchart LR
@@ -106,6 +107,8 @@ does not depend on Cloudflare and does not expose the visitor's IP address:
   so no browser request ever leaves the hidden service for the clearnet. One build serves both.
 - **No TLS, on purpose.** Tor already encrypts and authenticates end to end, and the `.onion`
   address *is* the service's public key.
+- **Same WAF.** The hidden-service vhost runs the same ModSecurity rules as the clearnet site, so
+  Tor is not a way around the filtering.
 - **Not reachable from the internet.** The `.onion` vhost listens on `127.0.0.1:8080` only, so the
   Tor daemon is the sole thing that can reach it. Tor makes outbound connections only.
 - **No logs.** Every request arrives from `127.0.0.1`, so access logging on this vhost would record
