@@ -13,8 +13,8 @@ block time, mempool state, mining-pool distribution and, above all, **chain reor
 The project was born from the **August 2025 Qubic episode**, during which a mining pool paying
 miners in its own token approached a majority of the network hashrate, then withheld blocks and
 released a longer private chain. On 14 September 2025 that produced an 18-block reorganization at
-height 3,499,659 that erased about 36 minutes of history and invalidated 118 transactions, well
-past the 10 confirmations everyone treated as final. The public debate lacked reliable, accessible
+height 3,499,659 that erased about 36 minutes of history, well past the 10 confirmations everyone treated as
+final: transactions thought settled were suddenly unconfirmed again. The public debate lacked reliable, accessible
 data to settle it. monerometrics fills that gap with a neutral, verifiable, reorg-aware observatory.
 
 It is **open-source and self-funded**, with no ads and no tracking. The dashboard and the API
