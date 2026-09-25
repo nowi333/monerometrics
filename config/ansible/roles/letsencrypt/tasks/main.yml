@@ -81,6 +81,8 @@
     src: /etc/nginx/sites-available/monerometrics.conf
     dest: /etc/nginx/sites-enabled/monerometrics.conf
     state: link
+    # Remplace une copie editee a la main : la source de verite reste le template.
+    force: true
   become: true
   notify: Reload nginx for cert update
 

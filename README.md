@@ -567,6 +567,16 @@ ansible-playbook site.yml           # CIS L1 hardening, nginx+WAF, k3s, Tailscal
 kubectl apply -k k8s/monerometrics/ # application workloads
 ```
 
+**Configuration drift.** Server configuration is only changed through Ansible, never by hand. Before
+and after any change, a dry run must report nothing to change on any host:
+
+```bash
+ansible-playbook site.yml --check --diff -e common_apt_upgrade=false
+```
+
+`common_apt_upgrade=false` skips the full package upgrade, so a config-only run never upgrades
+production by surprise; security patches come from unattended-upgrades.
+
 Server sizing, datacenter and volume size are Terraform variables (see
 [`infra/environments/poc/terraform.tfvars.example`](infra/environments/poc/terraform.tfvars.example)).
 

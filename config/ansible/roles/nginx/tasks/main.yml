@@ -37,6 +37,9 @@
   ansible.builtin.copy:
     src: index.html
     dest: /var/www/monerometrics/index.html
+    # Page d'attente au premier deploiement seulement : ensuite le dashboard
+    # est deploye par rsync et ne doit jamais etre remplace.
+    force: false
     owner: "{{ nginx_user }}"
     group: "{{ nginx_user }}"
     mode: '0644'

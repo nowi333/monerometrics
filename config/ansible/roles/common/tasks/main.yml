@@ -12,11 +12,25 @@
     autoremove: true
     autoclean: true
   become: true
+  # A false pour un simple recalage de config : pas de mise a jour complete
+  # en prod sans l'avoir decide (unattended-upgrades couvre la securite).
+  when: common_apt_upgrade | bool
 
 - name: Install common security and utility packages
   ansible.builtin.apt:
     name: "{{ common_packages }}"
     state: present
+  become: true
+
+- name: Ensure sshd privilege separation dir exists (needed by sshd -t)
+  # Ubuntu 24.04 active ssh par socket : /run/sshd n'existe qu'une fois une
+  # connexion servie, et la validation du template echoue sans lui.
+  ansible.builtin.file:
+    path: /run/sshd
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
   become: true
 
 - name: Deploy hardened sshd_config
@@ -59,7 +73,9 @@
   ansible.posix.sysctl:
     name: "{{ item.key }}"
     value: "{{ item.value }}"
-    state: present
+    # Sur k3s le forwarding reste a 1 (role k3s), sinon le reseau des pods
+    # tombe : la ligne est retiree de ce fichier, lu apres 99-k3s.conf.
+    state: "{{ 'absent' if (item.key == 'net.ipv4.ip_forward' and 'k3s' in group_names) else 'present' }}"
     sysctl_file: /etc/sysctl.d/99-monerometrics-hardening.conf
     reload: true
   loop: "{{ common_sysctl_hardening }}"

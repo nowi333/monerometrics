@@ -15,3 +15,6 @@ common_fail2ban_ssh_findtime: 600
 common_fail2ban_ssh_bantime: 600
 
 common_sysctl_hardening: []
+
+# Mise a jour complete des paquets a chaque passage (dist-upgrade).
+common_apt_upgrade: true

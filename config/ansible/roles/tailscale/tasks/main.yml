@@ -11,6 +11,13 @@
     cache_valid_time: 3600
   become: true
 
+- name: Check for the Tailscale GPG signing key
+  ansible.builtin.stat:
+    path: /usr/share/keyrings/tailscale-archive-keyring.gpg
+  register: tailscale_keyring
+
+# Telechargee une seule fois : get_url se signale toujours modifie en --check,
+# ce qui masquerait les vraies derives.
 - name: Add Tailscale GPG signing key
   ansible.builtin.get_url:
     url: https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg
@@ -19,6 +26,7 @@
     owner: root
     group: root
   become: true
+  when: not tailscale_keyring.stat.exists
 
 - name: Add Tailscale apt repository
   ansible.builtin.copy:
@@ -86,6 +94,7 @@
   ansible.builtin.command: tailscale status --json
   register: tailscale_status_final
   changed_when: false
+  check_mode: false
   become: true
 
 - name: Display Tailscale IPv4 assigned to bastion

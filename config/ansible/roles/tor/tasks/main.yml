@@ -25,10 +25,17 @@
     - name: Flush handlers to apply tor config now
       ansible.builtin.meta: flush_handlers
 
-    - name: Ensure tor is enabled and started
+    # tor@default est active a l'execution par le generateur systemd de tor
+    # (enabled-runtime) : c'est l'unite parente 'tor' qu'on active au boot.
+    - name: Ensure tor is enabled at boot
+      ansible.builtin.systemd:
+        name: tor
+        enabled: true
+      become: true
+
+    - name: Ensure the tor instance is started
       ansible.builtin.systemd:
         name: tor@default
-        enabled: true
         state: started
       become: true
 

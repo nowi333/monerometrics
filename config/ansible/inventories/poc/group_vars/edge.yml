@@ -1,0 +1,4 @@
+---
+
+# Partage par les roles letsencrypt et tor : les deux relaient vers Traefik.
+letsencrypt_api_upstream: "http://10.0.0.30:80"

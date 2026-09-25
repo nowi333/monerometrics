@@ -102,6 +102,7 @@
   ansible.builtin.command: k3s kubectl get nodes
   become: true
   register: k3s_nodes
+  check_mode: false
   retries: 18
   delay: 5
   until: k3s_nodes.rc == 0 and "Ready" in k3s_nodes.stdout
@@ -128,6 +129,7 @@
   ansible.builtin.command: k3s --version
   become: true
   register: k3s_version_check
+  check_mode: false
   changed_when: false
 
 - name: Show k3s version

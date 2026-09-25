@@ -13,7 +13,6 @@ letsencrypt_cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
 letsencrypt_credentials_file: "/root/.secrets/cloudflare.ini"
 letsencrypt_cert_dir: "/etc/letsencrypt/live/{{ letsencrypt_domain }}"
 
-letsencrypt_api_upstream: "http://10.0.0.30:80"
 
 letsencrypt_http2_enabled: true
 
