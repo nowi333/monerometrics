@@ -5,6 +5,9 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![IaC](https://img.shields.io/badge/IaC-Terraform%20%2B%20Ansible-7B42BC?logo=terraform)](https://www.terraform.io/)
 [![Monero](https://img.shields.io/badge/Monero-XMR-FF6600?logo=monero)](https://www.getmonero.org/)
+[![Kuno](https://img.shields.io/badge/Support-Kuno-FF6600?logo=monero)](https://kuno.anne.media/fundraiser/xyf8/)
+
+**monerometrics is community-funded.** A [Kuno campaign](https://kuno.anne.media/fundraiser/xyf8/) funds the next two years: hosting, FCMP++ readiness, free reorg alerts, open data export and a second node.
 
 `monerometrics` measures and historizes the health of the Monero network: network hashrate,
 block time, mempool state, mining-pool distribution and, above all, **chain reorganizations
