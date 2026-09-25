@@ -317,3 +317,26 @@ button:not(:disabled),
    s'applique pas aux groupes SVG, on le dessine nous-memes. */
 .mm-fork-block:focus { outline: none; }
 .mm-fork-block:focus-visible rect:first-of-type { stroke: var(--color-accent); stroke-width: 2.5px; }
+
+/* Bouton du mur des soutiens : plein, pour qu'on le voie du premier coup
+   d'oeil, avec un retour net au survol et au clic. */
+.mm-kuno-cta {
+  background: var(--color-accent);
+  color: #120800;
+  box-shadow: 0 0 0 0 transparent;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.mm-kuno-cta:hover {
+  background: color-mix(in srgb, var(--color-accent) 82%, #ffffff);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px -6px color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+.mm-kuno-cta:active { transform: translateY(0); box-shadow: none; }
+.mm-kuno-cta:focus-visible { outline: 2px solid var(--color-text); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .mm-kuno-cta, .mm-kuno-cta:hover { transform: none; transition: none; }
+}
+
+/* Variante plus discrete du reflet, pour le mur des soutiens : la bordure
+   reste vive, le fond ne fait qu'une lueur. */
+.mm-glow-soft::before { opacity: 0.45; }

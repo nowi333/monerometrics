@@ -28,6 +28,10 @@ const HavenoLiquidity = lazy(() => import('./HavenoLiquidity'))
 const OrderBookDepth = lazy(() => import('./OrderBookDepth'))
 const HavenoMethods = lazy(() => import('./HavenoMethods'))
 const Donation = lazy(() => import('./Donation'))
+const SupportersWall = lazy(() => import('./SupportersWall'))
+// Le mur remplace la case de don des que la campagne Kuno a un lien.
+import supporters from './supporters.json'
+const WALL_ACTIVE = !!supporters.kunoUrl
 
 const REPO_URL = 'https://github.com/nowi333/monerometrics'
 const X_URL = 'https://x.com/monerometrics'
@@ -250,7 +254,7 @@ export default function App() {
         <Deferred minHeight={730}><Guard><HavenoMethods /></Guard></Deferred>
       </div>
 
-      <Deferred minHeight={310} id="donation" className="scroll-mt-4"><Guard><Donation /></Guard></Deferred>
+      <Deferred minHeight={310} id="donation" className="scroll-mt-4"><Guard>{WALL_ACTIVE ? <SupportersWall /> : <Donation />}</Guard></Deferred>
       </>}
       </div>
 
