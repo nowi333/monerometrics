@@ -43,8 +43,10 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           env:
+            # RPC complet : le restreint limite les connexions par IP, et apres une
+            # serie de redemarrages monerod refusait durablement le worker.
             - name: MONEROD_URL
-              value: "http://monerod:18081"
+              value: "http://monerod:18083"
             - name: MONEROD_ADMIN_URL
               value: "http://monerod:18083"
             - name: POLL_INTERVAL
