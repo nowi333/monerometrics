@@ -301,7 +301,7 @@ is characteristic of P2Pool, which splits the reward on-chain. Last resort, labe
 | xmrpool.eu | `web.xmrpool.eu:8119/get_blocks` | paginated by `?height=` | ✅ |
 | ownblock.xyz | no block API | view key only | ✅ |
 | p2pool (main / mini / nano) | `*.p2pool.observer/api/pool/blocks` | `?limit=` | · |
-| nanopool.org | `xmr.nanopool.org/api/v1/pool/blocks/0/{n}` | path count (~4600) | · |
+| nanopool.org | `api.nanopool.org/v1/xmr/pool/blocks/0/{n}` | path count (~4600) | · |
 | c3pool.com | `api.c3pool.org/pool/blocks` | `?limit=` (up to 10000) | · |
 | kryptex.com | `pool.kryptex.com/xmr/api/v1/pool/blocks` | paginated via `next` | · |
 | herominers.com | `monero.herominers.com/api/get_blocks` | paginated by `?height=` | · |
