@@ -23,7 +23,9 @@ server:
         path = "/openbao/data"
       }
 
-      service_registration "kubernetes" {}
+      # Pas de service_registration "kubernetes" : un seul pod, rien ne lit ses
+      # labels, et sans droits RBAC ses relances toutes les 5 s faisaient fuir
+      # la memoire jusqu'a la limite.
 
       # Descellement automatique au demarrage : la cle AES-256 qui chiffre la
       # cle maitresse est lue dans le Secret openbao-static-seal (cree hors du
