@@ -529,7 +529,7 @@ export default {
           'wall.howto': 'Pour apparaître ici : envoie une preuve de paiement (« Prove payment » dans ton portefeuille) en message privé sur X ou par e-mail à contact@monerometrics.net, avec le nom à afficher. Rien n’est publié sans ta demande.',
           'wall.anon': 'Dont {{amount}} XMR d’un donateur anonyme. Merci, qui que tu sois.',
           'wall.early.title': 'Avant le Kuno · mention honorable',
-          'wall.early.body': 'A soutenu monerometrics avant même la campagne. Hors total Kuno.',
+          'wall.early.body': 'A soutenu monerometrics avant même la campagne.',
           'wall.cta': 'Soutenir sur Kuno',
 
 

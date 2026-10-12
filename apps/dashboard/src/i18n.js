@@ -547,7 +547,7 @@ i18n
           'wall.howto': 'To appear here, send a payment proof ("Prove payment" in your wallet) by DM on X or by email to contact@monerometrics.net, with the name to show. Nothing is published unless you ask.',
           'wall.anon': 'Includes {{amount}} XMR from an anonymous donor. Thank you, whoever you are.',
           'wall.early.title': 'Before the Kuno · honorable mention',
-          'wall.early.body': 'Supported monerometrics before the campaign existed. Not counted in the Kuno total.',
+          'wall.early.body': 'Supported monerometrics before the campaign existed.',
           'wall.cta': 'Support on Kuno',
 
 
