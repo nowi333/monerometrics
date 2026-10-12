@@ -524,9 +524,12 @@ export default {
           'wall.tier.readme': 'Acreditados en el README',
           'wall.tier.wall': 'Apoyos',
           'wall.tier.none': 'Nadie por ahora',
-          'wall.empty.title': 'Nadie aquí por ahora.',
+          'wall.empty.title': 'Aún no hay nombres del Kuno.',
           'wall.empty.body': 'El primer nombre en este muro podría ser el tuyo, desde 0,05 XMR. No se muestra nada sin que lo pidas.',
           'wall.howto': 'Para aparecer aquí, envía una prueba de pago («Prove payment» en tu monedero) por mensaje privado en X o por correo a contact@monerometrics.net, con el nombre a mostrar. No se publica nada sin que lo pidas.',
+          'wall.anon': 'Incluye {{amount}} XMR de un donante anónimo. Gracias, seas quien seas.',
+          'wall.early.title': 'Antes del Kuno · mención de honor',
+          'wall.early.body': 'Apoyó monerometrics antes de que existiera la campaña. No cuenta en el total del Kuno.',
           'wall.cta': 'Apoyar en Kuno',
 
 

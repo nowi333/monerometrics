@@ -27,9 +27,12 @@ export default function SupportersWall() {
   const { t, i18n } = useTranslation()
   const fmt = (n) => Number(n).toLocaleString(i18n.language, { maximumFractionDigits: 2 })
 
-  const shown = (data.node ? 1 : 0) + data.charts.length + data.readme.length + data.wall.length
+  const early = data.early || []
+  const anonymous = data.anonymous || []
+  const kunoNamed = (data.node ? 1 : 0) + data.charts.length + data.readme.length + data.wall.length
+  const shown = kunoNamed + early.length
   const pct = Math.max(0, Math.min(100, (data.raisedXmr / data.goalXmr) * 100))
-  const empty = shown === 0
+  const empty = kunoNamed === 0
 
   return (
     // Meme habillage que la case de don qu'il remplace : bordure doree animee,
@@ -66,6 +69,29 @@ export default function SupportersWall() {
         role="progressbar" aria-valuemin={0} aria-valuemax={data.goalXmr} aria-valuenow={data.raisedXmr} aria-label={t('wall.goal', { goal: fmt(data.goalXmr) })}>
         <div className="h-1.5" style={{ width: `${pct}%`, background: 'var(--color-accent)' }} />
       </div>
+
+      {anonymous.length > 0 && (
+        <p className="m-0 -mt-2 text-xs" style={{ color: 'var(--color-dim)' }}>
+          {t('wall.anon', { count: anonymous.length, amount: fmt(anonymous.reduce((a, b) => a + b, 0)) })}
+        </p>
+      )}
+
+      {/* Mention a part : ces soutiens datent d'avant la campagne et ne
+          comptent pas dans le total Kuno. */}
+      {early.length > 0 && (
+        <div className="rounded-lg border px-4 py-3.5 sm:px-5 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4"
+          style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border)' }}>
+          <div className="flex flex-col gap-1 flex-1">
+            <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--color-dim)' }}>{t('wall.early.title')}</span>
+            <span className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('wall.early.body')}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {early.map((n, i) => (
+              <span key={i} className="text-xs px-2.5 py-1 rounded-full border" style={{ ...MONO, color: 'var(--color-text)', borderColor: 'var(--color-border-strong)' }}>{n}</span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {empty ? (
         <div className="rounded-lg border border-dashed px-6 py-9 flex flex-col items-center gap-2 text-center" style={{ borderColor: 'var(--color-border-strong)' }}>

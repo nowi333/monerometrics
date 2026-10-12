@@ -2,6 +2,12 @@
   "kunoUrl": "https://kuno.anne.media/fundraiser/xyf8/",
   "goalXmr": 10,
   "raisedXmr": 5,
+  "anonymous": [
+    5
+  ],
+  "early": [
+    "untraceable"
+  ],
   "node": null,
   "charts": [],
   "readme": [],
