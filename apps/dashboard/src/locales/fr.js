@@ -530,6 +530,7 @@ export default {
           'wall.anon': 'Dont {{amount}} XMR d’un donateur anonyme. Merci, qui que tu sois.',
           'wall.early.title': 'Avant le Kuno · mention honorable',
           'wall.early.body': 'A soutenu monerometrics avant même la campagne.',
+          'wall.onX': '@{{handle}} sur X',
           'wall.cta': 'Soutenir sur Kuno',
 
 

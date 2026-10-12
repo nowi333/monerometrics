@@ -6,7 +6,10 @@
     5
   ],
   "early": [
-    "untraceable"
+    {
+      "name": "ᴜɴᴛʀᴀᴄᴇᴀʙʟᴇ",
+      "x": "DontTraceMeBruh"
+    }
   ],
   "node": null,
   "charts": [],

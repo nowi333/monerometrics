@@ -5,7 +5,7 @@ import data from './supporters.json'
 // de supporters.json, tenu a la main a chaque preuve de paiement recue : rien
 // n'y entre sans la demande de la personne.
 //
-// Format : node = {"name"} ou null ; charts = [{"name", "chart"}] ;
+// Format : early = noms ou {"name", "x"} ; node = {"name"} ou null ; charts = [{"name", "chart"}] ;
 // readme et wall = listes de noms. raisedXmr est recopie depuis Kuno.
 const MONO = { fontFamily: 'var(--font-mono)' }
 
@@ -87,7 +87,14 @@ export default function SupportersWall() {
           </div>
           <div className="flex flex-wrap gap-2">
             {early.map((n, i) => (
-              <span key={i} className="text-xs px-2.5 py-1 rounded-full border" style={{ ...MONO, color: 'var(--color-text)', borderColor: 'var(--color-border-strong)' }}>{n}</span>
+              <span key={i} className="text-xs px-2.5 py-1 rounded-full border inline-flex flex-wrap items-baseline gap-x-1.5" style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-strong)' }}>
+                <span>{n.name || n}</span>
+                {n.x && (
+                  <a href={`https://x.com/${n.x}`} target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: 'var(--color-dim)' }}>
+                    {t('wall.onX', { handle: n.x })}
+                  </a>
+                )}
+              </span>
             ))}
           </div>
         </div>

@@ -530,6 +530,7 @@ export default {
           'wall.anon': 'Incluye {{amount}} XMR de un donante anónimo. Gracias, seas quien seas.',
           'wall.early.title': 'Antes del Kuno · mención de honor',
           'wall.early.body': 'Apoyó monerometrics antes de que existiera la campaña.',
+          'wall.onX': '@{{handle}} en X',
           'wall.cta': 'Apoyar en Kuno',
 
 

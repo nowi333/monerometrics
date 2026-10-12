@@ -548,6 +548,7 @@ i18n
           'wall.anon': 'Includes {{amount}} XMR from an anonymous donor. Thank you, whoever you are.',
           'wall.early.title': 'Before the Kuno · honorable mention',
           'wall.early.body': 'Supported monerometrics before the campaign existed.',
+          'wall.onX': '@{{handle}} on X',
           'wall.cta': 'Support on Kuno',
 
 
