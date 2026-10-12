@@ -513,7 +513,6 @@ export default {
           'donate.copied': '¡Copiado!',
           'donate.scan': 'Escanea para donar',
           'wall.title': 'Muro de apoyos',
-          'wall.lead': 'Las personas que financian monerometrics, por orden de llegada en cada nivel. Solo se muestran los nombres pedidos.',
           'wall.shown': 'apoyos mostrados',
           'wall.goal': 'de {{goal}} XMR · Kuno',
           'wall.node.title': 'Nodo de verificación cruzada · 10 XMR',

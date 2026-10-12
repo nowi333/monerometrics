@@ -51,7 +51,6 @@ export default function SupportersWall() {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div className="flex flex-col gap-1.5">
           <h3 className="m-0 text-lg sm:text-xl font-semibold" style={{ color: 'var(--color-text)' }}>{t('wall.title')}</h3>
-          <p className="m-0 text-[13px] leading-relaxed max-w-[620px]" style={{ color: 'var(--color-text-secondary)' }}>{t('wall.lead')}</p>
         </div>
         <div className="grid grid-cols-2 sm:flex gap-3 sm:gap-5 shrink-0">
           <div className="flex flex-col sm:items-end gap-0.5">

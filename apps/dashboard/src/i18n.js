@@ -531,7 +531,6 @@ i18n
           'donate.copied': 'Copied!',
           'donate.scan': 'Scan to donate',
           'wall.title': 'Supporters wall',
-          'wall.lead': 'The people funding monerometrics, in order of arrival within each tier. Only names that were asked for are shown.',
           'wall.shown': 'supporters shown',
           'wall.goal': 'of {{goal}} XMR · Kuno',
           'wall.node.title': 'Cross-check node · 10 XMR',
