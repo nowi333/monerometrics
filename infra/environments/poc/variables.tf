@@ -41,9 +41,9 @@ variable "k3s_server_type" {
 }
 
 variable "k3s_data_volume_size" {
-  description = "Taille du volume de donnees k3s en Go (blockchain pruned + PostgreSQL)."
+  description = "Taille du volume de donnees k3s en Go (blockchain pruned + PostgreSQL). Un volume Hetzner s'agrandit a chaud mais ne se reduit jamais."
   type        = number
-  default     = 128
+  default     = 250
 }
 
 variable "owner" {

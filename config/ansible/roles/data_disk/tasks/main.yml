@@ -68,6 +68,27 @@
     state: mounted
   become: true
 
+# Le volume s'agrandit cote Hetzner (Terraform) sans que l'ext4 suive : on
+# etend le systeme de fichiers a chaud des qu'il est plus petit que le disque.
+- name: Compare data disk and filesystem sizes
+  ansible.builtin.shell: |
+    set -o pipefail
+    echo "$(blockdev --getsize64 {{ data_disk_device }}) $(df --output=size -B1 {{ data_disk_mountpoint }} | tail -1)"
+  args:
+    executable: /bin/bash
+  register: data_disk_sizes
+  changed_when: false
+  check_mode: false
+  become: true
+
+- name: Grow the filesystem to the full volume
+  ansible.builtin.command: "resize2fs {{ data_disk_device }}"
+  # df retire les blocs reserves aux metadonnees : on ne grandit qu'au-dela
+  # de 5 % d'ecart pour ne pas relancer resize2fs a chaque passage.
+  when: (data_disk_sizes.stdout.split()[0] | int) > (data_disk_sizes.stdout.split()[1] | int) * 1.05
+  changed_when: true
+  become: true
+
 - name: Create subdirectories for applicative data
   ansible.builtin.file:
     path: "{{ data_disk_mountpoint }}/{{ item }}"
