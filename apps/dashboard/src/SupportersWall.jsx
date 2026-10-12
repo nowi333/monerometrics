@@ -48,10 +48,10 @@ export default function SupportersWall() {
         style={{ background: 'color-mix(in srgb, var(--color-accent) 9%, transparent)', filter: 'blur(48px)' }}
       />
       <div className="relative flex flex-col gap-5 sm:gap-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-        <div className="flex flex-col gap-1.5">
-          <h3 className="m-0 text-lg sm:text-xl font-semibold" style={{ color: 'var(--color-text)' }}>{t('wall.title')}</h3>
-        </div>
+      {/* Titre centre verticalement sur les compteurs : seul a gauche, il
+          flottait en haut du bloc. */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
+        <h3 className="m-0 text-lg sm:text-xl font-semibold leading-tight" style={{ color: 'var(--color-text)' }}>{t('wall.title')}</h3>
         <div className="grid grid-cols-2 sm:flex gap-3 sm:gap-5 shrink-0">
           <div className="flex flex-col sm:items-end gap-0.5">
             <span className="text-xl sm:text-[22px]" style={{ ...MONO, color: 'var(--color-text)' }}>{shown}</span>
