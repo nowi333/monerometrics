@@ -88,7 +88,7 @@ def parse_rss(raw: str, prefix: str):
     """Entrees d'un flux RSS, y compris tronque en cours de route."""
     out = []
     for block in re.findall(r'<item[ >](.*?)</item>', raw, re.S):
-        get = lambda tag: (re.search(rf'<{tag}[^>]*>(.*?)</{tag}>', block, re.S) or (None, ''))[1]
+        get = lambda tag, block=block: (re.search(rf'<{tag}[^>]*>(.*?)</{tag}>', block, re.S) or (None, ''))[1]
         link = _clean(get('link'))
         title = _clean(get('title'))
         if not title or not link.startswith(prefix):

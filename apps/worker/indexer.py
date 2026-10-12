@@ -264,7 +264,7 @@ def reattribute_recent_unknown(client: httpx.Client, conn: psycopg.Connection,
 
     by_api = 0
     with conn.cursor() as cur:
-        for height, h in todo:
+        for _height, h in todo:
             if h in proven:
                 continue
             pool = _pool_index.get((h or '').lower()) if _pool_index else None
@@ -478,7 +478,7 @@ def rescan_confirmation_window(client: httpx.Client, conn: psycopg.Connection, t
     changed.sort(key=lambda c: c[0])
     log.warning(f'REORG detected on {len(changed)} height(s): {[c[0] for c in changed]}')
     with conn.cursor() as cur:
-        for height, old_hash, _old_tx, _new_hash in changed:
+        for _height, old_hash, _old_tx, _new_hash in changed:
             cur.execute('UPDATE blocks SET is_canonical = FALSE WHERE hash = %s', (old_hash,))
     for height, _old_hash, _old_tx, _new_hash in changed:
         upsert_canonical_block(conn, get_block_by_height(client, height))

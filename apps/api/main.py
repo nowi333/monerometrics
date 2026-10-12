@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 import time
 import statistics
 from xml.etree import ElementTree
-from datetime import datetime
 from collections import defaultdict, deque
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -467,7 +466,7 @@ async def block_detail(block_hash: str):
             data = r.json()
     except Exception as e:
         log.warning(f'monerod get_block failed: {e}')
-        raise HTTPException(503, 'monerod unreachable')
+        raise HTTPException(503, 'monerod unreachable') from None
     if 'error' in data:
         raise HTTPException(404, 'block not found')
 
@@ -547,7 +546,7 @@ async def chain_search(body: SearchRequest):
     except Exception:
         # Pas de detail dans le journal : le message pourrait porter la requete.
         log.warning('monerod get_transactions failed')
-        raise HTTPException(503, 'monerod unreachable')
+        raise HTTPException(503, 'monerod unreachable') from None
 
     txs = data.get('txs') or []
     if txs:
@@ -1251,7 +1250,7 @@ async def news():
 
     async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
         fetched = await asyncio.gather(*(_fetch_source(client, src) for src in NEWS_SOURCES))
-    groups = [(src['id'], items) for src, items in zip(NEWS_SOURCES, fetched)]
+    groups = [(src['id'], items) for src, items in zip(NEWS_SOURCES, fetched, strict=True)]
 
     if not any(items for _id, items in groups):
         # Une coupure passagere ne doit pas faire disparaitre le bandeau.
@@ -1648,7 +1647,7 @@ async def network_info():
         log.warning(f'monerod /get_info failed: {e}, returning cached if any')
         if _network_info_cache['data']:
             return _network_info_cache['data']
-        raise HTTPException(503, 'monerod unreachable')
+        raise HTTPException(503, 'monerod unreachable') from None
     mempool_count = int(info.get('tx_pool_size', 0) or 0)
     wide = info.get('wide_difficulty')
     try:

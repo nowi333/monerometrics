@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-from hashlib import sha3_256
 
 log = logging.getLogger("monerometrics-worker")
 
