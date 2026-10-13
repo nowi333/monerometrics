@@ -1,4 +1,9 @@
 ---
 
-tailscale_hostname: "monerometrics-bastion"
+# monerometrics-edge ou monerometrics-k3s selon le groupe.
+tailscale_hostname: "monerometrics-{{ group_names[0] }}"
 tailscale_auth_key: "{{ lookup('env', 'TAILSCALE_AUTH_KEY') }}"
+
+# Tailscale SSH desactive : il impose une revalidation periodique dans le
+# navigateur. On garde OpenSSH (cles), joignable seulement depuis le tailnet.
+tailscale_ssh: false

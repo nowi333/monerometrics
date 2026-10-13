@@ -125,46 +125,46 @@ Deployed by the `tor` Ansible role (`config/ansible/roles/tor/`).
 
 ## Infrastructure
 
-The platform runs on **Hetzner Cloud** (Nuremberg) as three Ubuntu 24.04 servers on a private
-network, each behind its own firewall. Administration goes over a **Tailscale** (WireGuard) mesh;
-Grafana is reachable over Tailscale only. Backups are **paused**: the tooling (Restic, encrypted,
+The platform runs on **Hetzner Cloud** (Nuremberg) as two Ubuntu 24.04 servers on a private
+network, each behind its own firewall. Neither exposes SSH to the internet: administration goes
+only over a **Tailscale** (WireGuard) mesh joined by both servers, and Grafana is reachable over
+Tailscale only. Backups are **paused**: the tooling (Restic, encrypted,
 see [`k8s/monerometrics/BACKUP-PRA.md`](k8s/monerometrics/BACKUP-PRA.md)) stays in the repository,
 but no scheduled backup runs today.
 
 ```mermaid
 flowchart TB
-    Admin(["Administrator"]) -->|"SSH 22"| Bastion
-    Internet(["Internet"]) -->|"80 / 443"| Edge
+    Admin(["Administrator"]) -->|"SSH over Tailscale"| Mesh
+    Internet(["Internet"]) -->|"80 / 443 via Cloudflare"| Edge
     subgraph HZ["Hetzner Cloud (nbg1) · 10.0.0.0/24"]
-        Bastion["bastion 10.0.0.10<br/>firewall: SSH from admin IP only"]
-        Edge["edge 10.0.0.20<br/>firewall: 80/443 from internet"]
-        K3s["k3s 10.0.0.30 + data volume<br/>firewall: no inbound"]
-        Bastion -. ProxyJump .-> Edge
-        Bastion -. ProxyJump .-> K3s
+        Edge["edge 10.0.0.20<br/>firewall: 80/443 from Cloudflare only"]
+        K3s["k3s 10.0.0.30 + data volume<br/>firewall: no inbound (P2P 18080 only)"]
+        Edge -->|"private network"| K3s
     end
-    Mesh["Tailscale mesh<br/>(admin · Grafana)"]
-    Bastion --- Mesh
-    Edge --- Mesh
-    K3s --- Mesh
+    Mesh["Tailscale mesh<br/>(admin SSH · kubectl · Grafana)"]
+    Mesh --- Edge
+    Mesh --- K3s
 ```
 
 | Server | Type | Public exposure | Role |
 |---|---|---|---|
-| `bastion` | CX23 | SSH from admin IP only | Sole SSH entry point, ProxyJump to the others |
 | `edge` | CX23 | 80/443 from the internet | nginx reverse proxy + ModSecurity WAF, serves the dashboard |
-| `k3s` | CX33 + 128 GB volume | none (outbound only) | k3s cluster: monerod, worker, PostgreSQL, API, OpenBao |
+| `k3s` | CX33 + 250 GB volume | Monero P2P only | k3s cluster: monerod, worker, PostgreSQL, API, OpenBao |
 
-Key choices: per-server firewalls, a single SSH entry point, a WAF on the only public web surface,
-a zero-trust admin mesh, and a k3s node with **no inbound exposure at all**. Both hops run HTTP/2
+Key choices: per-server firewalls, no public SSH anywhere, a WAF on the only public web surface,
+a zero-trust admin mesh, and a k3s node exposing nothing but the Monero P2P port. A dedicated SSH
+bastion was dropped in October 2026: Tailscale already gave a zero-trust entry point, so the extra
+server only added cost. Tailscale's own SSH is disabled; plain OpenSSH with keys runs over the mesh,
+so access never depends on a browser re-validation. Both hops run HTTP/2
 with the WAF active. Everything is Infrastructure-as-Code: Hetzner and Cloudflare resources via
 **Terraform**, server configuration and CIS-aligned hardening via **Ansible**, images published to
 GHCR. Supervision with **Prometheus + Grafana**, with alert rules on indexing, node sync, disk and
 failing workloads. The backup tooling (**Restic**) is kept but paused.
 
 **Secrets.** The cluster is provisioned with **OpenBao** (a free fork of Vault) and the manifests
-carry no plaintext credential. OpenBao is currently sealed and the workloads read their database
-credentials from a Kubernetes Secret (`postgres-credentials-fallback`) instead. Unsealing is a
-manual step after any restart, the trade-off of a single node; the fallback keeps the service up.
+carry no plaintext credential. OpenBao unseals itself on start (static seal, key held in a
+Kubernetes Secret created outside the repository); the workloads can also fall back to a Kubernetes
+Secret (`postgres-credentials-fallback`), so a sealed vault never takes the service down.
 
 ### Running cost
 
@@ -172,11 +172,11 @@ From the Hetzner invoice, per hour of use, excluding VAT:
 
 | Item | Unit price | Monthly (730 h) |
 | --- | --- | --- |
-| 2 × CX23 (`bastion`, `edge`) | 0.0088 €/h | 12.85 € |
+| 1 × CX23 (`edge`) | 0.0088 €/h | 6.42 € |
 | 1 × CX33 (`k3s`) | 0.0136 €/h | 9.93 € |
-| 3 × primary IPv4 | 0.0008 €/h | 1.75 € |
-| 128 GB volume | 0.0572 €/GB-month | 7.32 € |
-| **Total** | | **31.85 € excl. VAT · 38.22 € incl. VAT** |
+| 2 × primary IPv4 | 0.0008 €/h | 1.17 € |
+| 250 GB volume | 0.0572 €/GB-month | 14.30 € |
+| **Total** | | **31.82 € excl. VAT · 38.18 € incl. VAT** |
 
 Cloudflare, Let's Encrypt, Tailscale and GitHub Actions are on free tiers.
 
@@ -187,9 +187,11 @@ blockchain takes **106 GB**; the entire indexed database, 3.77 M blocks and ever
 Growth is measured from the indexed data rather than estimated. Summing the recorded size of every
 canonical block gives 186.8 GB for the full chain, so this pruned node keeps a bit over half of
 Monero. The chain grew **22.18 GB over the last twelve full months**, which is **12.35 GB a year on
-disk**, steady across years (17.5 GB in 2022, 18.3 in 2023, 29.1 in 2024, 22.2 in 2025). At **94 %
-full**, the 128 GB volume has about seven months left, so the plan is to take it to 160 GB
-(+1.83 €/month) and no further, since the same measurement says larger would sit unused.
+disk**, steady across years (17.5 GB in 2022, 18.3 in 2023, 29.1 in 2024, 22.2 in 2025). The
+volume reached **94 %** of 128 GB, so it was taken to **250 GB** in October 2026, funded by the
+community (Kuno milestone 1). That leaves room well beyond the two years promised, which also
+absorbs the heavier transactions FCMP++ will bring. Removing the SSH bastion the same month paid
+for most of the difference.
 
 ## How the indexer works
 
@@ -584,8 +586,8 @@ Server sizing, datacenter and volume size are Terraform variables (see
 [`infra/environments/poc/terraform.tfvars.example`](infra/environments/poc/terraform.tfvars.example)).
 
 **No plaintext credential is committed.** The cluster ships OpenBao: seed the database credentials
-once (`secret/postgres/credentials`) and every consumer can read them from there. When OpenBao is
-sealed, the workloads read a Kubernetes Secret instead, which is how the service runs today.
+once (`secret/postgres/credentials`) and every consumer can read them from there. OpenBao unseals itself
+on start; if it ever cannot, the workloads read a Kubernetes Secret instead.
 
 ## Local development (dashboard)
 
@@ -651,7 +653,7 @@ flowchart TB
 
 - **No secret in the repo.** Credentials come from the macOS Keychain / environment at runtime
   (`scripts/load-env.sh`) or from OpenBao. Terraform state is kept out of the repo.
-- Defense in depth: firewall segmentation, SSH bastion, WAF, zero-trust admin mesh, risk analysis
+- Defense in depth: firewall segmentation, no public SSH, WAF, zero-trust admin mesh, risk analysis
   (EBIOS RM) and a written disaster-recovery plan (backups currently paused).
 
 ## Contact

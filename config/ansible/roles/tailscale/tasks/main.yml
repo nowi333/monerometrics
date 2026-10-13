@@ -81,11 +81,15 @@
       tailscale up
       --authkey={{ tailscale_auth_key }}
       --hostname={{ tailscale_hostname }}
-      --ssh
+      --ssh={{ tailscale_ssh | lower }}
       --accept-routes
       --reset
   become: true
-  when: tailscale_backend_state | default('Stopped') != 'Running'
+  # Sans cle (TAILSCALE_AUTH_KEY vide), on n'authentifie pas ici : lancer
+  # `sudo tailscale up --hostname=...` sur l'hote et valider le lien.
+  when:
+    - tailscale_backend_state | default('Stopped') != 'Running'
+    - tailscale_auth_key | length > 0
   changed_when: tailscale_backend_state | default('Stopped') != 'Running'
   no_log: true
   register: tailscale_up_result
@@ -97,9 +101,9 @@
   check_mode: false
   become: true
 
-- name: Display Tailscale IPv4 assigned to bastion
+- name: Display Tailscale IPv4 assigned to the host
   ansible.builtin.debug:
     msg: >-
-      Bastion Tailscale IPv4 :
-      {{ (tailscale_status_final.stdout | from_json).Self.TailscaleIPs[0] }}
+      Tailscale IPv4 :
+      {{ ((tailscale_status_final.stdout | from_json).Self.TailscaleIPs | default([], true) | first) | default('pas encore connecte', true) }}
   when: tailscale_status_final.rc == 0

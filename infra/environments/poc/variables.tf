@@ -1,12 +1,7 @@
 
 
-variable "admin_source_ip" {
-  description = "IP publique de l'administrateur (CIDR /32), autorisee a joindre le bastion en SSH. Recuperer via: curl ifconfig.me"
-  type        = string
-}
-
 variable "bastion_ssh_public_key" {
-  description = "Cle publique SSH (format OpenSSH) injectee sur les 3 serveurs."
+  description = "Cle publique SSH (format OpenSSH) de l'administrateur, injectee sur les serveurs."
   type        = string
 }
 
@@ -20,12 +15,6 @@ variable "network_zone" {
   description = "Zone reseau Hetzner du sous-reseau prive."
   type        = string
   default     = "eu-central"
-}
-
-variable "bastion_server_type" {
-  description = "Type du bastion (faible charge)."
-  type        = string
-  default     = "cx23"
 }
 
 variable "edge_server_type" {

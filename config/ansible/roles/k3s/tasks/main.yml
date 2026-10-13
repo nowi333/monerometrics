@@ -35,7 +35,7 @@
 
 # Le firewall Hetzner bloque deja toute entree publique, mais ufw ne doit pas
 # tout laisser passer derriere lui : ces ports ne s'ouvrent qu'au reseau prive
-# (edge, bastion, pods et services k3s) et a Tailscale.
+# (edge, pods et services k3s) et a Tailscale.
 - name: Allow k3s ports from private networks only
   community.general.ufw:
     rule: allow

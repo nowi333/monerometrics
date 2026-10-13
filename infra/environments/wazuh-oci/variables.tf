@@ -81,7 +81,7 @@ variable "subnet_cidr" {
 }
 
 variable "ssh_public_key" {
-  description = "Cle publique SSH (meme que le bastion Hetzner) autorisee sur la VM."
+  description = "Cle publique SSH (meme que les serveurs Hetzner) autorisee sur la VM."
   type        = string
 }
 

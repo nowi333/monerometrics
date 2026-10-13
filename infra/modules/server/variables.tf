@@ -11,7 +11,7 @@ variable "environment" {
 }
 
 variable "role" {
-  description = "Role fonctionnel du serveur (bastion, edge, k3s). Sert au nom, au label et a l'application du firewall."
+  description = "Role fonctionnel du serveur (edge, k3s). Sert au nom, au label et a l'application du firewall."
   type        = string
 }
 

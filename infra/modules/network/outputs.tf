@@ -23,8 +23,7 @@ output "subnet_cidr" {
 output "firewall_ids" {
   description = "Map des IDs de firewall par role."
   value = {
-    bastion = hcloud_firewall.bastion.id
-    edge    = hcloud_firewall.edge.id
-    k3s     = hcloud_firewall.k3s.id
+    edge = hcloud_firewall.edge.id
+    k3s  = hcloud_firewall.k3s.id
   }
 }

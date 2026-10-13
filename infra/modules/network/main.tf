@@ -38,30 +38,6 @@ resource "hcloud_network_subnet" "main" {
   ip_range     = var.subnet_cidr
 }
 
-resource "hcloud_firewall" "bastion" {
-  name   = "${local.name_prefix}-fw-bastion"
-  labels = local.common_labels
-
-  rule {
-    direction   = "in"
-    protocol    = "tcp"
-    port        = "22"
-    source_ips  = [var.admin_source_ip]
-    description = "SSH depuis l'administrateur"
-  }
-
-  rule {
-    direction   = "in"
-    protocol    = "icmp"
-    source_ips  = [var.admin_source_ip]
-    description = "ping diagnostic depuis l'administrateur"
-  }
-
-  apply_to {
-    label_selector = "role=bastion"
-  }
-}
-
 resource "hcloud_firewall" "edge" {
   name   = "${local.name_prefix}-fw-edge"
   labels = local.common_labels

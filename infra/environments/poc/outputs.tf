@@ -15,21 +15,6 @@ output "cloudflare_zone_id" {
   value       = module.dns.zone_id
 }
 
-output "bastion_public_ip" {
-  description = "IP publique du bastion (point d'entree SSH)."
-  value       = module.bastion.public_ipv4
-}
-
-output "bastion_private_ip" {
-  description = "IP privee du bastion."
-  value       = module.bastion.private_ip
-}
-
-output "bastion_ssh_command" {
-  description = "Commande SSH vers le bastion."
-  value       = "ssh ${var.admin_username}@${module.bastion.public_ipv4}"
-}
-
 output "edge_public_ip" {
   description = "IP publique de l'edge nginx (cible des records DNS)."
   value       = module.edge.public_ipv4
@@ -41,8 +26,8 @@ output "edge_private_ip" {
 }
 
 output "edge_ssh_command" {
-  description = "Commande SSH vers l'edge via ProxyJump bastion (reseau prive)."
-  value       = "ssh -J ${var.admin_username}@${module.bastion.public_ipv4} ${var.admin_username}@${module.edge.private_ip}"
+  description = "Commande SSH vers l'edge, via Tailscale (aucun SSH public)."
+  value       = "ssh ${var.admin_username}@monerometrics-edge"
 }
 
 output "k3s_private_ip" {
@@ -51,8 +36,8 @@ output "k3s_private_ip" {
 }
 
 output "k3s_ssh_command" {
-  description = "Commande SSH vers k3s via ProxyJump bastion (reseau prive)."
-  value       = "ssh -J ${var.admin_username}@${module.bastion.public_ipv4} ${var.admin_username}@${module.k3s.private_ip}"
+  description = "Commande SSH vers k3s, via Tailscale (aucun SSH public)."
+  value       = "ssh ${var.admin_username}@monerometrics-k3s"
 }
 
 output "k3s_data_volume_device" {
