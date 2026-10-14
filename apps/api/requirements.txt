@@ -2,5 +2,5 @@ fastapi==0.141.1
 starlette==1.6.0
 uvicorn[standard]==0.53.0
 asyncpg==0.31.0
-pydantic==2.13.5
+pydantic==2.14.0
 httpx==0.28.1
