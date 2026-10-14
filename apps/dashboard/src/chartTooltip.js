@@ -74,6 +74,11 @@ const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;
 export function externalTooltip(context) {
   const { chart, tooltip } = context
   const box = element()
+  // En plein ecran, seul l'element agrandi est affiche : une bulle restee sur
+  // <body> existait mais restait invisible. On la deplace dedans, puis on la
+  // rend a la page en sortie de plein ecran.
+  const host = document.fullscreenElement || document.webkitFullscreenElement || document.body
+  if (box.parentNode !== host) host.appendChild(box)
 
   if (!tooltip || tooltip.opacity === 0) {
     box.style.opacity = '0'
