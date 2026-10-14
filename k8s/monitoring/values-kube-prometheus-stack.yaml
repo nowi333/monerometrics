@@ -69,8 +69,8 @@ prometheus-node-exporter:
       cpu: 20m
       memory: 50Mi
     limits:
-      # 100m le bridait en permanence (alerte CPUThrottlingHigh).
-      cpu: 200m
+      # Pas de limite CPU : meme a 200m il etait bride a chaque collecte
+      # (alerte CPUThrottlingHigh). La requete de 20m suffit a l'ordonnanceur.
       memory: 100Mi
 
 kubeApiServer:
