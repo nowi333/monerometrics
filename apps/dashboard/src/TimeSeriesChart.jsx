@@ -57,7 +57,7 @@ function Btn({ onClick, title, active, children }) {
 export default function TimeSeriesChart({
   title, infoText, color, windows, defaultWindow,
   fetcher, mapPoints, format, currentValue, fill = true, referenceY = null, yMax = null, emptyText = null,
-  extraSeries = null, seriesLabel = null, footer = null, bandFill = false, headlineExtra = null, subtitle = null, showLegend = null,
+  extraSeries = null, seriesLabel = null, footer = null, bandFill = false, headlineExtra = null, subtitle = null, showLegend = null, showChange = true, hoverReadout = true,
   headlineClass = 'text-2xl', context = null, apiPath = null, ranger = true,
 }) {
   const { t } = useTranslation()
@@ -200,7 +200,7 @@ export default function TimeSeriesChart({
         {status === 'ok' && current != null && (
           <p className={`${headlineClass} font-medium mt-1 flex flex-wrap items-baseline gap-2`} style={{ color }}>
             <span ref={readoutRef}>{format(current)}</span>
-            {change != null && (
+            {showChange && change != null && (
               // Couleur neutre : une hausse n'est pas toujours une bonne nouvelle
               // (temps de bloc, mempool), le vert et le rouge le laissaient croire.
               <span className="text-xs font-mono" style={{ color: 'var(--color-text-secondary)' }}>
@@ -298,7 +298,7 @@ export default function TimeSeriesChart({
     animation: false,
     interaction: { mode: 'index', intersect: false },
     onHover: (evt, elements) => {
-      if (!readoutRef.current) return
+      if (!hoverReadout || !readoutRef.current) return
       const p = elements && elements.length ? visible[elements[0].index] : null
       readoutRef.current.textContent = p ? format(p.y) : format(current)
     },
@@ -318,7 +318,8 @@ export default function TimeSeriesChart({
       },
     },
     scales: {
-      x: { ticks: { color: theme.dim, font: { size: 10 }, maxRotation: 0, autoSkip: true, autoSkipPadding: 6, maxTicksLimit: 6 }, grid: { display: false } },
+      // Sur mobile, six dates longues (« 9 oct. 00 h ») se chevauchaient.
+      x: { ticks: { color: theme.dim, font: { size: 10 }, maxRotation: 0, autoSkip: true, autoSkipPadding: 10, maxTicksLimit: typeof window !== 'undefined' && window.innerWidth < 640 ? 3 : 6 }, grid: { display: false } },
       y: {
         max: yMax ?? undefined,
         ticks: { color: theme.dim, font: { size: 10 }, callback: (v) => format(v) },

@@ -48,6 +48,11 @@ export default function SpreadChart() {
       fill={false}
       bandFill
       showLegend={false}
+      // La variation d'une prime deja exprimee en % n'a pas de sens.
+      showChange={false}
+      // Quatre valeurs en tete : n'en faire varier qu'une au survol trompait,
+      // la bulle les donne toutes.
+      hoverReadout={false}
       headlineClass="text-lg sm:text-2xl"
       windows={['24h', '7d', '30d', '90d']}
       defaultWindow="7d"

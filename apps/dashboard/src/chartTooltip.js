@@ -23,8 +23,15 @@ function hide() {
   } catch { /* graphique deja detruit */ }
 }
 
+// Seul le defilement de la page compte : le bandeau d'actus fait defiler son
+// propre contenu en continu, et ses evenements fermaient la bulle a chaque image.
+function onScroll(e) {
+  const t = e.target
+  if (t === document || t === document.documentElement || t === document.body) hide()
+}
+
 function listen() {
-  window.addEventListener('scroll', hide, { passive: true, capture: true })
+  window.addEventListener('scroll', onScroll, { passive: true, capture: true })
   window.addEventListener('touchstart', (e) => {
     if (activeChart && e.target !== activeChart.canvas) hide()
   }, { passive: true })
