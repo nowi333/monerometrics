@@ -168,15 +168,15 @@ Secret (`postgres-credentials-fallback`), so a sealed vault never takes the serv
 
 ### Running cost
 
-From the Hetzner invoice, per hour of use, excluding VAT:
+Hetzner list prices, monthly cap, including 20 % VAT:
 
-| Item | Unit price | Monthly (730 h) |
-| --- | --- | --- |
-| 1 × CX23 (`edge`) | 0.0088 €/h | 6.42 € |
-| 1 × CX33 (`k3s`) | 0.0136 €/h | 9.93 € |
-| 2 × primary IPv4 | 0.0008 €/h | 1.17 € |
-| 250 GB volume | 0.0572 €/GB-month | 14.30 € |
-| **Total** | | **31.82 € excl. VAT · 38.18 € incl. VAT** |
+| Item | Monthly |
+| --- | --- |
+| 1 × CX23 (`edge`) | ~6.60 € |
+| 1 × CX33 (`k3s`) | ~10.20 € |
+| 2 × primary IPv4 | ~1.20 € |
+| 250 GB volume | ~17.20 € |
+| **Total** | **~35 € incl. VAT** |
 
 Cloudflare, Let's Encrypt, Tailscale and GitHub Actions are on free tiers.
 
@@ -603,7 +603,7 @@ The dashboard reads the public API; point it at `api.monerometrics.net` (see `sr
 ## Toward high availability
 
 > **What runs today is a deliberately lean single-node POC**: one k3s node, one unreplicated
-> PostgreSQL, one edge. It is honest, cheap (~38 €/month including VAT) and enough to prove the
+> PostgreSQL, one edge. It is honest, cheap (~35 €/month including VAT) and enough to prove the
 > product, but all three are single points of failure.
 
 One property makes high availability unusually cheap here: **every metric is deterministically
@@ -666,7 +666,7 @@ and searchable.
 ## Support the project
 
 monerometrics runs on a modest self-funded infrastructure (no ads, no tracking, no data sold), about
-38 € a month including VAT. Donations in XMR go to:
+35 € a month including VAT. Donations in XMR go to:
 
 ```
 41mkUSrcAvdGw9E19a83rsh9zdSNC7m8PP34NvmRCCPLZVot61kJHc9i8KGge5JmxkDTuiz7a2nUtE7C4rcQJn4xKjfFyU2
