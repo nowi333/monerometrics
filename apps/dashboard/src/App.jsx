@@ -319,7 +319,7 @@ export default function App() {
             annuaires ou l'on est reference en dessous. */}
         <div className="mt-3 flex flex-col items-center gap-2">
           <a
-            href="https://xmrhub.org"
+            href="https://xmrhub.io"
             target="_blank"
             rel="noopener noreferrer"
             title={t('footer.xmrhub')}
