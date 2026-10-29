@@ -346,7 +346,6 @@ export default {
           'footer.xSoon': 'X · bientôt',
           'footer.tor': 'Version .onion (Tor)',
           'footer.monerica': 'Voir sur Monerica',
-          'footer.xmrhub': 'Trusted by XMR Hub',
           'footer.xmrclub': 'Notez-nous sur xmr.club',
           'footer.matrixSoon': 'Matrix · bientôt',
 

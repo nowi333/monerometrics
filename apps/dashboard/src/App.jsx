@@ -315,20 +315,8 @@ export default function App() {
             {ONION_HOST}
           </a>
         </div>
-        {/* En pyramide : le site qui s'appuie sur nos donnees en tete, les
-            annuaires ou l'on est reference en dessous. */}
+        {/* Annuaires ou le site est reference. */}
         <div className="mt-3 flex flex-col items-center gap-2">
-          <a
-            href="https://xmrhub.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            title={t('footer.xmrhub')}
-            className="mm-badge inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium"
-            style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 28%, var(--color-border))', color: 'var(--color-text-secondary)' }}
-          >
-            <img src="/xmrhub-mark.png" alt="" width="22" height="22" style={{ display: 'block' }} />
-            {t('footer.xmrhub')}
-          </a>
           <div className="flex items-center justify-center gap-2 flex-wrap">
             <a
               href="https://monerica.com/site/monerometrics"

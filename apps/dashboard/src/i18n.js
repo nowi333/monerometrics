@@ -364,7 +364,6 @@ i18n
           'footer.xSoon': 'X · coming soon',
           'footer.tor': '.onion version (Tor)',
           'footer.monerica': 'Review on Monerica',
-          'footer.xmrhub': 'Trusted by XMR Hub',
           'footer.xmrclub': 'Rate us on xmr.club',
           'footer.matrixSoon': 'Matrix · coming soon',
 
