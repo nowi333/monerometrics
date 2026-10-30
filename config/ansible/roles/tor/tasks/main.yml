@@ -7,7 +7,9 @@
     - name: Install tor package
       ansible.builtin.apt:
         name: tor
-        state: present
+        # Pas present : unattended-upgrades ne suit que -security, et une version
+        # trop vieille est rejetee par le consensus (Tor redemarre alors en boucle).
+        state: latest
         update_cache: true
         cache_valid_time: 3600
       become: true
