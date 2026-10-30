@@ -13,13 +13,13 @@
   "dependencies": {
     "chart.js": "^4.5.1",
     "d3": "^7.9.0",
-    "i18next": "^26.4.3",
+    "i18next": "^26.5.11",
     "i18next-browser-languagedetector": "^8.2.1",
     "qrcode.react": "^4.2.0",
     "react": "^19.3.0",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.3.0",
-    "react-i18next": "^17.0.16"
+    "react-i18next": "^17.1.9"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
