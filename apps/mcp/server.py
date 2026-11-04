@@ -2,7 +2,7 @@ import contextvars
 import os
 
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 API_BASE = os.getenv("MM_API_BASE", "https://api.monerometrics.net").rstrip("/")
 HOST = os.getenv("MCP_HOST", "0.0.0.0")
@@ -14,7 +14,7 @@ SPREAD_WINDOWS = ("24h", "7d", "30d", "90d", "1y")
 METHOD_WINDOWS = ("30d", "90d", "180d", "1y", "all")
 ORPHAN_WINDOWS = ("24h", "48h", "7d", "30d", "90d", "180d", "1y", "all")
 
-mcp = FastMCP("monerometrics", host=HOST, port=PORT, stateless_http=True, json_response=True)
+mcp = MCPServer("monerometrics")
 
 # IP du client MCP, relevee a l'entree de chaque requete. Relayee a l'API,
 # elle donne a chaque utilisateur sa propre limite de debit : sans elle, tous
@@ -271,6 +271,7 @@ if __name__ == "__main__":
     if transport == "streamable-http":
         import uvicorn
 
-        uvicorn.run(ClientIPMiddleware(mcp.streamable_http_app()), host=HOST, port=PORT)
+        app = mcp.streamable_http_app(stateless_http=True, json_response=True, host=HOST)
+        uvicorn.run(ClientIPMiddleware(app), host=HOST, port=PORT)
     else:
         mcp.run(transport=transport)
