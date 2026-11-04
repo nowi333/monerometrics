@@ -1127,21 +1127,41 @@ _LEVEL_RANK = {'ok': 0, 'watch': 1, 'alert': 2}
 
 
 @app.get('/status', response_model=StatusResponse)
-@_single_flight('status')
 async def status():
     """One-line health verdict, with every threshold that produced it."""
     cached = _agg_cache_get('status', 30)
     if cached is not None:
         return cached
+    # Le recalcul prend plus d'une seconde et le bandeau est en haut de page :
+    # un verdict de moins de cinq minutes est servi tout de suite et rafraichi
+    # en arriere-plan, comme pour /price.
+    stale = _agg_cache_get('status', 300)
+    if stale is not None:
+        if not _compute_lock('status').locked():
+            task = asyncio.create_task(_refresh_status())
+            _background.add(task)
+            task.add_done_callback(_background.discard)
+        return stale
+    return await _refresh_status()
 
-    pools = await pools_distribution('24h')
-    stats = await reorgs_stats()
+
+async def _network_info_or_none():
     # Un noeud injoignable est precisement ce que le verdict doit signaler :
     # il ne doit pas faire tomber le verdict lui-meme.
     try:
-        net = await network_info()
+        return await network_info()
     except HTTPException:
-        net = None
+        return None
+
+
+@_single_flight('status')
+async def _refresh_status():
+    cached = _agg_cache_get('status', 30)
+    if cached is not None:
+        return cached
+
+    pools, stats, net = await asyncio.gather(
+        pools_distribution('24h'), reorgs_stats(), _network_info_or_none())
     T = STATUS_THRESHOLDS
     signals = []
 
