@@ -12,7 +12,30 @@ const API_BASE = isOnion
 const TIMEOUT_MS = 20000
 const timeoutSignal = () => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(TIMEOUT_MS) : undefined)
 
-async function fetchJSON(path) {
+// Requetes lancees avant le premier rendu (voir prefetch) : le premier appel
+// d'un composant reprend la reponse deja en route au lieu d'en refaire une.
+const primed = new Map()
+const PRIMED_TTL = 15000
+
+export function prefetch(paths) {
+  const now = Date.now()
+  for (const path of paths) {
+    const promise = fetchJSONRaw(path)
+    promise.catch(() => {})
+    primed.set(path, { at: now, promise })
+  }
+}
+
+function fetchJSON(path) {
+  const hit = primed.get(path)
+  if (hit) {
+    primed.delete(path)
+    if (Date.now() - hit.at < PRIMED_TTL) return hit.promise
+  }
+  return fetchJSONRaw(path)
+}
+
+async function fetchJSONRaw(path) {
   const url = `${API_BASE}${path}`
   const response = await fetch(url, {
     method: 'GET',

@@ -13,22 +13,46 @@ import Freshness from './Freshness'
 import ErrorBoundary from './ErrorBoundary'
 
 const Documentation = lazy(() => import('./Documentation'))
-const OrphansTable = lazy(() => import('./OrphansTable'))
-const ReorgsStats = lazy(() => import('./ReorgsStats'))
-const PoolsDistribution = lazy(() => import('./PoolsDistribution'))
-const Provenance = lazy(() => import('./Provenance'))
-const HashrateChart = lazy(() => import('./HashrateChart'))
-const BlocktimeChart = lazy(() => import('./BlocktimeChart'))
-const MempoolChart = lazy(() => import('./MempoolChart'))
-const EmissionChart = lazy(() => import('./EmissionChart'))
-const FeeEstimator = lazy(() => import('./FeeEstimator'))
-const FeeHistory = lazy(() => import('./FeeHistory'))
-const SpreadChart = lazy(() => import('./SpreadChart'))
-const HavenoLiquidity = lazy(() => import('./HavenoLiquidity'))
-const OrderBookDepth = lazy(() => import('./OrderBookDepth'))
-const HavenoMethods = lazy(() => import('./HavenoMethods'))
-const Donation = lazy(() => import('./Donation'))
-const SupportersWall = lazy(() => import('./SupportersWall'))
+// Chaque panneau garde son propre fichier, mais tous sont recuperes en tache de
+// fond une fois la page affichee : en defilant, le code est deja la.
+const panelLoaders = {
+  OrphansTable: () => import('./OrphansTable'),
+  ReorgsStats: () => import('./ReorgsStats'),
+  PoolsDistribution: () => import('./PoolsDistribution'),
+  Provenance: () => import('./Provenance'),
+  HashrateChart: () => import('./HashrateChart'),
+  BlocktimeChart: () => import('./BlocktimeChart'),
+  MempoolChart: () => import('./MempoolChart'),
+  EmissionChart: () => import('./EmissionChart'),
+  FeeEstimator: () => import('./FeeEstimator'),
+  FeeHistory: () => import('./FeeHistory'),
+  SpreadChart: () => import('./SpreadChart'),
+  HavenoLiquidity: () => import('./HavenoLiquidity'),
+  OrderBookDepth: () => import('./OrderBookDepth'),
+  HavenoMethods: () => import('./HavenoMethods'),
+  Donation: () => import('./Donation'),
+  SupportersWall: () => import('./SupportersWall'),
+}
+const OrphansTable = lazy(panelLoaders.OrphansTable)
+const ReorgsStats = lazy(panelLoaders.ReorgsStats)
+const PoolsDistribution = lazy(panelLoaders.PoolsDistribution)
+const Provenance = lazy(panelLoaders.Provenance)
+const HashrateChart = lazy(panelLoaders.HashrateChart)
+const BlocktimeChart = lazy(panelLoaders.BlocktimeChart)
+const MempoolChart = lazy(panelLoaders.MempoolChart)
+const EmissionChart = lazy(panelLoaders.EmissionChart)
+const FeeEstimator = lazy(panelLoaders.FeeEstimator)
+const FeeHistory = lazy(panelLoaders.FeeHistory)
+const SpreadChart = lazy(panelLoaders.SpreadChart)
+const HavenoLiquidity = lazy(panelLoaders.HavenoLiquidity)
+const OrderBookDepth = lazy(panelLoaders.OrderBookDepth)
+const HavenoMethods = lazy(panelLoaders.HavenoMethods)
+const Donation = lazy(panelLoaders.Donation)
+const SupportersWall = lazy(panelLoaders.SupportersWall)
+
+function preloadPanels() {
+  for (const load of Object.values(panelLoaders)) load().catch(() => {})
+}
 // Le mur remplace la case de don des que la campagne Kuno a un lien.
 import supporters from './supporters.json'
 const WALL_ACTIVE = !!supporters.kunoUrl
@@ -46,8 +70,9 @@ const ICON_MATRIX = 'M.632.55v22.9H2.28V24H0V0h2.28v.55zm7.043 7.26v1.157h.033c.
 
 // Un panneau qu'on ne voit pas encore n'a aucune raison d'etre charge : ni son
 // code, ni la bibliotheque de graphiques qu'il tire derriere lui, ni sa requete
-// a l'API. Il se monte quand il approche de l'ecran, avec 400 px d'avance pour
-// qu'il soit pret avant d'etre visible.
+// a l'API. Il se monte quand il approche de l'ecran, avec 1 200 px d'avance
+// pour que ses donnees soient arrivees avant qu'on le voie, puis apparait en
+// fondu plutot que d'un coup.
 //
 // La hauteur est reservee d'avance : sans cela la page se raccourcirait, les
 // ancres du menu tomberaient a cote et le defilement sauterait a chaque montage.
@@ -66,7 +91,7 @@ function Deferred({ children, minHeight = 300, id, className }) {
     }
     const io = new IntersectionObserver(
       (entries) => { if (entries.some(e => e.isIntersecting)) { setShown(true); io.disconnect() } },
-      { rootMargin: '400px' },
+      { rootMargin: '1200px 0px' },
     )
     io.observe(el)
     return () => io.disconnect()
@@ -74,7 +99,7 @@ function Deferred({ children, minHeight = 300, id, className }) {
 
   return (
     <div ref={ref} id={id} className={className} style={shown ? undefined : { minHeight }}>
-      {shown ? <Suspense fallback={<div style={{ minHeight }} />}>{children}</Suspense> : null}
+      {shown ? <Suspense fallback={<div style={{ minHeight }} />}><div className="mm-fade-in">{children}</div></Suspense> : null}
     </div>
   )
 }
@@ -103,7 +128,15 @@ export default function App() {
     typeof window !== 'undefined' && window.location.pathname.replace(/\/$/, '') === '/docs' ? 'docs' : 'dashboard')
 
   useEffect(() => {
-    const onPop = () => setView(window.location.pathname.replace(/\/$/, '') === '/docs' ? 'docs' : 'dashboard')
+    if (view !== 'dashboard') return
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1500))
+    const cancel = window.cancelIdleCallback || clearTimeout
+    const id = idle(preloadPanels, { timeout: 3000 })
+    return () => cancel(id)
+  }, [view])
+
+  useEffect(() => {
+    const onPop =() => setView(window.location.pathname.replace(/\/$/, '') === '/docs' ? 'docs' : 'dashboard')
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
