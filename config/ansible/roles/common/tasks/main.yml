@@ -141,3 +141,35 @@
     enabled: true
     state: started
   become: true
+
+# Contournement de CVE-2026-98432 en attendant le noyau corrige (6.8.0-149).
+# A retirer une fois ce noyau installe partout.
+- name: Deploy CVE-2026-98432 nftables mitigation
+  ansible.builtin.copy:
+    src: cve-2026-98432.nft
+    dest: /etc/cve-2026-98432.nft
+    owner: root
+    group: root
+    mode: "0600"
+  become: true
+  notify: Reload CVE-2026-98432 mitigation
+
+- name: Deploy CVE-2026-98432 mitigation unit
+  ansible.builtin.copy:
+    src: cve-2026-98432.service
+    dest: /etc/systemd/system/cve-2026-98432.service
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: Reload CVE-2026-98432 mitigation
+
+- name: Enable CVE-2026-98432 mitigation
+  ansible.builtin.systemd:
+    name: cve-2026-98432
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true
+  # En --check l'unite n'est pas encore copiee : rien a verifier.
+  ignore_errors: "{{ ansible_check_mode }}"

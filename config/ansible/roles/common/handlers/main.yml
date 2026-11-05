@@ -27,3 +27,10 @@
 - name: Apply sysctl --system
   ansible.builtin.command: sysctl --system
   become: true
+
+- name: Reload CVE-2026-98432 mitigation
+  ansible.builtin.systemd:
+    name: cve-2026-98432
+    state: restarted
+    daemon_reload: true
+  become: true
