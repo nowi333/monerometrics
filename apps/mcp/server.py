@@ -1,8 +1,12 @@
 import contextvars
 import os
 
+from typing import Annotated
+
 import httpx
 from mcp.server.mcpserver import MCPServer
+from mcp.types import ToolAnnotations
+from pydantic import Field
 
 API_BASE = os.getenv("MM_API_BASE", "https://api.monerometrics.net").rstrip("/")
 HOST = os.getenv("MCP_HOST", "0.0.0.0")
@@ -15,6 +19,23 @@ METHOD_WINDOWS = ("30d", "90d", "180d", "1y", "all")
 ORPHAN_WINDOWS = ("24h", "48h", "7d", "30d", "90d", "180d", "1y", "all")
 
 mcp = MCPServer("monerometrics")
+
+# Tous les outils lisent l'API publique sans rien modifier : les clients
+# peuvent les appeler sans demander de confirmation.
+READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True)
+
+
+def _desc(text: str):
+    return Field(description=text)
+
+
+SeriesWindow = Annotated[str, _desc("Time window, one of 1h, 24h, 7d, 30d, 90d, 1y, 5y. Example: 30d")]
+AggWindow = Annotated[str, _desc("Time window, one of 1h, 6h, 24h, 48h, 7d. Example: 24h")]
+SpreadWindow = Annotated[str, _desc("Time window, one of 24h, 7d, 30d, 90d, 1y. Example: 7d")]
+MethodWindow = Annotated[str, _desc("Time window, one of 30d, 90d, 180d, 1y, all. Example: 180d")]
+OrphanWindow = Annotated[str, _desc("Time window, one of 24h, 48h, 7d, 30d, 90d, 180d, 1y, all. Example: 7d")]
+Currency = Annotated[str, _desc("Fiat currency of the trades, USD or EUR. Example: USD")]
+Hash64 = Annotated[str, _desc("64-character hexadecimal hash. Example: 418015bb9ae982a1975da7d79277c2705727a56894ba0fb246adaabb1f4632e3")]
 
 # IP du client MCP, relevee a l'entree de chaque requete. Relayee a l'API,
 # elle donne a chaque utilisateur sa propre limite de debit : sans elle, tous
@@ -75,13 +96,13 @@ def _one_of(value: str, allowed: tuple, name: str) -> str:
     return value
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def network_info() -> dict:
     """Current Monero network state: latest indexed height, difficulty, network hashrate and mempool size."""
     return await _get("/network/info")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def price() -> dict:
     """Current Monero (XMR) price: centralized spot plus both sides of the Haveno peer-to-peer book.
 
@@ -92,7 +113,7 @@ async def price() -> dict:
     return await _get("/price")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def haveno_book() -> dict:
     """The live Haveno XMR/USD order book, both sides, priced against centralized spot.
 
@@ -105,8 +126,8 @@ async def haveno_book() -> dict:
     return await _get("/haveno/book")
 
 
-@mcp.tool()
-async def haveno_premium(window: str = "7d") -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def haveno_premium(window: SpreadWindow = "7d") -> dict:
     """Haveno peer-to-peer quotes against centralized spot over time, both sides.
 
     window in 24h,7d,30d,90d,1y. History starts on 24 August 2026, when recording began.
@@ -114,8 +135,8 @@ async def haveno_premium(window: str = "7d") -> dict:
     return await _get("/price/spread", {"window": _one_of(window, SPREAD_WINDOWS, "window")})
 
 
-@mcp.tool()
-async def haveno_payment_methods(window: str = "180d", currency: str = "USD") -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def haveno_payment_methods(window: MethodWindow = "180d", currency: Currency = "USD") -> dict:
     """Executed Haveno trades grouped by payment method, with the premium over spot.
 
     window in 30d,90d,180d,1y,all. currency in USD,EUR. The premium tracks how reversible
@@ -128,69 +149,72 @@ async def haveno_payment_methods(window: str = "180d", currency: str = "USD") ->
     })
 
 
-@mcp.tool()
-async def network_hashrate(window: str = "30d") -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def network_hashrate(window: SeriesWindow = "30d") -> dict:
     """Network hashrate time series. window in 1h,24h,7d,30d,90d,1y,5y."""
     return await _get("/network/hashrate", {"window": _one_of(window, SERIES_WINDOWS, "window")})
 
 
-@mcp.tool()
-async def network_blocktime(window: str = "24h") -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def network_blocktime(window: SeriesWindow = "24h") -> dict:
     """Block-time variance time series (seconds between blocks). window in 1h,24h,7d,30d,90d,1y,5y."""
     return await _get("/network/blocktime", {"window": _one_of(window, SERIES_WINDOWS, "window")})
 
 
-@mcp.tool()
-async def network_mempool(window: str = "24h") -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def network_mempool(window: SeriesWindow = "24h") -> dict:
     """Mempool size time series (number of pending transactions). window in 1h,24h,7d,30d,90d,1y,5y."""
     return await _get("/network/mempool", {"window": _one_of(window, SERIES_WINDOWS, "window")})
 
 
-@mcp.tool()
-async def network_emission(window: str = "30d") -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def network_emission(window: SeriesWindow = "30d") -> dict:
     """Block reward / emission time series (XMR per block). window in 1h,24h,7d,30d,90d,1y,5y."""
     return await _get("/network/emission", {"window": _one_of(window, SERIES_WINDOWS, "window")})
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def reorgs() -> dict:
     """Detected Monero chain reorganizations, most recent first, with fork point, depth and affected transactions."""
     return await _get("/reorgs")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def reorg_stats() -> dict:
     """Aggregate reorg statistics over windows: counts, average and maximum depth, affected transactions."""
     return await _get("/reorgs/stats")
 
 
-@mcp.tool()
-async def recent_orphans(limit: int = 20, window: str = "all") -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def recent_orphans(
+    limit: Annotated[int, _desc("Number of orphans to return, 1 to 50. Example: 20")] = 20,
+    window: OrphanWindow = "all",
+) -> dict:
     """Most recent orphan blocks with their canonical counterpart at the same height, newest first. limit 1..50; window in 24h,48h,7d,30d,90d,180d,1y,all (default all, so the last N orphans are returned however old they are)."""
     limit = max(1, min(int(limit), 50))
     return await _get("/orphans/recent", {"limit": limit, "window": _one_of(window, ORPHAN_WINDOWS, "window")})
 
 
-@mcp.tool()
-async def pool_distribution(window: str = "24h") -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def pool_distribution(window: AggWindow = "24h") -> dict:
     """Mining-pool distribution over a window: block share per pool, largest-pool share and the Nakamoto coefficient (minimum pools controlling >50% of blocks). window in 1h,6h,24h,48h,7d."""
     return await _get("/pools/distribution", {"window": _one_of(window, AGG_WINDOWS, "window")})
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def pool_sources() -> dict:
     """Reachability status of each mining-pool API used for block attribution."""
     return await _get("/pools/sources")
 
 
-@mcp.tool()
-async def chain_provenance(window: str = "24h") -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def chain_provenance(window: AggWindow = "24h") -> dict:
     """How mining-pool attribution was established over a window: share proven by view key, claimed by pool API, inferred from coinbase, or unattributed. window in 1h,6h,24h,48h,7d."""
     return await _get("/chain/provenance", {"window": _one_of(window, AGG_WINDOWS, "window")})
 
 
-@mcp.tool()
-async def get_block(hash: str) -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def get_block(hash: Hash64) -> dict:
     """Full detail for one block by its 64-character block hash: height, previous hash, size, difficulty, reward, coinbase, transaction list and merge-mining tags."""
     h = hash.strip().lower()
     if len(h) != 64 or any(c not in "0123456789abcdef" for c in h):
@@ -198,8 +222,10 @@ async def get_block(hash: str) -> dict:
     return await _get(f"/chain/block/{h}")
 
 
-@mcp.tool()
-async def search_block(query: str) -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def search_block(
+    query: Annotated[str, _desc("Block height as a number, or a 64-character hex block hash. Example: 3000000")],
+) -> dict:
     """Find a block by height (a number) or by 64-character hash, anywhere in the chain down to the genesis block (height 0). Returns the block detail plus whether it is canonical or an orphan."""
     q = query.strip()
     if q.isdigit():
@@ -220,8 +246,8 @@ async def search_block(query: str) -> dict:
     raise ValueError("query must be a block height (number) or a 64-character hex hash")
 
 
-@mcp.tool()
-async def lookup_transaction(tx_hash: str) -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def lookup_transaction(tx_hash: Hash64) -> dict:
     """Look up a transaction by its 64-character hash: whether it is in the mempool or mined, its block, confirmations, whether it is spendable yet, the pool that mined its block, and whether that height was ever contested by a reorg. No amounts, senders or recipients: the protocol encrypts them."""
     h = tx_hash.strip().lower()
     if len(h) != 64 or any(c not in "0123456789abcdef" for c in h):
@@ -229,8 +255,11 @@ async def lookup_transaction(tx_hash: str) -> dict:
     return await _post("/chain/search", {"query": h})
 
 
-@mcp.tool()
-async def chain_fork_window(to: int | None = None, limit: int = 100) -> dict:
+@mcp.tool(annotations=READ_ONLY)
+async def chain_fork_window(
+    to: Annotated[int | None, _desc("Highest block height of the window; omit for the current tip. Example: 3000000")] = None,
+    limit: Annotated[int, _desc("Number of heights in the window, 10 to 500. Example: 100")] = 100,
+) -> dict:
     """Canonical chain plus any competing orphan blocks around a height. 'to' is the highest height in the window (defaults to the current tip); lower it to browse older history down to the genesis block. limit 10..500."""
     limit = max(10, min(int(limit), 500))
     params: dict = {"limit": limit}
