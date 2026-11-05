@@ -669,11 +669,11 @@ monerometrics runs on a modest self-funded infrastructure (no ads, no tracking, 
 35 € a month including VAT. Donations in XMR go to:
 
 ```
-41mkUSrcAvdGw9E19a83rsh9zdSNC7m8PP34NvmRCCPLZVot61kJHc9i8KGge5JmxkDTuiz7a2nUtE7C4rcQJn4xKjfFyU2
+492qrWLgcdd9vUQFeq2mZMUSa2KU7UT3fRpajqNPiQoHNpRUZX1CiGMQeCok2CusfLWXWsZ3KaNL6PkakAxgXyeMRhkM65s
 ```
 
 Any other cryptocurrency works too, settled to that address with no account and no KYC, through
-[trocador.app AnonPay](https://trocador.app/anonpay/?ticker_to=xmr&network_to=Mainnet&donation=True&name=monerometrics&description=Support%20monerometrics&buttonbgcolor=ff6600&address=41mkUSrcAvdGw9E19a83rsh9zdSNC7m8PP34NvmRCCPLZVot61kJHc9i8KGge5JmxkDTuiz7a2nUtE7C4rcQJn4xKjfFyU2).
+[trocador.app AnonPay](https://trocador.app/anonpay/?ticker_to=xmr&network_to=Mainnet&donation=True&name=monerometrics&description=Support%20monerometrics&buttonbgcolor=ff6600&address=492qrWLgcdd9vUQFeq2mZMUSa2KU7UT3fRpajqNPiQoHNpRUZX1CiGMQeCok2CusfLWXWsZ3KaNL6PkakAxgXyeMRhkM65s).
 
 The same address is published on the dashboard and in
 [`/.well-known/owners.json`](https://api.monerometrics.net/.well-known/owners.json), so it can be

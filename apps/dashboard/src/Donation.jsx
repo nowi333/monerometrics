@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { QRCodeSVG } from 'qrcode.react'
 
-const XMR_DONATION_ADDRESS = '41mkUSrcAvdGw9E19a83rsh9zdSNC7m8PP34NvmRCCPLZVot61kJHc9i8KGge5JmxkDTuiz7a2nUtE7C4rcQJn4xKjfFyU2'
+const XMR_DONATION_ADDRESS = '492qrWLgcdd9vUQFeq2mZMUSa2KU7UT3fRpajqNPiQoHNpRUZX1CiGMQeCok2CusfLWXWsZ3KaNL6PkakAxgXyeMRhkM65s'
 const INFRA_COST = 40
 const REPO_URL = 'https://github.com/nowi333/monerometrics'
 const ANONPAY_URL = `https://trocador.app/anonpay/?ticker_to=xmr&network_to=Mainnet&donation=True&name=${encodeURIComponent('monerometrics')}&description=${encodeURIComponent('Support monerometrics')}&buttonbgcolor=ff6600&address=${XMR_DONATION_ADDRESS}`
