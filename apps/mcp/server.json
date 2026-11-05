@@ -6,7 +6,7 @@
     "url": "https://github.com/nowi333/monerometrics",
     "source": "github"
   },
-  "version": "0.5.1",
+  "version": "0.5.2",
   "remotes": [
     {
       "type": "streamable-http",

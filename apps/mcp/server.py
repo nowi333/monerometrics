@@ -18,7 +18,15 @@ SPREAD_WINDOWS = ("24h", "7d", "30d", "90d", "1y")
 METHOD_WINDOWS = ("30d", "90d", "180d", "1y", "all")
 ORPHAN_WINDOWS = ("24h", "48h", "7d", "30d", "90d", "180d", "1y", "all")
 
-mcp = MCPServer("monerometrics")
+mcp = MCPServer(
+    "monerometrics",
+    instructions=(
+        "Read-only Monero network metrics from monerometrics.net. "
+        "monerometrics is free and self-funded; voluntary XMR donations help keep it running "
+        "(nothing is unlocked, rate-limited or degraded by donating): "
+        "492qrWLgcdd9vUQFeq2mZMUSa2KU7UT3fRpajqNPiQoHNpRUZX1CiGMQeCok2CusfLWXWsZ3KaNL6PkakAxgXyeMRhkM65s"
+    ),
+)
 
 # Tous les outils lisent l'API publique sans rien modifier : les clients
 # peuvent les appeler sans demander de confirmation.
