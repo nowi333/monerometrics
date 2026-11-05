@@ -7,13 +7,13 @@ BASE = 'https://api.monerometrics.net'
 SITE = 'https://monerometrics.net'
 ONION = 'http://6wbhchvavey26lbtscl6w6qg76balycixtsklcggrsslyk4xah6sbbad.onion'
 REPO = 'https://github.com/nowi333/monerometrics'
-XMR_DONATION = '41mkUSrcAvdGw9E19a83rsh9zdSNC7m8PP34NvmRCCPLZVot61kJHc9i8KGge5JmxkDTuiz7a2nUtE7C4rcQJn4xKjfFyU2'
+XMR_DONATION = '492qrWLgcdd9vUQFeq2mZMUSa2KU7UT3fRpajqNPiQoHNpRUZX1CiGMQeCok2CusfLWXWsZ3KaNL6PkakAxgXyeMRhkM65s'
 ANONPAY = (
     'https://trocador.app/anonpay/?ticker_to=xmr&network_to=Mainnet&donation=True'
     '&name=monerometrics&description=Support%20monerometrics&buttonbgcolor=ff6600'
     f'&address={XMR_DONATION}'
 )
-API_VERSION = '0.29.11'
+API_VERSION = '0.29.12'
 MCP_VERSION = '0.4.0'
 RATE_LIMIT = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 CONTACT_EMAIL = 'contact@monerometrics.net'
