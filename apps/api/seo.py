@@ -53,7 +53,7 @@ def _ts(unix: int | None) -> str:
 def _pool_link(pool: str | None) -> str:
     if not pool or pool == 'unknown':
         return '<span class="dim">unattributed</span>'
-    return f'<a href="/pool/{e(pool)}">{e(pool)}</a>'
+    return f'<a href="/pool/{_slug(pool)}">{e(pool)}</a>'
 
 
 SOURCE_LABEL = {
@@ -249,15 +249,25 @@ async def pools_page():
 _POOL_RE = re.compile(r'[a-z0-9][a-z0-9.\-]{0,62}')
 
 
-@router.get('/pool/{name}')
-async def pool_page(name: str):
-    if not _POOL_RE.fullmatch(name) or name == 'unknown':
+def _slug(pool: str) -> str:
+    # Les points sont remplaces : le WAF bloque les chemins finissant en .com.
+    return pool.replace('.', '-')
+
+
+@router.get('/pool/{slug}')
+async def pool_page(slug: str):
+    if not _POOL_RE.fullmatch(slug) or '.' in slug or slug == 'unknown':
         raise HTTPException(404)
-    key = f'pool:{name}'
+    key = f'pool:{slug}'
     hit = _cached(key, 120)
     if hit:
         return _page(hit, 300)
     async with get_pool().acquire() as conn:
+        name = await conn.fetchval(
+            "SELECT miner_pool FROM blocks WHERE replace(miner_pool, '.', '-') = $1 "
+            "AND timestamp_human >= NOW() - INTERVAL '90 days' LIMIT 1", slug)
+        if not name:
+            raise HTTPException(404)
         shares = {}
         for label, interval in (('24 h', '24 hours'), ('7 d', '7 days'), ('30 d', '30 days')):
             rows, total = await _distribution(conn, interval)
@@ -286,8 +296,8 @@ async def pool_page(name: str):
             f'<h2>Latest blocks</h2><div class="card"><table><thead><tr><th class="n">Height</th><th class="n">Time</th>'
             f'<th class="n">Tx</th><th class="n">Reward XMR</th><th>Attribution</th></tr></thead><tbody>{trs}</tbody></table></div>'
             f'<p class="cta">Compare with every other pool on the <a href="/pools">pool distribution</a> page.</p>')
-    page = _layout(f'{name} Monero mining pool share & blocks | monerometrics', desc, f'/pool/{name}', body,
-                   _breadcrumb([('monerometrics', '/'), ('Mining pools', '/pools'), (name, f'/pool/{name}')]))
+    page = _layout(f'{name} Monero mining pool share & blocks | monerometrics', desc, f'/pool/{slug}', body,
+                   _breadcrumb([('monerometrics', '/'), ('Mining pools', '/pools'), (name, f'/pool/{slug}')]))
     return _page(_store(key, page), 300)
 
 
@@ -365,7 +375,7 @@ async def sitemap():
         day = datetime.now(timezone.utc).strftime('%Y-%m-%d')
         urls = [('/', 'hourly', '1.0'), ('/pools', 'hourly', '0.9'), ('/reorgs', 'daily', '0.9'),
                 ('/orphans', 'daily', '0.8'), ('/docs', 'weekly', '0.7')]
-        urls += [(f'/pool/{r["miner_pool"]}', 'daily', '0.6') for r in pools if _POOL_RE.fullmatch(r['miner_pool'])]
+        urls += [(f'/pool/{_slug(r["miner_pool"])}', 'daily', '0.6') for r in pools if _POOL_RE.fullmatch(r['miner_pool'])]
         urls += [(f'/block/{r["height"]}', 'monthly', '0.4') for r in heights]
         items = ''.join(f'<url><loc>{SITE}{e(u)}</loc><lastmod>{day}</lastmod><changefreq>{f}</changefreq>'
                         f'<priority>{p}</priority></url>' for u, f, p in urls)
