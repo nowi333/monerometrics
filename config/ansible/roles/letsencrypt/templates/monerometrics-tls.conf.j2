@@ -146,6 +146,21 @@ server {
         default_type application/linkset+json;
     }
 
+    # Pages indexables rendues par l'API : le dashboard est une SPA que les
+    # moteurs voient vide. Pas d'add_header ici, les en-tetes du serveur s'appliquent.
+    location ~ ^/(block/[0-9]{1,9}|pools|pool/[a-z0-9][a-z0-9.-]{0,62}|reorgs|orphans|sitemap\.xml)$ {
+        rewrite ^ /seo$uri break;
+        proxy_pass {{ letsencrypt_api_upstream }};
+        proxy_http_version 1.1;
+        proxy_set_header Host api.{{ letsencrypt_domain }};
+        proxy_set_header X-MM-Onion "";
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+    }
+
     location = /healthz {
         access_log off;
         return 200 "ok\n";
@@ -182,6 +197,10 @@ server {
 
     add_header Strict-Transport-Security "max-age=15768000; includeSubDomains" always;
     add_header X-Content-Type-Options "nosniff" always;
+
+    # Adresses que les clients MCP essaient par defaut.
+    location = /sse { return 308 /mcp; }
+    location = /api/mcp { return 308 /mcp; }
 
     location / {
         proxy_pass {{ letsencrypt_api_upstream }};

@@ -349,6 +349,10 @@ i18n
 
 
           'footer.apiLabel': 'Public API:',
+          'footer.pages': 'Pages:',
+          'footer.pools': 'Mining pools',
+          'footer.reorgs': 'Reorg history',
+          'footer.orphans': 'Orphan blocks',
 
 
           'footer.soon': 'soon',

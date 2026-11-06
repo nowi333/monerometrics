@@ -331,6 +331,10 @@ export default {
 
 
           'footer.apiLabel': 'API publique :',
+          'footer.pages': 'Pages :',
+          'footer.pools': 'Pools de minage',
+          'footer.reorgs': 'Historique des reorgs',
+          'footer.orphans': 'Blocs orphelins',
 
 
           'footer.soon': 'bientôt',
