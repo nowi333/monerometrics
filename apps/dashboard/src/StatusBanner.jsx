@@ -3,6 +3,10 @@ import { api, timeAgo } from './api'
 import InfoTooltip from './InfoTooltip'
 import { usePolledData } from './usePolledData'
 
+// Fond teinte des bandeaux : en clair, une nuance plus vive que la couleur du
+// texte, sinon le melange avec le blanc tire vers le gris.
+const tint = (tone) => tone.replace('--color-', '--tint-')
+
 const COLOR = {
   ok: 'var(--color-success)',
   watch: 'var(--color-warn)',
@@ -26,7 +30,7 @@ export default function StatusBanner() {
     <div
       className="mb-6 rounded-2xl border px-4 py-3.5 sm:px-5 sm:py-4"
       style={{
-        background: `linear-gradient(180deg, color-mix(in srgb, ${tone} 9%, var(--color-card)) 0%, var(--color-card) 100%)`,
+        background: `linear-gradient(180deg, color-mix(in srgb, ${tint(tone)} var(--tint-status), var(--color-card)) 0%, color-mix(in srgb, ${tint(tone)} var(--tint-status-end), var(--color-card)) 100%)`,
         borderColor: `color-mix(in srgb, ${tone} 30%, var(--color-border))`,
       }}
     >{inner}</div>
