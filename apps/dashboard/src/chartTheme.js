@@ -10,7 +10,22 @@ function readTheme() {
     dim: v('--color-dim', '#8b9099'),
     grid: v('--color-border', 'rgba(255,255,255,0.08)'),
     success: v('--color-success', '#22c55e'),
+    light: typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light',
   }
+}
+
+// Teintes vives pensees pour le fond sombre : sur fond clair elles manquaient
+// de contraste, on passe a une nuance plus foncee de la meme couleur.
+const LIGHT_SHADES = {
+  '#ff6600': '#c94a00',
+  '#22c55e': '#15803d',
+  '#3b82f6': '#1d4ed8',
+  '#06b6d4': '#0e7490',
+  '#22d3ee': '#0e7490',
+}
+
+export function shade(color, light) {
+  return (light && LIGHT_SHADES[String(color).toLowerCase()]) || color
 }
 
 export function useThemeColors() {

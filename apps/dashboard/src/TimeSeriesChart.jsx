@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { tooltipPlugin } from './chartTooltip'
-import { useThemeColors } from './chartTheme'
+import { useThemeColors, shade } from './chartTheme'
 import { crosshair, lastValueTag } from './chartTools'
 import ChartNavigator from './ChartNavigator'
 import { Line } from 'react-chartjs-2'
@@ -55,7 +55,7 @@ function Btn({ onClick, title, active, children }) {
  * qu'on survole une carte.
  */
 export default function TimeSeriesChart({
-  title, infoText, color, windows, defaultWindow,
+  title, infoText, color: baseColor, windows, defaultWindow,
   fetcher, mapPoints, format, currentValue, fill = true, referenceY = null, yMax = null, emptyText = null,
   extraSeries = null, seriesLabel = null, footer = null, bandFill = false, headlineExtra = null, subtitle = null, showLegend = null, showChange = true, hoverReadout = true,
   headlineClass = 'text-2xl', context = null, apiPath = null, ranger = true,
@@ -71,6 +71,7 @@ export default function TimeSeriesChart({
   const readoutRef = useRef(null)
   const switchTimer = useRef(null)
   const theme = useThemeColors()
+  const color = shade(baseColor, theme.light)
 
   useEffect(() => () => clearTimeout(switchTimer.current), [])
 
@@ -275,8 +276,8 @@ export default function TimeSeriesChart({
       datasets.push({
         label: serie.label,
         data: serie.data.slice(i0, i1 + 1),
-        borderColor: serie.color,
-        backgroundColor: rgba(serie.color, 0.10),
+        borderColor: shade(serie.color, theme.light),
+        backgroundColor: rgba(shade(serie.color, theme.light), 0.10),
         borderWidth: 1.6,
         borderDash: serie.dash || undefined,
         pointRadius: 0,

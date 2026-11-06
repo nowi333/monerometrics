@@ -94,7 +94,7 @@ export default function OrphansTable() {
                       type="button"
                       onClick={() => openOrphan(o)}
                       title={t('orphans.viewOrphan')}
-                      className="font-mono text-orange-400 rounded hover:underline underline-offset-2 inline-flex items-center gap-1 transition-opacity hover:opacity-80"
+                      className="font-mono text-[color:var(--color-accent)] rounded hover:underline underline-offset-2 inline-flex items-center gap-1 transition-opacity hover:opacity-80"
                     >
                       <span className="sm:hidden">{o.orphan_hash.slice(0, 8)}…</span>
                       <span className="hidden sm:inline">{o.orphan_hash.slice(0, 12)}...</span>
@@ -106,7 +106,7 @@ export default function OrphansTable() {
                         type="button"
                         onClick={() => openCanonical(o)}
                         title={t('orphans.viewCanonical')}
-                        className="font-mono text-green-400 rounded hover:underline underline-offset-2 inline-flex items-center gap-1 transition-opacity hover:opacity-80"
+                        className="font-mono text-[color:var(--color-success)] rounded hover:underline underline-offset-2 inline-flex items-center gap-1 transition-opacity hover:opacity-80"
                       >
                         {o.canonical_hash.slice(0, 12)}...
                       </button>

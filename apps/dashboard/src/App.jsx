@@ -159,7 +159,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      <div className="border-b" style={{ borderColor: 'var(--color-border)' }}>
+      <div className="border-b" style={{ borderColor: 'var(--color-border)', background: 'var(--color-chrome)' }}>
       <header
         className="flex items-center justify-between p-2.5 sm:p-5 max-w-6xl mx-auto gap-2 sm:gap-3"
       >
@@ -291,7 +291,7 @@ export default function App() {
       </>}
       </div>
 
-      <div className="mt-8 border-t-2" style={{ borderColor: 'var(--color-border-strong)' }}>
+      <div className="mt-8 border-t-2" style={{ borderColor: 'var(--color-border-strong)', background: 'var(--color-chrome)' }}>
       <footer
         className="pt-6 px-3 sm:px-6 pb-3 max-w-6xl mx-auto text-center text-xs"
         style={{ color: 'var(--color-dim)' }}

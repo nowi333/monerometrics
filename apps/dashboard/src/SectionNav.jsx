@@ -64,7 +64,7 @@ export default function SectionNav({ view }) {
     <nav
       className="sticky top-0 z-30 border-b"
       style={{
-        background: 'color-mix(in srgb, var(--color-bg) 88%, transparent)',
+        background: 'color-mix(in srgb, var(--color-chrome) 88%, transparent)',
         borderColor: 'var(--color-border)',
         backdropFilter: 'blur(10px)',
       }}
