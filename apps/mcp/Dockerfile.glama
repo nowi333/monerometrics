@@ -1,0 +1,20 @@
+# Image stdio pour les verifications de Glama (glama.ai/mcp/servers).
+# Contexte de build : la racine du depot.
+#   docker build -f apps/mcp/Dockerfile.glama -t monerometrics-mcp-stdio .
+FROM python:3.13-alpine
+
+RUN addgroup -S mcp && adduser -S mcp -G mcp
+
+WORKDIR /app
+
+COPY apps/mcp/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY apps/mcp/server.py .
+
+USER mcp
+
+ENV MCP_TRANSPORT=stdio \
+    PYTHONUNBUFFERED=1
+
+CMD ["python", "server.py"]
