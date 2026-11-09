@@ -187,7 +187,7 @@ export default function BlockDetailModal({ selected, onClose }) {
           </details>
         )}
 
-        {!isOrphan && <ShareBlock height={block.height} pool={block.miner_pool} />}
+        {!isOrphan && <ShareBlock hash={block.hash} height={block.height} pool={block.miner_pool} />}
 
         <div>
           <div className="text-xs uppercase tracking-wide mb-2 inline-flex items-center gap-1" style={{ color: 'var(--color-dim)' }}>
@@ -219,12 +219,11 @@ export default function BlockDetailModal({ selected, onClose }) {
   )
 }
 
-// On partage la page statique du bloc : elle porte une carte d'apercu pour
-// les reseaux sociaux et un bouton qui ramene ici, sur la fiche.
-function ShareBlock({ height, pool }) {
+// Le lien partage rouvre cette fiche dans le dashboard (voir BlockDeepLink).
+function ShareBlock({ hash, height, pool }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
-  const url = `https://monerometrics.net/block/${height}`
+  const url = `https://monerometrics.net/#block=${hash}`
   const text = `Monero block ${height.toLocaleString('en-US')}${pool && pool !== 'unknown' ? `, mined by ${pool}` : ''}`
   const q = encodeURIComponent
   const targets = [
