@@ -68,12 +68,10 @@ resource "hcloud_firewall" "k3s" {
   labels = local.common_labels
 
   rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "18080"
-    # IPv4 retire tant que CVE-2026-98432 n'est pas corrigee (le noyau
-    # touche ne concerne que IPv4) : remettre "0.0.0.0/0" apres le patch.
-    source_ips  = ["::/0"]
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "18080"
+    source_ips  = ["0.0.0.0/0", "::/0"]
     description = "Monero P2P (pairs entrants)"
   }
 
