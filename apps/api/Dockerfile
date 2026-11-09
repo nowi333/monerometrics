@@ -5,14 +5,14 @@ LABEL org.opencontainers.image.source="https://github.com/nowi333/monerometrics"
 LABEL org.opencontainers.image.description="monerometrics API REST"
 LABEL org.opencontainers.image.licenses="MIT"
 
-RUN addgroup -S api && adduser -S api -G api
+RUN apk add --no-cache font-dejavu && addgroup -S api && adduser -S api -G api
 
 WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY db.py models.py pricing.py txinfo.py newsfeed.py httpcache.py main.py discovery.py seo.py pool_proofs.json ./
+COPY db.py models.py pricing.py txinfo.py newsfeed.py httpcache.py main.py discovery.py seo.py cards.py pool_proofs.json ./
 
 RUN chown -R api:api /app
 USER api

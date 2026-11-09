@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse, Response
 from db import init_pool, close_pool, get_pool, get_database_url
 import discovery
 import seo
+import cards
 import txinfo
 import newsfeed
 import httpcache
@@ -232,6 +233,7 @@ async def cache_headers(request: Request, call_next):
 
 app.include_router(discovery.router)
 app.include_router(seo.router)
+app.include_router(cards.router)
 app.add_middleware(CORSMiddleware, allow_origins=['https://monerometrics.net', 'https://www.monerometrics.net', 'http://localhost:5173', 'http://localhost:4173'], allow_credentials=False, allow_methods=['GET', 'POST'], allow_headers=['*'])
 
 @app.exception_handler(404)

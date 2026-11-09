@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, Response
 
 from db import get_pool
+import cards
 
 SITE = 'https://monerometrics.net'
 router = APIRouter(prefix='/seo', include_in_schema=False)
@@ -88,11 +89,12 @@ dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0}dt{c
 .cta{margin-top:24px}code{word-break:break-all}
 """
 
-NAV = [('/', 'Dashboard'), ('/pools', 'Mining pools'), ('/reorgs', 'Reorgs'),
-       ('/orphans', 'Orphan blocks'), ('/docs', 'API')]
+NAV = [('/', 'Dashboard'), ('/pools', 'Pools'), ('/hashrate', 'Hashrate'), ('/fees', 'Fees'),
+       ('/reorgs', 'Reorgs'), ('/haveno', 'Haveno'), ('/learn', 'Learn'), ('/docs', 'API')]
 
 
-def _layout(title: str, description: str, path: str, body: str, jsonld: str = '') -> str:
+def _layout(title: str, description: str, path: str, body: str, jsonld: str = '',
+            og: str = f'{SITE}/og-image.png?v=4') -> str:
     nav = ''.join(f'<a href="{href}">{label}</a>' for href, label in NAV)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -102,7 +104,7 @@ def _layout(title: str, description: str, path: str, body: str, jsonld: str = ''
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta property="og:type" content="website"><meta property="og:site_name" content="monerometrics">
 <meta property="og:title" content="{e(title)}"><meta property="og:description" content="{e(description)}">
-<meta property="og:url" content="{SITE}{e(path)}"><meta property="og:image" content="{SITE}/og-image.png?v=4">
+<meta property="og:url" content="{SITE}{e(path)}"><meta property="og:image" content="{e(og)}">
 <meta name="twitter:card" content="summary_large_image">
 <style>{CSS}</style>{jsonld}</head><body>
 <header><div class="in"><b><a href="/">monerometrics.net</a></b>{nav}</div></header>
@@ -180,7 +182,11 @@ async def block_page(height: int):
             f'<p class="cta">Explore the chain and its forks live in the <a href="/">chain visualizer</a>, '
             f'or fetch this block as JSON: <code class="mono">GET https://api.monerometrics.net/chain/block/{e(canon["hash"])}</code></p>')
     page = _layout(f'Monero block {height:,} · {who} | monerometrics', desc, f'/block/{height}', body,
-                   _breadcrumb([('monerometrics', '/'), (f'Block {height}', f'/block/{height}')]))
+                   _breadcrumb([('monerometrics', '/'), (f'Block {height}', f'/block/{height}')]),
+                   cards.register(f'block-{height}', f'Monero block {height:,}', [
+                       ('Mined by', pool if pool and pool != 'unknown' else 'unattributed'),
+                       ('Transactions', str(canon['tx_count'])),
+                       ('Orphans at height', str(len(orphans)))]))
     return _page(_store(key, page), 300)
 
 
@@ -241,8 +247,10 @@ async def pools_page():
             f'The Nakamoto coefficient is the smallest number of pools that together produced more than half of the blocks.</p>'
             f'<p class="cta">Daily history and percentiles are on the <a href="/">dashboard</a>; raw data: '
             f'<code class="mono">GET https://api.monerometrics.net/pools/distribution?window=24h</code></p>')
+    og = cards.register('pools', 'Monero mining pool distribution', [
+        ('Largest pool, 24 h', f'{top_share:.1f}%'), ('Two largest, 24 h', f'{top2:.1f}%'), ('Nakamoto coeff.', str(nak))])
     page = _layout('Monero mining pool distribution & Nakamoto coefficient | monerometrics', desc, '/pools', body,
-                   _breadcrumb([('monerometrics', '/'), ('Mining pools', '/pools')]))
+                   _breadcrumb([('monerometrics', '/'), ('Mining pools', '/pools')]), og)
     return _page(_store('pools', page), 300)
 
 
@@ -297,7 +305,9 @@ async def pool_page(slug: str):
             f'<th class="n">Tx</th><th class="n">Reward XMR</th><th>Attribution</th></tr></thead><tbody>{trs}</tbody></table></div>'
             f'<p class="cta">Compare with every other pool on the <a href="/pools">pool distribution</a> page.</p>')
     page = _layout(f'{name} Monero mining pool share & blocks | monerometrics', desc, f'/pool/{slug}', body,
-                   _breadcrumb([('monerometrics', '/'), ('Mining pools', '/pools'), (name, f'/pool/{slug}')]))
+                   _breadcrumb([('monerometrics', '/'), ('Mining pools', '/pools'), (name, f'/pool/{slug}')]),
+                   cards.register(f'pool-{slug}', f'{name} · Monero mining pool',
+                                  [(f'Share, {k}', f'{p:.1f}%') for k, (n, p) in shares.items()]))
     return _page(_store(key, page), 300)
 
 
@@ -327,7 +337,10 @@ async def reorgs_page():
             f'<p class="cta">Watch the chain and its forks in the <a href="/">live visualizer</a>, or see '
             f'<a href="/orphans">orphan blocks</a>.</p>')
     page = _layout('Monero reorg history: every chain reorganization detected | monerometrics', desc, '/reorgs', body,
-                   _breadcrumb([('monerometrics', '/'), ('Reorgs', '/reorgs')]))
+                   _breadcrumb([('monerometrics', '/'), ('Reorgs', '/reorgs')]),
+                   cards.register('reorgs', 'Monero chain reorganizations', [
+                       ('Reorgs detected', str(len(rows))), ('Deepest', f'{deepest} blocks'),
+                       ('Latest', f'{rows[0]["detected_at"]:%Y-%m-%d}' if rows else '-')]))
     return _page(_store('reorgs', page), 300)
 
 
@@ -356,8 +369,260 @@ async def orphans_page():
             f'because a competing block at the same height won. Orphans are normal at a low rate; a rising rate or a pool '
             f'that keeps orphaning others can signal selfish mining.</p>')
     page = _layout('Monero orphan blocks: latest orphaned blocks by pool | monerometrics', desc, '/orphans', body,
-                   _breadcrumb([('monerometrics', '/'), ('Orphan blocks', '/orphans')]))
+                   _breadcrumb([('monerometrics', '/'), ('Orphan blocks', '/orphans')]),
+                   cards.register('orphans', 'Monero orphan blocks', [
+                       ('Orphans, 30 d', str(month)), ('Latest height', f'{rows[0]["height"]:,}' if rows else '-')]))
     return _page(_store('orphans', page), 300)
+
+
+def _hs(h: float) -> str:
+    for unit, div in (('GH/s', 1e9), ('MH/s', 1e6), ('kH/s', 1e3)):
+        if h >= div:
+            return f'{h / div:.2f} {unit}'
+    return f'{h:.0f} H/s'
+
+
+def _spark(values: list[float], label: str) -> str:
+    """Courbe SVG statique : la page reste sans script."""
+    if len(values) < 2:
+        return ''
+    lo, hi = min(values), max(values)
+    span = (hi - lo) or 1
+    pts = ' '.join(f'{i * 1000 / (len(values) - 1):.1f},{190 - (v - lo) * 170 / span:.1f}' for i, v in enumerate(values))
+    return (f'<div class="card"><svg viewBox="0 0 1000 200" width="100%" height="160" preserveAspectRatio="none" role="img" '
+            f'aria-label="{e(label)}"><polyline points="{pts}" fill="none" stroke="var(--acc)" stroke-width="2.5" '
+            f'vector-effect="non-scaling-stroke"/></svg></div>')
+
+
+async def pool_kpis():
+    """Part du plus gros pool, des deux plus gros, coefficient de Nakamoto, blocs (24 h)."""
+    async with get_pool().acquire() as conn:
+        day, total = await _distribution(conn, '24 hours')
+    named = [r for r in day if r['pool'] != 'unknown']
+    top = named[0]['n'] * 100 / total if named and total else 0
+    top2 = sum(r['n'] for r in named[:2]) * 100 / total if total else 0
+    return top, top2, _nakamoto(day, total), total
+
+
+async def days_since_last_reorg():
+    async with get_pool().acquire() as conn:
+        last = await conn.fetchval('SELECT MAX(detected_at) FROM reorgs_detected')
+    if last is None:
+        return None
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - last).total_seconds() / 86400
+
+
+@router.get('/hashrate')
+async def hashrate_page():
+    hit = _cached('hashrate', 300)
+    if hit:
+        return _page(hit, 600)
+    import main
+    info = await main.network_info()
+    month = await main.network_hashrate(window='30d')
+    year = await main.network_hashrate(window='1y')
+    bt = await main.network_blocktime(window='24h')
+    now = info.network_hashrate_h_s or 0
+    st = month.stats
+    change = f'{st.change_pct:+.1f}%' if st and st.change_pct is not None else '-'
+    pct = f'{st.percentile}th' if st and st.percentile is not None else '-'
+    desc = (f'Monero network hashrate now: {_hs(now)}, {change} over 30 days, difficulty {int(info.difficulty):,}. '
+            f'Average block time over 24 hours: {bt.avg_delta:.0f} s (target 120 s). Computed from our own node.')
+    sample = year.points[::-1][::max(1, len(year.points) // 24)][:24]
+    rows = ''.join(f'<tr><td class="n">{p.bucket:%Y-%m-%d}</td><td class="n">{_hs(p.hashrate_h_s)}</td></tr>' for p in sample)
+    body = (f'<h1>Monero network hashrate</h1><p class="lead">{e(desc)}</p>'
+            f'<div class="kpis"><div class="card"><div class="l">Hashrate now</div><div class="v">{_hs(now)}</div></div>'
+            f'<div class="card"><div class="l">Change, 30 d</div><div class="v">{change}</div></div>'
+            f'<div class="card"><div class="l">Percentile, 30 d</div><div class="v">{pct}</div></div>'
+            f'<div class="card"><div class="l">Block time, 24 h</div><div class="v">{bt.avg_delta:.0f} s</div></div></div>'
+            f'<h2>Last 30 days</h2>{_spark([p.hashrate_h_s for p in month.points], "Monero hashrate, 30 days")}'
+            f'<h2>Last 12 months</h2>{_spark([p.hashrate_h_s for p in year.points], "Monero hashrate, 12 months")}'
+            f'<div class="card" style="margin-top:12px"><table><thead><tr><th class="n">Date</th><th class="n">Hashrate</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table></div>'
+            f'<h2>How it is measured</h2><p>Monero adjusts difficulty so that a block is found every 120 seconds on average. '
+            f'The hashrate is therefore estimated as difficulty divided by 120, averaged over each period. It is the hashrate '
+            f'of the whole network, independent of any pool\'s self-reported figures. See who produces it on the '
+            f'<a href="/pools">pool distribution</a> page.</p>'
+            f'<p class="cta">Raw data: <code class="mono">GET https://api.monerometrics.net/network/hashrate?window=30d</code></p>')
+    page = _layout('Monero hashrate today: live network hashrate & difficulty | monerometrics', desc, '/hashrate', body,
+                   _breadcrumb([('monerometrics', '/'), ('Hashrate', '/hashrate')]),
+                   cards.register('hashrate', 'Monero network hashrate', [
+                       ('Hashrate now', _hs(now)), ('Change, 30 d', change), ('Block time, 24 h', f'{bt.avg_delta:.0f} s')]))
+    return _page(_store('hashrate', page), 600)
+
+
+@router.get('/fees')
+async def fees_page():
+    hit = _cached('fees', 300)
+    if hit:
+        return _page(hit, 600)
+    import main
+    now = await main.network_fees()
+    hist = await main.network_fees_history(window='90d')
+    normal = next((t for t in now.tiers if t.tier == 'normal'), now.tiers[0] if now.tiers else None)
+
+    def usd(t):
+        return f'${t.typical_usd:.4f}' if t and t.typical_usd is not None else '-'
+    trs = ''.join(f'<tr><td>{e(t.tier)}</td><td class="n">{t.typical_xmr:.6f}</td><td class="n">{usd(t)}</td>'
+                  f'<td class="n">{t.per_byte_pico:,}</td><td class="n">~{t.blocks_target}</td></tr>' for t in now.tiers)
+    nx = f'{normal.typical_xmr:.6f} XMR' if normal else '-'
+    desc = (f'Current Monero transaction fee: {nx} ({usd(normal)}) at normal priority for a typical '
+            f'{now.reference_bytes:,}-byte transaction. All priority tiers, live from our own node, with 90-day history.')
+    body = (f'<h1>Monero transaction fees</h1><p class="lead">{e(desc)}</p>'
+            f'<div class="card"><table><thead><tr><th>Priority</th><th class="n">XMR</th><th class="n">USD</th>'
+            f'<th class="n">piconero / byte</th><th class="n">Blocks to confirm</th></tr></thead><tbody>{trs}</tbody></table></div>'
+            f'<h2>Normal fee, last 90 days</h2>{_spark([p.normal_xmr for p in hist.points], "Monero normal fee, 90 days")}'
+            f'<h2>Why Monero fees are low and stable</h2><p>Monero has no fixed block size limit: the limit grows with demand, '
+            f'and a miner who exceeds the recent median block size loses part of the block reward. Fees therefore stay '
+            f'predictable instead of spiking in an auction. A typical two-output transaction is about '
+            f'{now.reference_bytes:,} bytes; the wallet picks the per-byte rate for the priority you choose.</p>'
+            f'<p class="cta">Raw data: <code class="mono">GET https://api.monerometrics.net/network/fees</code></p>')
+    page = _layout('Monero transaction fees today (XMR & USD) | monerometrics', desc, '/fees', body,
+                   _breadcrumb([('monerometrics', '/'), ('Fees', '/fees')]),
+                   cards.register('fees', 'Monero transaction fees', [
+                       ('Normal fee', f'{normal.typical_xmr:.5f} XMR' if normal else '-'),
+                       ('In USD', usd(normal)), ('Tx size', f'{now.reference_bytes:,} B')]))
+    return _page(_store('fees', page), 600)
+
+
+@router.get('/haveno')
+async def haveno_page():
+    hit = _cached('haveno', 1800)
+    if hit:
+        return _page(hit, 1800)
+    import main
+    r = await main.haveno_methods(window='180d', currency='USD')
+    ms = sorted([m for m in r.methods if m.trades >= 5 and m.median_premium_pct is not None],
+                key=lambda m: m.median_premium_pct, reverse=True)
+
+    def rev(m):
+        return 'yes' if m.reversible else 'no' if m.reversible is not None else '-'
+    trs = ''.join(f'<tr><td>{e(m.payment_method)}</td><td class="n">{m.trades}</td>'
+                  f'<td class="n">{m.median_premium_pct:+.1f}%</td><td>{rev(m)}</td></tr>' for m in ms)
+    top = ms[0] if ms else None
+    desc = (f'Premium paid to buy XMR on Haveno, the decentralized exchange, by payment method over 180 days '
+            f'({r.trades_total} trades). Highest: {top.payment_method} at {top.median_premium_pct:+.1f}% over spot.'
+            if top else 'Haveno premium by payment method.')
+    body = (f'<h1>Haveno premium by payment method</h1><p class="lead">{e(desc)}</p>'
+            f'<div class="card"><table><thead><tr><th>Payment method</th><th class="n">Trades</th>'
+            f'<th class="n">Median premium</th><th>Reversible</th></tr></thead><tbody>{trs}</tbody></table></div>'
+            f'<h2>What the premium measures</h2><p>Each executed Haveno trade is priced against the centralized spot price at '
+            f'the time of the trade. The premium is what a buyer paid above spot to get XMR without KYC. It follows how '
+            f'reversible the payment is, more than how private it is: methods a buyer can claw back after the trade carry '
+            f'more risk for the seller, who prices it in. Methods with fewer than five trades are left out.</p>'
+            f'<p class="cta">Raw data: <code class="mono">GET https://api.monerometrics.net/haveno/methods?window=180d</code></p>')
+    page = _layout('Haveno premium by payment method: buying XMR without KYC | monerometrics', desc, '/haveno', body,
+                   _breadcrumb([('monerometrics', '/'), ('Haveno', '/haveno')]),
+                   cards.register('haveno', 'Haveno premium by payment method', [
+                       ('Trades, 180 d', str(r.trades_total)),
+                       ('Highest premium', f'{top.median_premium_pct:+.1f}%' if top else '-'),
+                       ('Lowest premium', f'{ms[-1].median_premium_pct:+.1f}%' if ms else '-')]))
+    return _page(_store('haveno', page), 1800)
+
+
+# Guides : du texte que les gens cherchent, chacun renvoyant vers les donnees.
+LEARN = {
+    'monero-reorg': (
+        'What is a Monero reorg?',
+        'How chain reorganizations happen on Monero, why deep reorgs matter for confirmations, and how to watch them live.',
+        '<p>A blockchain reorganization (reorg) happens when nodes switch from the chain they were following to a competing '
+        'branch with more cumulative work. Blocks on the abandoned branch become orphans; their transactions go back to the '
+        'mempool and are usually mined again in the new branch.</p>'
+        '<h2>Shallow reorgs are normal</h2><p>Two miners sometimes find a block at the same height within seconds. For a short '
+        'time, part of the network follows each block, until the next block settles it. A reorg of depth 1 is routine and '
+        'harmless. You can see every such case on the <a href="/orphans">orphan blocks</a> page.</p>'
+        '<h2>Deep reorgs are an attack signal</h2><p>When a miner or pool with a large share of the hashrate withholds blocks '
+        'and publishes a longer private branch at once, several blocks are replaced together. On 14 September 2025, an '
+        'alternate chain replaced 18 Monero blocks, past the ten confirmations most services treat as final. Payments that '
+        'looked confirmed can be reversed by a reorg that deep.</p>'
+        '<h2>What it means for confirmations</h2><p>Monero locks outputs for ten blocks, and most exchanges wait for ten '
+        'confirmations or more. That is safe against accidental forks, not against a miner who controls a large share of the '
+        'hashrate. The more concentrated mining is, the more confirmations a large payment deserves.</p>'
+        '<h2>Watch it live</h2><p>Our node records every reorg it sees, with its fork point and depth: '
+        '<a href="/reorgs">reorg history</a>. The <a href="/">dashboard</a> draws the chain and its forks in real time.</p>'),
+    'selfish-mining': (
+        'Selfish mining on Monero, explained',
+        'What selfish mining is, how it shows up in orphan blocks and reorgs, and how to check pool concentration on Monero.',
+        '<p>Selfish mining is a strategy where a miner keeps the blocks it finds private instead of publishing them at once. '
+        'While honest miners work on the public chain, the selfish miner extends its own branch, then publishes it when that '
+        'makes honest blocks lose the race. The honest blocks become orphans and their rewards are lost.</p>'
+        '<h2>Why it pays</h2><p>Above roughly a third of the hashrate, a selfish miner can earn more than its fair share, '
+        'because it wastes the work of others. With a majority of the hashrate, it can rewrite recent history at will.</p>'
+        '<h2>How it shows up in the data</h2><ul><li>More orphan blocks than usual, often lost by the same pools '
+        '(<a href="/orphans">orphan blocks</a>);</li><li>reorgs deeper than one block (<a href="/reorgs">reorg history</a>);</li>'
+        '<li>one pool\'s share of blocks rising quickly (<a href="/pools">pool distribution</a>).</li></ul>'
+        '<h2>The defense is decentralization</h2><p>No single pool should approach a third of the blocks. The Nakamoto '
+        'coefficient, the smallest number of pools that together produce more than half of the blocks, summarizes it in one '
+        'number. Mining on P2Pool or a small pool keeps it high.</p>'),
+    'pool-attribution': (
+        'How Monero blocks are attributed to mining pools',
+        'Why attributing Monero blocks to pools is hard, and how monerometrics verifies it with view keys and pool block lists.',
+        '<p>A Monero block does not say who mined it: the coinbase output goes to a one-time stealth address, unreadable '
+        'without the wallet\'s private view key. Attribution has to come from somewhere else.</p>'
+        '<h2>Proven by view key</h2><p>Some pools publish the view key of their payout wallet. With it, anyone can check '
+        'cryptographically that a block\'s coinbase output belongs to that pool. This is the strongest form of attribution.</p>'
+        '<h2>Listed by the pool</h2><p>Most pools publish the list of blocks they found. We match each block hash against those '
+        'lists. This depends on the pool being honest and on its API being up; a pool\'s list can also arrive late, so the most '
+        'recent blocks may be attributed with a delay.</p>'
+        '<h2>Unattributed stays unattributed</h2><p>Blocks that match no known pool are not guessed. They are counted as '
+        'unattributed, and they stay in the denominator of every share, so no pool looks larger than it is.</p>'
+        '<p>See the result on the <a href="/pools">pool distribution</a> page, or check a single block, for example '
+        'the <a href="/block/{tip}">latest block</a>.</p>'),
+}
+
+
+@router.get('/learn')
+async def learn_index():
+    items = ''.join(f'<li><a href="/learn/{slug}">{e(t)}</a><br><span class="dim">{e(d)}</span></li>'
+                    for slug, (t, d, _) in LEARN.items())
+    body = ('<h1>Learn: the Monero network, explained with live data</h1>'
+            '<p class="lead">Short guides on how the Monero network behaves, each linked to the data behind it.</p>'
+            f'<ul style="line-height:1.9">{items}</ul>')
+    page = _layout('Learn: Monero reorgs, selfish mining and pool attribution | monerometrics',
+                   'Short guides on Monero reorgs, selfish mining and mining pool attribution, linked to live network data.',
+                   '/learn', body, _breadcrumb([('monerometrics', '/'), ('Learn', '/learn')]))
+    return _page(page, 3600)
+
+
+@router.get('/learn/{slug}')
+async def learn_page(slug: str):
+    if slug not in LEARN:
+        raise HTTPException(404)
+    title, desc, text = LEARN[slug]
+    if '{tip}' in text:
+        async with get_pool().acquire() as conn:
+            tip = await conn.fetchval('SELECT MAX(height) FROM blocks WHERE is_canonical')
+        text = text.replace('{tip}', str(tip or 0))
+    article = (f'<script type="application/ld+json">{{"@context":"https://schema.org","@type":"Article",'
+               f'"headline":"{e(title)}","description":"{e(desc)}","url":"{SITE}/learn/{slug}",'
+               f'"publisher":{{"@type":"Organization","name":"monerometrics","url":"{SITE}"}}}}</script>')
+    body = f'<h1>{e(title)}</h1><p class="lead">{e(desc)}</p><article>{text}</article>'
+    page = _layout(f'{title} | monerometrics', desc, f'/learn/{slug}', body,
+                   _breadcrumb([('monerometrics', '/'), ('Learn', '/learn'), (title, f'/learn/{slug}')]) + article,
+                   cards.register(f'learn-{slug}', title, [], desc))
+    return _page(page, 3600)
+
+
+async def render_for_card(name: str):
+    """Genere la page d'une carte demandee avant la page elle-meme."""
+    static = {'pools': pools_page, 'reorgs': reorgs_page, 'orphans': orphans_page, 'hashrate': hashrate_page,
+              'fees': fees_page, 'haveno': haveno_page}
+    # Une page servie depuis le cache HTML n'enregistre pas sa carte.
+    _cache.pop(name, None)
+    _cache.pop(name.replace('-', ':', 1), None)
+    try:
+        if name in static:
+            await static[name]()
+        elif name.startswith('block-') and name[6:].isdigit():
+            await block_page(int(name[6:]))
+        elif name.startswith('pool-'):
+            await pool_page(name[5:])
+        elif name.startswith('learn-'):
+            await learn_page(name[6:])
+    except HTTPException:
+        pass
 
 
 @router.get('/sitemap.xml')
@@ -374,7 +639,9 @@ async def sitemap():
                 UNION (SELECT height FROM blocks WHERE is_canonical ORDER BY height DESC LIMIT 2000)''')
         day = datetime.now(timezone.utc).strftime('%Y-%m-%d')
         urls = [('/', 'hourly', '1.0'), ('/pools', 'hourly', '0.9'), ('/reorgs', 'daily', '0.9'),
-                ('/orphans', 'daily', '0.8'), ('/docs', 'weekly', '0.7')]
+                ('/orphans', 'daily', '0.8'), ('/hashrate', 'hourly', '0.9'), ('/fees', 'hourly', '0.8'),
+                ('/haveno', 'daily', '0.8'), ('/learn', 'weekly', '0.6'), ('/docs', 'weekly', '0.7')]
+        urls += [(f'/learn/{slug}', 'monthly', '0.7') for slug in LEARN]
         urls += [(f'/pool/{_slug(r["miner_pool"])}', 'daily', '0.6') for r in pools if _POOL_RE.fullmatch(r['miner_pool'])]
         urls += [(f'/block/{r["height"]}', 'monthly', '0.4') for r in heights]
         items = ''.join(f'<url><loc>{SITE}{e(u)}</loc><lastmod>{day}</lastmod><changefreq>{f}</changefreq>'
