@@ -75,6 +75,7 @@ header .brand{display:flex;align-items:center;gap:8px;margin-right:auto;font:600
 header nav{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center}header nav a{font-size:14px;color:var(--tx2);text-decoration:none;padding:6px 0}header nav a:hover{color:var(--acc)}
 .live{display:inline-flex;align-items:center;gap:7px;background:var(--acc);color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:8px 14px;border-radius:6px;white-space:nowrap}
 .live:hover{filter:brightness(1.08)}.live.open{font-size:15px;padding:11px 18px;margin:0 0 18px;white-space:normal}.live i{width:7px;height:7px;border-radius:50%;background:#fff;opacity:.85}
+.note{background:color-mix(in srgb,var(--acc) 12%,var(--card));border:1px solid color-mix(in srgb,var(--acc) 40%,transparent);border-radius:8px;padding:12px 14px;margin:0 0 22px;font-size:14px;color:var(--tx2)}.note b{color:var(--tx)}
 .pages{display:flex;flex-wrap:wrap;gap:4px 14px}
 main{max-width:1000px;margin:0 auto;padding:24px 16px}
 h1{font-size:24px;margin:0 0 6px}h2{font-size:17px;margin:28px 0 10px}
@@ -120,7 +121,8 @@ def _layout(title: str, description: str, path: str, body: str, jsonld: str = ''
 <style>{CSS}</style>{jsonld}</head><body>
 <header><div class="in"><a class="brand" href="/">{LOGO}monerometrics</a><nav>{nav}</nav>
 <a class="live" href="/"><i></i>Live dashboard</a></div></header>
-<main>{body}</main>
+<main><p class="note"><b>Lightweight text version.</b> This page is a plain snapshot made for search engines and slow connections.
+The real monerometrics is the <a href="/"><b>live interactive dashboard</b></a>: live chain and fork visualizer, charts, block details, Haveno market. Strongly recommended.</p>{body}</main>
 <footer><div class="in dim"><p class="pages">{pages}</p>Reorg-aware observatory of the Monero network. Own node, every block indexed,
 free read-only <a href="/docs">API</a> and <a href="https://api.monerometrics.net/mcp">MCP server</a>. No tracking.</div></footer>
 </body></html>"""
