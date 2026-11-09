@@ -18,12 +18,12 @@ function band(pct) {
 function Cell({ label, value, sub, color, info }) {
   return (
     <div className="px-3 py-2.5" style={{ background: 'var(--color-card)' }}>
-      <div className="text-[9px] uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'var(--color-dim)' }}>
+      <div className="text-xs uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'var(--color-dim)' }}>
         {label}{info ? <InfoTooltip text={info} size={12} /> : null}
       </div>
       <div className="font-mono text-[15px] font-semibold mt-1 flex items-center gap-1.5 flex-wrap"
         style={{ color: color || 'var(--color-text)' }}>{value}</div>
-      <div className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--color-dim)' }}>{sub}</div>
+      <div className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--color-dim)' }}>{sub}</div>
     </div>
   )
 }

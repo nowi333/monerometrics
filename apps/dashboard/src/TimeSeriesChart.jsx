@@ -355,7 +355,7 @@ export default function TimeSeriesChart({
       {ranger && n > MIN_POINTS && (
         <>
           <ChartNavigator values={allYs} color={color} range={range} onRange={applyRange} />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] font-mono" style={{ color: 'var(--color-dim)' }}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs font-mono" style={{ color: 'var(--color-dim)' }}>
             <span>{zoomed
               ? t('charts.showing', { n: visible.length, total: n, from: visible[0]?.full ?? '', to: visible[visible.length - 1]?.full ?? '' })
               : t('charts.showingAll', { n })}</span>

@@ -85,14 +85,14 @@ export default function PoolsDistribution() {
     <div className="flex flex-wrap gap-3 mb-5">
       <div className="flex-1 min-w-[150px] rounded-lg border px-3 py-2"
         style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border)' }}>
-        <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-dim)' }}>{t('toppools.topPool')} {window}</div>
+        <div className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-dim)' }}>{t('toppools.topPool')} {window}</div>
         <div className="text-sm font-medium mt-0.5 flex items-center gap-2" style={{ color: concentrated ? 'var(--color-warn)' : 'var(--color-text)' }}>
           {data.top_pool ? (<><span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: poolColor(data.top_pool) }} />{data.top_pool} · {data.top_pool_share.toFixed(1)}%</>) : '—'}
         </div>
       </div>
       <div className="flex-1 min-w-[150px] rounded-lg border px-3 py-2"
         style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border)' }}>
-        <div className="text-[11px] uppercase tracking-wide flex items-center gap-1" style={{ color: 'var(--color-dim)' }}>
+        <div className="text-xs uppercase tracking-wide flex items-center gap-1" style={{ color: 'var(--color-dim)' }}>
           {t('toppools.nakamoto')}<InfoTooltip text={t('info.nakamoto')} />
         </div>
         <div className="text-sm font-medium mt-0.5" style={{ color: 'var(--color-text)' }}>
@@ -106,7 +106,7 @@ export default function PoolsDistribution() {
         <Doughnut data={chartData} options={chartOptions} />
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-3xl font-medium leading-none" style={{ color: concentrated ? 'var(--color-warn)' : 'var(--color-text)' }}>{data.distribution.length}</span>
-          <span className="text-[11px] mt-1" style={{ color: 'var(--color-dim)' }}>{t('toppools.poolsUnit')}</span>
+          <span className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>{t('toppools.poolsUnit')}</span>
         </div>
       </div>
 

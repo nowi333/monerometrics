@@ -648,7 +648,7 @@ export default function ChainForkVisualizer({ hero = false }) {
 
       {status === 'ok' && (
         <div className="mt-4">
-          <div className="text-[10px] uppercase tracking-wide mb-2" style={{ color: 'var(--color-dim)' }}>
+          <div className="text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--color-dim)' }}>
             {t('fork.legendTitle')}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-2">

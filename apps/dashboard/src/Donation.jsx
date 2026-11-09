@@ -88,7 +88,7 @@ export default function Donation() {
               />
             </div>
             <span
-              className="text-[10px] font-mono tracking-widest uppercase"
+              className="text-xs font-mono tracking-widest uppercase"
               style={{ color: 'var(--color-accent)' }}
             >
               {t('donate.scan')}
@@ -96,7 +96,7 @@ export default function Donation() {
           </div>
 
           <div className="flex-1 min-w-0 w-full">
-            <div className="text-[11px] font-medium uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-dim)' }}>
+            <div className="text-xs font-medium uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-dim)' }}>
               {t('donate.address')}
             </div>
             <button

@@ -100,3 +100,5 @@ nohup.out
 # Analyses d'audience internes : jamais dans le depot, jamais servies
 audience*.html
 apps/dashboard/public/audience*.html
+mockup-da.html
+mockup-light.html

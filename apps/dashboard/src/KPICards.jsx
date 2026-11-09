@@ -29,7 +29,7 @@ export default function KPICards() {
 
   if (netStatus !== 'ok' || !network) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="rounded-lg p-4 border" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
             <div className="mm-skeleton mb-3" style={{ height: 10, width: '60%' }} />
@@ -76,7 +76,7 @@ export default function KPICards() {
   ]
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
       {cards.map(c => (
         <div
           key={c.label}
@@ -88,7 +88,7 @@ export default function KPICards() {
             {c.info && <InfoTooltip text={c.info} />}
           </div>
           <div className="flex-1 flex flex-col justify-center">
-            <div className="text-2xl font-medium" style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text)' }}>
+            <div className="text-xl min-[400px]:text-2xl font-medium" style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text)' }}>
               <span key={c.value} className="mm-flash inline-block">{c.value}</span>
             </div>
             <div className="text-xs mt-1" style={{ color: c.detailColor }}>{c.detail}</div>
@@ -110,7 +110,7 @@ export default function KPICards() {
           {t('kpi.priceTitle')}
         </div>
         <div className="flex-1 flex flex-col justify-center">
-          <div className="font-mono text-2xl" style={{ color: 'var(--color-text)' }}>
+          <div className="font-mono text-xl min-[400px]:text-2xl" style={{ color: 'var(--color-text)' }}>
             {price?.official_usd != null ? usd(price.official_usd) : '—'}
             {price?.official_change_24h != null && (
               <span className="ml-2 text-xs" style={{ color: price.official_change_24h >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
@@ -120,7 +120,7 @@ export default function KPICards() {
           </div>
         </div>
         <div className="mt-auto pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
-          <div className="text-[10px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-dim)' }}>
+          <div className="text-xs uppercase tracking-wide mb-1.5" style={{ color: 'var(--color-dim)' }}>
             {t('kpi.havenoBook')}
           </div>
           {[
@@ -128,7 +128,7 @@ export default function KPICards() {
             { label: t('charts.spreadAvgOffer'), value: havenoAvg, pct: price?.ask_avg_premium_pct, flash: false },
           ].map(row => (
             <div key={row.label} className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 sm:gap-2 mb-1.5 last:mb-0">
-              <span className="text-[11px] min-w-0 truncate" style={{ color: 'var(--color-dim)' }}>{row.label}</span>
+              <span className="text-xs min-w-0 truncate" style={{ color: 'var(--color-dim)' }}>{row.label}</span>
               <span className="font-mono text-xs whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>
                 {row.flash
                   ? <span key={havenoDetail} className="mm-flash inline-block">{row.value != null ? usd(row.value) : '—'}</span>

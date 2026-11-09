@@ -46,7 +46,7 @@ export default function RefreshBadge() {
 
   return (
     <div
-      className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 rounded-full border pl-2 pr-1 py-1 text-[10px] font-mono shadow-lg"
+      className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 rounded-full border pl-2 pr-1 py-1 text-xs font-mono shadow-lg"
       style={{
         background: 'color-mix(in srgb, var(--color-bg-elevated) 92%, transparent)',
         borderColor: 'var(--color-border-strong)',

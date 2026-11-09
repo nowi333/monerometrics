@@ -208,7 +208,7 @@ export default function OrderBookDepth() {
 
   const stat = (label, value, color) => (
     <div>
-      <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-dim)' }}>{label}</div>
+      <div className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-dim)' }}>{label}</div>
       <div className="text-sm font-mono mt-0.5" style={{ color: color || 'var(--color-text)' }}>{value}</div>
     </div>
   )

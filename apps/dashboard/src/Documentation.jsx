@@ -163,7 +163,7 @@ export default function Documentation() {
           {['viewkey_proof', 'pool_api', 'coinbase_heuristic'].map(m => (
             <div key={m} className="mm-node rounded border p-3">
               <div
-                className="text-[10px] inline-block px-1.5 py-0.5 rounded border mb-1.5"
+                className="text-xs inline-block px-1.5 py-0.5 rounded border mb-1.5"
                 style={{
                   color: m === 'viewkey_proof' ? 'var(--color-success)' : 'var(--color-dim)',
                   borderColor: m === 'viewkey_proof' ? 'var(--color-success-border)' : 'var(--color-border)',
@@ -197,13 +197,13 @@ export default function Documentation() {
                 />
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium truncate" style={{ color: 'var(--color-text)' }}>{srx.pool}</div>
-                  <div className="text-[11px] font-mono truncate" style={{ color: 'var(--color-dim)' }}>{srx.url}</div>
+                  <div className="text-xs font-mono truncate" style={{ color: 'var(--color-dim)' }}>{srx.url}</div>
                 </div>
                 <div className="shrink-0 text-right">
                   <div className="text-xs font-mono" style={{ color: srx.ok ? 'var(--color-success)' : 'var(--color-danger)' }}>
                     {srx.ok ? t('doc.sources.ok') : t('doc.sources.ko')}
                   </div>
-                  <div className="text-[11px]" style={{ color: 'var(--color-dim)' }}>
+                  <div className="text-xs" style={{ color: 'var(--color-dim)' }}>
                     {srx.ok ? `${srx.blocks} ${t('doc.sources.blocks')}` : '—'}
                     {srx.age_s !== null ? ` · ${timeAgo(srx.age_s)}` : ''}
                   </div>
@@ -212,7 +212,7 @@ export default function Documentation() {
             ))}
           </div>
         )}
-        <p className="text-[11px] mt-3" style={{ color: 'var(--color-dim)' }}>{t('doc.sources.note')}</p>
+        <p className="text-xs mt-3" style={{ color: 'var(--color-dim)' }}>{t('doc.sources.note')}</p>
       </section>
 
       <DocPrice />
@@ -284,7 +284,7 @@ export default function Documentation() {
           <code className="text-xs sm:text-sm font-mono break-all" style={{ color: 'var(--color-text)' }}>https://api.monerometrics.net/mcp</code>
           <span className="text-xs font-mono shrink-0" style={{ color: mcpCopied ? 'var(--color-success)' : 'var(--color-accent)' }}>{mcpCopied ? t('doc.mcp.copied') : t('doc.mcp.copy')}</span>
         </button>
-        <p className="text-[11px] mt-3" style={{ color: 'var(--color-dim)' }}>
+        <p className="text-xs mt-3" style={{ color: 'var(--color-dim)' }}>
           {t('doc.mcp.note')}{' '}
           <a href="https://registry.modelcontextprotocol.io/?search=monerometrics" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: 'var(--color-info)' }}>{t('doc.mcp.registry')}</a>
         </p>

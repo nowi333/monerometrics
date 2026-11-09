@@ -14,7 +14,7 @@ const EXPLORERS = [
 function Row({ label, tip, children, mono }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-1.5 border-b" style={{ borderColor: 'var(--color-border)' }}>
-      <span className="text-[11px] uppercase tracking-wide shrink-0 sm:w-32 inline-flex items-center gap-1" style={{ color: 'var(--color-dim)' }}>
+      <span className="text-xs uppercase tracking-wide shrink-0 sm:w-32 inline-flex items-center gap-1" style={{ color: 'var(--color-dim)' }}>
         {label}{tip && <InfoTooltip text={tip} />}
       </span>
       <span className={`text-sm break-all${mono ? ' font-mono' : ''}`} style={{ color: 'var(--color-text)' }}>{children}</span>
@@ -81,7 +81,7 @@ export default function BlockDetailModal({ selected, onClose }) {
 
         <div className="flex items-center gap-2 mb-4 pr-8">
           <span
-            className="text-[11px] font-semibold px-2 py-0.5 rounded inline-flex items-center gap-1"
+            className="text-xs font-semibold px-2 py-0.5 rounded inline-flex items-center gap-1"
             style={{
               color: isOrphan ? 'var(--color-danger)' : 'var(--color-success)',
               background: isOrphan ? 'var(--color-danger-bg)' : 'var(--color-success-bg)',
@@ -92,7 +92,7 @@ export default function BlockDetailModal({ selected, onClose }) {
             <InfoTooltip text={t('block.tip.status')} />
           </span>
           {block.is_fork_point && (
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded inline-flex items-center gap-1" style={{ color: 'var(--color-warn)', background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)' }}>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded inline-flex items-center gap-1" style={{ color: 'var(--color-warn)', background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)' }}>
               {t('block.forkPoint')}
               <InfoTooltip text={t('block.tip.forkPoint')} />
             </span>
@@ -116,7 +116,7 @@ export default function BlockDetailModal({ selected, onClose }) {
               {block.miner_pool || 'unknown'}
               {src && (
                 <span
-                  className="text-[10px] px-1.5 py-0.5 rounded border"
+                  className="text-xs px-1.5 py-0.5 rounded border"
                   title={t('block.source.' + src + 'Help')}
                   style={{
                     color: src === 'viewkey_proof' ? 'var(--color-success)' : 'var(--color-dim)',
@@ -155,11 +155,11 @@ export default function BlockDetailModal({ selected, onClose }) {
                 <span>
                   {t('block.mergeMiningValue', { count: ext.merge_mining.length })}
                 </span>
-                <span className="text-[11px]" style={{ color: 'var(--color-dim)' }}>
+                <span className="text-xs" style={{ color: 'var(--color-dim)' }}>
                   {t('block.mergeChainGuess')}
                 </span>
                 {ext.merge_mining.map((c, i) => c.id ? (
-                  <span key={i} className="text-[10px] font-mono break-all" style={{ color: 'var(--color-text-secondary)' }}>
+                  <span key={i} className="text-xs font-mono break-all" style={{ color: 'var(--color-text-secondary)' }}>
                     {t('block.mergeMerkle')}: {c.id}
                   </span>
                 ) : null)}
@@ -170,7 +170,7 @@ export default function BlockDetailModal({ selected, onClose }) {
 
         {ext?.tx_hashes?.length > 0 && (
           <details className="mm-disclosure mb-4">
-            <summary className="text-[11px] uppercase tracking-wide cursor-pointer inline-flex items-center gap-1.5" style={{ color: 'var(--color-dim)' }}>
+            <summary className="text-xs uppercase tracking-wide cursor-pointer inline-flex items-center gap-1.5" style={{ color: 'var(--color-dim)' }}>
               {/* Le chevron dit que la ligne se deplie, et son sens dit dans quel
                   etat elle se trouve. Sans lui, rien ne distingue ce titre d'un
                   intitule de champ. */}
@@ -181,21 +181,21 @@ export default function BlockDetailModal({ selected, onClose }) {
               {t('block.txList', { count: ext.tx_hashes.length })}
               <InfoTooltip text={t('block.tip.txList')} />
             </summary>
-            <div className="mt-2 max-h-40 overflow-y-auto text-[10px] font-mono break-all space-y-1" style={{ color: 'var(--color-text-secondary)' }}>
+            <div className="mt-2 max-h-40 overflow-y-auto text-xs font-mono break-all space-y-1" style={{ color: 'var(--color-text-secondary)' }}>
               {ext.tx_hashes.map(h => <div key={h}>{h}</div>)}
             </div>
           </details>
         )}
 
         <div>
-          <div className="text-[11px] uppercase tracking-wide mb-2 inline-flex items-center gap-1" style={{ color: 'var(--color-dim)' }}>
+          <div className="text-xs uppercase tracking-wide mb-2 inline-flex items-center gap-1" style={{ color: 'var(--color-dim)' }}>
             {t(isOrphan ? 'block.verifyOrphan' : 'block.verify')}
             <InfoTooltip text={t('block.tip.explorers')} />
           </div>
           {/* Aucun explorateur public ne garde les orphelins : on le dit avant
               le lien, pas apres, pour qu'on ne croie pas verifier ce bloc-ci. */}
           {isOrphan && (
-            <p className="text-[11px] mb-2 leading-relaxed" style={{ color: 'var(--color-dim)' }}>{t('block.orphanNote')}</p>
+            <p className="text-xs mb-2 leading-relaxed" style={{ color: 'var(--color-dim)' }}>{t('block.orphanNote')}</p>
           )}
           <div className="flex flex-wrap gap-2">
             {EXPLORERS.map(ex => (

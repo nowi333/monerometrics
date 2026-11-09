@@ -47,7 +47,7 @@ export default function HavenoMethods() {
     <div className="overflow-x-auto">
       <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ color: 'var(--color-dim)' }} className="text-[10px] uppercase tracking-wide">
+          <tr style={{ color: 'var(--color-dim)' }} className="text-xs uppercase tracking-wide">
             <th className="text-left font-medium pb-2">{t('haveno.methods.method')}</th>
             <th className="text-right font-medium pb-2 pl-3">{t('haveno.methods.trades')}</th>
             <th className="text-right font-medium pb-2 pl-3 hidden sm:table-cell">{t('haveno.methods.volume')}</th>

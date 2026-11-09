@@ -163,7 +163,7 @@ export default function NewsBanner() {
       style={{ color: 'var(--color-text)' }}
     >
       <span
-        className="text-[10px] font-mono uppercase tracking-wider leading-none px-1.5 py-[3px] rounded shrink-0"
+        className="text-xs font-mono uppercase tracking-wider leading-none px-1.5 py-[3px] rounded shrink-0"
         style={{
           color: (SOURCES[item.source] || SOURCES.getmonero).color,
           border: `1px solid color-mix(in srgb, ${(SOURCES[item.source] || SOURCES.getmonero).color} 45%, transparent)`,
@@ -171,7 +171,7 @@ export default function NewsBanner() {
         }}
       >{(SOURCES[item.source] || SOURCES.getmonero).label}</span>
       {item.title}
-      <span className="text-[11px] font-mono" style={{ color: 'var(--color-dim)' }}>
+      <span className="text-xs font-mono" style={{ color: 'var(--color-dim)' }}>
         {D.dayMonthYear(new Date(item.published_unix * 1000))}
       </span>
     </a>
@@ -183,7 +183,7 @@ export default function NewsBanner() {
   const heading = (key) => (
     <span key={key} className="inline-flex items-center pl-5 shrink-0 select-none">
       <span
-        className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.18em] font-semibold px-2 py-[3px] rounded"
+        className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-[0.18em] font-semibold px-2 py-[3px] rounded"
         style={{
           color: 'var(--color-success)',
           border: '1px solid color-mix(in srgb, var(--color-success) 45%, transparent)',

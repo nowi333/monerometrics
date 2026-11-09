@@ -91,7 +91,7 @@ export default function Provenance() {
       </div>
 
       {data.unproven_claims > 0 && (
-        <p className="text-[11px] mt-3 leading-relaxed" style={{ color: 'var(--color-warn)' }}>
+        <p className="text-xs mt-3 leading-relaxed" style={{ color: 'var(--color-warn)' }}>
           {t('prov.unprovenWarning', { count: data.unproven_claims })}
         </p>
       )}

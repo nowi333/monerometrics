@@ -16,7 +16,7 @@ function Tier({ title, price, children }) {
     <div className="rounded-lg border p-4 flex flex-col gap-3" style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border)' }}>
       <div className="flex justify-between items-baseline gap-2">
         <span className="text-[13px] font-semibold" style={{ color: 'var(--color-text)' }}>{title}</span>
-        <span className="text-[11px]" style={{ ...MONO, color: 'var(--color-dim)' }}>{price}</span>
+        <span className="text-xs" style={{ ...MONO, color: 'var(--color-dim)' }}>{price}</span>
       </div>
       {children}
     </div>
@@ -55,11 +55,11 @@ export default function SupportersWall() {
         <div className="grid grid-cols-2 sm:flex gap-3 sm:gap-5 shrink-0">
           <div className="flex flex-col sm:items-end gap-0.5">
             <span className="text-xl sm:text-[22px]" style={{ ...MONO, color: 'var(--color-text)' }}>{shown}</span>
-            <span className="text-[11px]" style={{ color: 'var(--color-dim)' }}>{t('wall.shown')}</span>
+            <span className="text-xs" style={{ color: 'var(--color-dim)' }}>{t('wall.shown')}</span>
           </div>
           <div className="flex flex-col sm:items-end gap-0.5">
             <span className="text-xl sm:text-[22px]" style={{ ...MONO, color: 'var(--color-accent)' }}>{fmt(data.raisedXmr)} XMR</span>
-            <span className="text-[11px]" style={{ color: 'var(--color-dim)' }}>{t('wall.goal', { goal: fmt(data.goalXmr) })}</span>
+            <span className="text-xs" style={{ color: 'var(--color-dim)' }}>{t('wall.goal', { goal: fmt(data.goalXmr) })}</span>
           </div>
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function SupportersWall() {
         <div className="rounded-lg border px-4 py-3.5 sm:px-5 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4"
           style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border)' }}>
           <div className="flex flex-col gap-1 flex-1">
-            <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--color-dim)' }}>{t('wall.early.title')}</span>
+            <span className="text-xs sm:text-xs uppercase tracking-[0.12em]" style={{ color: 'var(--color-dim)' }}>{t('wall.early.title')}</span>
             <span className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('wall.early.body')}</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -110,7 +110,7 @@ export default function SupportersWall() {
           <div className="rounded-lg border px-4 py-4 sm:px-5 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4"
             style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 45%, transparent)', background: 'color-mix(in srgb, var(--color-accent) 6%, transparent)' }}>
             <div className="flex flex-col gap-1 flex-1">
-              <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--color-accent)' }}>{t('wall.node.title')}</span>
+              <span className="text-xs sm:text-xs uppercase tracking-[0.12em]" style={{ color: 'var(--color-accent)' }}>{t('wall.node.title')}</span>
               <span className="text-sm sm:text-[15px]" style={{ color: 'var(--color-text)' }}>
                 {t('wall.node.named')}{' '}
                 <span style={{ ...MONO, color: 'var(--color-accent)' }}>node-{data.node ? data.node.name : '…'}</span>

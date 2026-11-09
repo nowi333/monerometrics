@@ -28,16 +28,16 @@ export default function FeeEstimator() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {data.tiers.map(tier => (
           <div key={tier.tier} className="rounded-lg border p-3" style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border)' }}>
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide mb-2" style={{ color: TIER_COLOR[tier.tier] }}>
+            <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide mb-2" style={{ color: TIER_COLOR[tier.tier] }}>
               <span className="w-2 h-2 rounded-sm" style={{ background: TIER_COLOR[tier.tier] }} />
               {t(`fees.tier.${tier.tier}`)}
             </div>
             <div className="font-mono text-xl leading-none" style={{ color: 'var(--color-text)' }}>{usd(tier.typical_usd)}</div>
-            <div className="font-mono text-[11px] mt-1.5" style={{ color: 'var(--color-dim)' }}>{tier.typical_xmr.toFixed(5)} XMR</div>
+            <div className="font-mono text-xs mt-1.5" style={{ color: 'var(--color-dim)' }}>{tier.typical_xmr.toFixed(5)} XMR</div>
           </div>
         ))}
       </div>
-      <p className="text-[11px] leading-relaxed mt-3" style={{ color: 'var(--color-dim)' }}>{t('fees.note')}</p>
+      <p className="text-xs leading-relaxed mt-3" style={{ color: 'var(--color-dim)' }}>{t('fees.note')}</p>
     </>
   )
 }

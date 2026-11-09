@@ -35,7 +35,7 @@ function useFmt() {
 
 function Chip({ children }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] rounded-full border px-2.5 py-1"
+    <span className="inline-flex items-center gap-1.5 text-xs rounded-full border px-2.5 py-1"
       style={{ borderColor: 'var(--color-border)', color: 'var(--color-dim)' }}>
       <span className="w-1 h-1 rounded-full shrink-0" style={{ background: 'var(--color-dim)' }} />
       {children}
@@ -101,13 +101,13 @@ function PriceLadder({ p }) {
             {/* Sur deux etages en dessous de 640 px : libelle, prix et ecart ne
                 tiennent pas sur une ligne de telephone sans couper le libelle. */}
             <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-baseline sm:justify-between sm:gap-3 leading-tight">
-              <span className="text-[11px] sm:text-sm sm:truncate" style={{ color: r.spot ? 'var(--color-text)' : 'var(--color-text-secondary)' }}>
+              <span className="text-xs sm:text-sm sm:truncate" style={{ color: r.spot ? 'var(--color-text)' : 'var(--color-text-secondary)' }}>
                 {t(`doc.mkt.ladder.${r.key}`)}
               </span>
               <span className="flex items-baseline gap-2 shrink-0 font-mono">
                 <span className="text-sm" style={{ color: 'var(--color-text)' }}>{f.usd(r.price)}</span>
                 {!r.spot && (
-                  <span className="text-[11px] w-14 text-right" style={{ color: r.color }}>{f.pct(r.pct)}</span>
+                  <span className="text-xs w-14 text-right" style={{ color: r.color }}>{f.pct(r.pct)}</span>
                 )}
               </span>
             </div>
@@ -125,7 +125,7 @@ function PriceLadder({ p }) {
       {/* Sur un telephone, l'accolade prenait la place des libelles, qui
           finissaient tronques. L'aller-retour passe alors sous l'echelle. */}
       <div className="sm:hidden col-span-2 flex items-baseline justify-between border-t pt-3 mt-1" style={{ borderColor: 'var(--color-border)' }}>
-        <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-dim)' }}>{t('doc.mkt.ladder.roundTrip')}</span>
+        <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-dim)' }}>{t('doc.mkt.ladder.roundTrip')}</span>
         <span className="text-lg font-mono font-medium" style={{ color: 'var(--color-text)' }}>{f.pct(p?.round_trip_cost_pct)}</span>
       </div>
     </div>
@@ -139,7 +139,7 @@ function Brace({ top, bottom, color, label, value }) {
       <span className="absolute left-0 w-2.5 border-t border-b border-r rounded-r"
         style={{ top: 0, height: h, borderColor: 'var(--color-border)' }} />
       <div className="absolute flex flex-col justify-center leading-tight whitespace-nowrap" style={{ left: 16, top: 0, height: h }}>
-        <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-dim)' }}>{label}</span>
+        <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-dim)' }}>{label}</span>
         <span className="text-base sm:text-lg font-mono font-medium" style={{ color }}>{value}</span>
       </div>
     </div>
@@ -197,7 +197,7 @@ export function DocPrice() {
           <div key={c.k} className="mm-node rounded-lg border p-4 flex gap-3">
             <Icon d={c.icon} color={c.color} />
             <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-dim)' }}>{t(`doc.mkt.${c.k}.label`)}</div>
+              <div className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-dim)' }}>{t(`doc.mkt.${c.k}.label`)}</div>
               <div className="text-xl font-mono mt-0.5" style={{ color: 'var(--color-text)' }}>{f.usd(c.value)}</div>
               <div className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>{t(`doc.mkt.${c.k}.what`)}</div>
             </div>
@@ -252,7 +252,7 @@ function MethodBars({ methods }) {
             </span>
             <span className="text-xs font-mono w-[76px] text-right" style={{ color }}>
               {f.pct(m.avg_premium_pct)}
-              <span className="block text-[10px]" style={{ color: 'var(--color-dim)' }}>{t('doc.mkt.trades', { n: m.trades })}</span>
+              <span className="block text-xs" style={{ color: 'var(--color-dim)' }}>{t('doc.mkt.trades', { n: m.trades })}</span>
             </span>
           </div>
         )
@@ -281,7 +281,7 @@ export function DocHaveno() {
           <div key={m.k} className="mm-node rounded-lg border p-3">
             <Icon d={m.icon} color="var(--color-info)" />
             <div className="text-sm mt-2" style={{ color: 'var(--color-text)' }}>{t(`doc.mkt.mirror.${m.k}.name`)}</div>
-            <div className="text-[11px] font-mono mt-0.5" style={{ color: 'var(--color-dim)' }}>{t(`doc.mkt.mirror.${m.k}.when`)}</div>
+            <div className="text-xs font-mono mt-0.5" style={{ color: 'var(--color-dim)' }}>{t(`doc.mkt.mirror.${m.k}.when`)}</div>
           </div>
         ))}
       </div>
@@ -294,7 +294,7 @@ export function DocHaveno() {
         {status === 'ok'
           ? <MethodBars methods={data.methods} />
           : <div className="mm-skeleton" style={{ height: 180 }} />}
-        <div className="flex gap-4 mt-4 pt-3 border-t text-[11px]" style={{ borderColor: 'var(--color-border)', color: 'var(--color-dim)' }}>
+        <div className="flex gap-4 mt-4 pt-3 border-t text-xs" style={{ borderColor: 'var(--color-border)', color: 'var(--color-dim)' }}>
           <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: 'var(--color-danger)' }} />{t('doc.mkt.finding.reversible')}</span>
           <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: 'var(--color-success)' }} />{t('doc.mkt.finding.final')}</span>
         </div>
@@ -303,7 +303,7 @@ export function DocHaveno() {
 
       <h3 className="text-sm font-medium mb-1" style={{ color: 'var(--color-text)' }}>{t('doc.mkt.scope.title')}</h3>
       <p className="text-xs mb-3" style={{ color: 'var(--color-dim)' }}>{t('doc.mkt.scope.sub')}</p>
-      <div className="flex h-8 rounded-lg overflow-hidden text-[11px] font-mono mb-2">
+      <div className="flex h-8 rounded-lg overflow-hidden text-xs font-mono mb-2">
         <span className="flex items-center px-3" style={{ width: '95%', background: 'color-mix(in srgb, var(--color-border) 70%, transparent)', color: 'var(--color-dim)' }}>
           {t('doc.mkt.scope.crypto')}
         </span>

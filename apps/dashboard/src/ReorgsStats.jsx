@@ -53,17 +53,17 @@ export default function ReorgsStats() {
       >
         <div className="flex items-center gap-2 mb-2">
           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-          <span className="text-[11px] font-mono uppercase tracking-wider" style={{ color: 'var(--color-dim)' }}>
+          <span className="text-xs font-mono uppercase tracking-wider" style={{ color: 'var(--color-dim)' }}>
             {w.window === 'all' ? t('reorgs.all') : w.window}
           </span>
         </div>
 
         <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-medium" style={{ fontFamily: 'var(--font-mono)', color: quiet ? 'var(--color-dim)' : 'var(--color-text)' }}>
+          <span className="text-xl min-[400px]:text-2xl font-medium" style={{ fontFamily: 'var(--font-mono)', color: quiet ? 'var(--color-dim)' : 'var(--color-text)' }}>
             {quiet ? t('reorgs.none') : w.count}
           </span>
           {!quiet && (
-            <span className="text-[11px]" style={{ color: 'var(--color-dim)' }}>{t('reorgs.unit')}</span>
+            <span className="text-xs" style={{ color: 'var(--color-dim)' }}>{t('reorgs.unit')}</span>
           )}
         </div>
 
@@ -82,12 +82,12 @@ export default function ReorgsStats() {
               />
             ))}
           </span>
-          <span className="text-[11px] font-mono" style={{ color: quiet ? 'var(--color-dim)' : color }}>
+          <span className="text-xs font-mono" style={{ color: quiet ? 'var(--color-dim)' : color }}>
             {w.max_depth ? t('reorgs.depthValue', { n: w.max_depth }) : '—'}
           </span>
         </div>
 
-        <div className="mt-3 pt-2 border-t grid grid-cols-2 gap-1 text-[11px]" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="mt-3 pt-2 border-t grid grid-cols-2 gap-1 text-xs" style={{ borderColor: 'var(--color-border)' }}>
           <span style={{ color: 'var(--color-dim)' }}>{t('reorgs.column.avgDepth')}</span>
           <span className="text-right font-mono" style={{ color: 'var(--color-text-secondary)' }}>
             {w.avg_depth != null ? w.avg_depth.toFixed(2) : '—'}
@@ -103,10 +103,10 @@ export default function ReorgsStats() {
 
   return wrap(
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {stats.windows.map(card)}
       </div>
-      <p className="mt-3 text-[11px] leading-relaxed" style={{ color: 'var(--color-dim)' }}>
+      <p className="mt-3 text-xs leading-relaxed" style={{ color: 'var(--color-dim)' }}>
         {t('reorgs.routine')}
       </p>
     </>

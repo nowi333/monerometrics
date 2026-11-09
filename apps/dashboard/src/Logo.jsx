@@ -41,7 +41,7 @@ export default function Logo({ onClick }) {
     >
       <LogoMark size={36} className="shrink-0" />
       <span
-        className="text-xs sm:text-base font-medium tracking-tight whitespace-nowrap"
+        className="hidden min-[380px]:inline text-xs sm:text-base font-medium tracking-tight whitespace-nowrap"
         style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text)' }}
       >
         monerometrics.net

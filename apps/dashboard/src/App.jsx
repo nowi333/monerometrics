@@ -113,7 +113,7 @@ function Section({ id, label }) {
   return (
     // scroll-mt compense la barre collante : sans lui l'ancre atterrit sous elle.
     <div id={id} className="flex items-center gap-3 mt-10 mb-3 scroll-mt-16">
-      <span className="text-[10px] uppercase tracking-[0.16em] shrink-0" style={{ color: 'var(--color-dim)' }}>{label}</span>
+      <span className="text-xs uppercase tracking-[0.16em] shrink-0" style={{ color: 'var(--color-dim)' }}>{label}</span>
       <span className="h-px flex-1" style={{ background: 'var(--color-border)' }} />
     </div>
   )
@@ -365,7 +365,7 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               title="Review monerometrics on Monerica"
-              className="mm-badge inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px]"
+              className="mm-badge inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs"
               style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 28%, var(--color-border))', color: 'var(--color-text-secondary)' }}
             >
               <span className="inline-flex items-center rounded-sm bg-white px-1 py-0.5" style={{ lineHeight: 0 }}>

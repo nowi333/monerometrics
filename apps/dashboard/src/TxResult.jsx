@@ -6,7 +6,7 @@ import { poolColor } from './poolColors'
 function Row({ label, children, mono }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-1.5 border-b" style={{ borderColor: 'var(--color-border)' }}>
-      <span className="text-[11px] uppercase tracking-wide shrink-0 sm:w-36" style={{ color: 'var(--color-dim)' }}>{label}</span>
+      <span className="text-xs uppercase tracking-wide shrink-0 sm:w-36" style={{ color: 'var(--color-dim)' }}>{label}</span>
       <span className={`text-sm break-all${mono ? ' font-mono' : ''}`} style={{ color: 'var(--color-text)' }}>{children}</span>
     </div>
   )
@@ -34,7 +34,7 @@ export default function TxResult({ tx, seenAt, onClose, onShowBlock }) {
     <div className="mb-3 rounded-lg border p-4" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
       <div className="flex items-center gap-2 mb-2">
         <span
-          className="text-[11px] font-semibold px-2 py-0.5 rounded"
+          className="text-xs font-semibold px-2 py-0.5 rounded"
           style={{
             color: pending ? 'var(--color-warn)' : 'var(--color-success)',
             background: pending ? 'var(--color-warning-bg)' : 'var(--color-success-bg)',
@@ -99,7 +99,7 @@ export default function TxResult({ tx, seenAt, onClose, onShowBlock }) {
         </Row>
       )}
 
-      <p className="text-[11px] mt-3" style={{ color: 'var(--color-dim)' }}>{t('tx.privacy')} {t('tx.onion')}</p>
+      <p className="text-xs mt-3" style={{ color: 'var(--color-dim)' }}>{t('tx.privacy')} {t('tx.onion')}</p>
     </div>
   )
 }
