@@ -18,3 +18,7 @@ common_sysctl_hardening: []
 
 # Mise a jour complete des paquets a chaque passage (dist-upgrade).
 common_apt_upgrade: true
+
+# Compte d'administration (SSH par cle via Tailscale, sudo sans mot de passe).
+common_admin_user: ops
+common_admin_pubkey_file: ~/.ssh/monerometrics/bastion.pub

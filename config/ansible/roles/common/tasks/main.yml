@@ -33,6 +33,34 @@
     mode: '0755'
   become: true
 
+- name: Create admin account
+  ansible.builtin.user:
+    name: "{{ common_admin_user }}"
+    groups: sudo
+    append: true
+    shell: /bin/bash
+  become: true
+  tags: [admin]
+
+- name: Authorize admin SSH key
+  ansible.posix.authorized_key:
+    user: "{{ common_admin_user }}"
+    key: "{{ lookup('file', common_admin_pubkey_file) }}"
+    exclusive: true
+  become: true
+  tags: [admin]
+
+- name: Grant admin passwordless sudo
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/90-admin
+    content: "{{ common_admin_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    owner: root
+    group: root
+    mode: '0440'
+    validate: '/usr/sbin/visudo -cf %s'
+  become: true
+  tags: [admin]
+
 - name: Deploy hardened sshd_config
   ansible.builtin.template:
     src: sshd_config.j2
