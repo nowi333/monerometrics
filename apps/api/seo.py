@@ -74,7 +74,7 @@ header .in{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:center}
 header .brand{display:flex;align-items:center;gap:8px;margin-right:auto;font:600 15px ui-monospace,Menlo,monospace;color:var(--tx);text-decoration:none}
 header nav{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center}header nav a{font-size:14px;color:var(--tx2);text-decoration:none;padding:6px 0}header nav a:hover{color:var(--acc)}
 .live{display:inline-flex;align-items:center;gap:7px;background:var(--acc);color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:8px 14px;border-radius:6px;white-space:nowrap}
-.live:hover{filter:brightness(1.08)}.live i{width:7px;height:7px;border-radius:50%;background:#fff;opacity:.85}
+.live:hover{filter:brightness(1.08)}.live.open{font-size:15px;padding:11px 18px;margin:0 0 18px;white-space:normal}.live i{width:7px;height:7px;border-radius:50%;background:#fff;opacity:.85}
 .pages{display:flex;flex-wrap:wrap;gap:4px 14px}
 main{max-width:1000px;margin:0 auto;padding:24px 16px}
 h1{font-size:24px;margin:0 0 6px}h2{font-size:17px;margin:28px 0 10px}
@@ -189,6 +189,7 @@ async def block_page(height: int):
     desc = (f'Monero block {height:,}: {who}, {canon["tx_count"]} transactions, {canon["size_bytes"]:,} bytes, '
             f'mined {_ts(canon["timestamp_unix"])}' + (f', {len(orphans)} competing orphan block(s).' if orphans else '.'))
     body = (f'<h1>Monero block {height:,}</h1><p class="lead">{e(desc)}</p>'
+            f'<p><a class="live open" href="/#block={e(canon["hash"])}">Open block {height:,} in the live dashboard →</a></p>'
             f'<div class="card"><dl>{dl}</dl></div>{orphan_html}'
             f'<div class="nav">{prv}{nxt}</div>'
             f'<p class="cta">Explore the chain and its forks live in the <a href="/#consensus">chain visualizer</a>, '

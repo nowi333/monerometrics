@@ -6,6 +6,7 @@ import LanguageSwitcher from './LanguageSwitcher'
 import KPICards from './KPICards'
 import ChainForkVisualizer from './ChainForkVisualizer'
 import RefreshBadge from './RefreshBadge'
+import BlockDeepLink from './BlockDeepLink'
 import StatusBanner from './StatusBanner'
 import NewsBanner from './NewsBanner'
 import SectionNav from './SectionNav'
@@ -398,6 +399,7 @@ export default function App() {
       </footer>
       </div>
       <RefreshBadge />
+      <BlockDeepLink />
     </div>
   )
 }
