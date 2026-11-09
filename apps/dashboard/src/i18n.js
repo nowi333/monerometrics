@@ -353,6 +353,9 @@ i18n
           'footer.pools': 'Mining pools',
           'footer.reorgs': 'Reorg history',
           'footer.orphans': 'Orphan blocks',
+          'footer.hashrate': 'Hashrate',
+          'footer.fees': 'Fees',
+          'footer.learn': 'Guides',
 
 
           'footer.soon': 'soon',
@@ -489,6 +492,8 @@ i18n
           'doc.apiTitle': 'Public API',
           'doc.usage': '{{count}} external requests served (excluding this dashboard and the MCP)',
           'doc.mcp.title': 'MCP server',
+          'doc.badges.title': 'Embeddable badges',
+          'doc.badges.p': 'Live SVG badges for a README, a wiki or a site. They refresh every five minutes and link back to monerometrics. Copy the Markdown line under the badge you want.',
           'doc.mcp.text': 'Use monerometrics from AI assistants. The Model Context Protocol server exposes the metrics as read-only tools: reorgs, orphan blocks, mining concentration, block search down to genesis. Add the endpoint to any MCP client, no account, no API key.',
           'doc.mcp.copy': 'Copy',
           'doc.mcp.copied': 'Copied',

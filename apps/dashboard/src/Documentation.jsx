@@ -10,6 +10,9 @@ const CONTACT_EMAIL = 'contact@monerometrics.net'
 
 const ONION_HOST = '6wbhchvavey26lbtscl6w6qg76balycixtsklcggrsslyk4xah6sbbad.onion'
 
+// Badges SVG servis par l'API, a integrer dans un README ou une page.
+const BADGES = ['status', 'nakamoto', 'top-pool', 'hashrate', 'last-reorg']
+
 const ENDPOINTS = [
   { m: 'GET', p: '/health', k: 'health' },
   { m: 'GET', p: '/info', k: 'info' },
@@ -243,6 +246,24 @@ export default function Documentation() {
               <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.ep.' + e.k)}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-lg border p-5 sm:p-6" style={card}>
+        <h2 className="text-lg font-medium mb-1" style={{ color: 'var(--color-text)' }}>{t('doc.badges.title')}</h2>
+        <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('doc.badges.p')}</p>
+        <div className="space-y-3">
+          {BADGES.map(b => {
+            const src = `https://api.monerometrics.net/badge/${b}.svg`
+            return (
+              <div key={b} className="mm-node rounded border p-3 min-w-0">
+                <img src={src} alt={b} height="20" className="mb-2" />
+                <code className="block text-xs font-mono break-all" style={{ color: 'var(--color-dim)' }}>
+                  {`[![${b}](${src})](https://monerometrics.net)`}
+                </code>
+              </div>
+            )
+          })}
         </div>
       </section>
 

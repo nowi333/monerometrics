@@ -335,6 +335,9 @@ export default {
           'footer.pools': 'Pools de minage',
           'footer.reorgs': 'Historique des reorgs',
           'footer.orphans': 'Blocs orphelins',
+          'footer.hashrate': 'Hashrate',
+          'footer.fees': 'Frais',
+          'footer.learn': 'Guides',
 
 
           'footer.soon': 'bientôt',
@@ -471,6 +474,8 @@ export default {
           'doc.apiTitle': 'API publique',
           'doc.usage': '{{count}} requêtes externes servies (hors ce dashboard et le MCP)',
           'doc.mcp.title': 'Serveur MCP',
+          'doc.badges.title': 'Badges à intégrer',
+          'doc.badges.p': 'Des badges SVG en direct pour un README, un wiki ou un site. Ils se mettent à jour toutes les cinq minutes et renvoient vers monerometrics. Copiez la ligne Markdown sous le badge voulu.',
           'doc.mcp.text': 'Utilisez monerometrics depuis un assistant IA. Le serveur Model Context Protocol expose les mesures en outils de lecture seule : réorganisations, blocs orphelins, concentration du minage, recherche de bloc jusqu’au bloc de genèse. Ajoutez l’adresse à n’importe quel client MCP, sans compte ni clé.',
           'doc.mcp.copy': 'Copier',
           'doc.mcp.copied': 'Copié',

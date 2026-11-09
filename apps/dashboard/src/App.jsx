@@ -330,7 +330,7 @@ export default function App() {
         </div>
         <div className="mb-1">
           {t('footer.pages')}{' '}
-          {[['/pools', 'footer.pools'], ['/reorgs', 'footer.reorgs'], ['/orphans', 'footer.orphans']].map(([href, key], i) => (
+          {[['/pools', 'footer.pools'], ['/hashrate', 'footer.hashrate'], ['/fees', 'footer.fees'], ['/reorgs', 'footer.reorgs'], ['/orphans', 'footer.orphans'], ['/learn', 'footer.learn']].map(([href, key], i) => (
             <span key={href}>
               {i > 0 && ' · '}
               <a className="hover:underline" style={{ color: 'var(--color-info)' }} href={href}>{t(key)}</a>

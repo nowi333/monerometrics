@@ -335,6 +335,9 @@ export default {
           'footer.pools': 'Pools de minería',
           'footer.reorgs': 'Historial de reorgs',
           'footer.orphans': 'Bloques huérfanos',
+          'footer.hashrate': 'Hashrate',
+          'footer.fees': 'Comisiones',
+          'footer.learn': 'Guías',
 
 
           'footer.soon': 'pronto',
@@ -471,6 +474,8 @@ export default {
           'doc.apiTitle': 'API pública',
           'doc.usage': '{{count}} solicitudes externas servidas (sin este panel ni el MCP)',
           'doc.mcp.title': 'Servidor MCP',
+          'doc.badges.title': 'Insignias para integrar',
+          'doc.badges.p': 'Insignias SVG en directo para un README, una wiki o un sitio. Se actualizan cada cinco minutos y enlazan a monerometrics. Copia la línea Markdown bajo la insignia que quieras.',
           'doc.mcp.text': 'Usa monerometrics desde un asistente de IA. El servidor Model Context Protocol expone las métricas como herramientas de solo lectura: reorganizaciones, bloques huérfanos, concentración minera, búsqueda de bloques hasta el génesis. Añade la dirección a cualquier cliente MCP, sin cuenta ni clave.',
           'doc.mcp.copy': 'Copiar',
           'doc.mcp.copied': 'Copiado',
