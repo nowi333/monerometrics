@@ -187,6 +187,8 @@ export default function BlockDetailModal({ selected, onClose }) {
           </details>
         )}
 
+        {!isOrphan && <ShareBlock height={block.height} pool={block.miner_pool} />}
+
         <div>
           <div className="text-xs uppercase tracking-wide mb-2 inline-flex items-center gap-1" style={{ color: 'var(--color-dim)' }}>
             {t(isOrphan ? 'block.verifyOrphan' : 'block.verify')}
@@ -212,6 +214,39 @@ export default function BlockDetailModal({ selected, onClose }) {
             ))}
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// On partage la page statique du bloc : elle porte une carte d'apercu pour
+// les reseaux sociaux et un bouton qui ramene ici, sur la fiche.
+function ShareBlock({ height, pool }) {
+  const { t } = useTranslation()
+  const [copied, setCopied] = useState(false)
+  const url = `https://monerometrics.net/block/${height}`
+  const text = `Monero block ${height.toLocaleString('en-US')}${pool && pool !== 'unknown' ? `, mined by ${pool}` : ''}`
+  const q = encodeURIComponent
+  const targets = [
+    ['X', `https://x.com/intent/post?text=${q(text)}&url=${q(url)}`],
+    ['Reddit', `https://www.reddit.com/submit?url=${q(url)}&title=${q(text)}`],
+    ['Telegram', `https://t.me/share/url?url=${q(url)}&text=${q(text)}`],
+  ]
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { }
+  }
+  const btn = 'mm-node text-xs rounded border px-3 py-1.5 inline-flex items-center gap-1.5'
+  return (
+    <div className="mb-5">
+      <div className="text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--color-dim)' }}>{t('block.share')}</div>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={copy} className={btn} style={{ color: copied ? 'var(--color-success)' : 'var(--color-text)' }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" /><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" /></svg>
+          {t(copied ? 'block.linkCopied' : 'block.copyLink')}
+        </button>
+        {targets.map(([name, href]) => (
+          <a key={name} href={href} target="_blank" rel="noopener noreferrer" className={btn} style={{ color: 'var(--color-text)' }}>{name}</a>
+        ))}
       </div>
     </div>
   )
