@@ -250,6 +250,7 @@ async def pools_page():
     desc = (f'Monero mining pool distribution, last 24 hours: largest pool {top_share:.1f}%, two largest {top2:.1f}%, '
             f'Nakamoto coefficient {nak}. Updated live from our own node.')
     body = (f'<h1>Monero mining pool distribution</h1><p class="lead">{e(desc)}</p>'
+            f'<p><a class="live open" href="/#mining">Open the live pool distribution in the dashboard →</a></p>'
             f'<div class="kpis"><div class="card"><div class="l">Largest pool, 24 h</div><div class="v">{top_share:.1f}%</div></div>'
             f'<div class="card"><div class="l">Two largest, 24 h</div><div class="v">{top2:.1f}%</div></div>'
             f'<div class="card"><div class="l">Nakamoto coefficient</div><div class="v">{nak}</div></div>'
@@ -315,7 +316,8 @@ async def pool_page(slug: str):
         f'<td class="dim">{SOURCE_LABEL.get(b["pool_source"], b["pool_source"] or "")}</td></tr>' for b in blocks)
     desc = (f'{name} on Monero: {shares["24 h"][1]:.1f}% of blocks in the last 24 hours, {shares["7 d"][1]:.1f}% over 7 days, '
             f'{shares["30 d"][1]:.1f}% over 30 days. Latest blocks mined and how each was attributed.')
-    body = (f'<h1>{e(name)} · Monero mining pool</h1><p class="lead">{e(desc)}</p><div class="kpis">{kpis}</div>'
+    body = (f'<h1>{e(name)} · Monero mining pool</h1><p class="lead">{e(desc)}</p>'
+            f'<p><a class="live open" href="/#mining">Compare {e(name)} with every pool in the live dashboard →</a></p><div class="kpis">{kpis}</div>'
             f'<h2>Latest blocks</h2><div class="card"><table><thead><tr><th class="n">Height</th><th class="n">Time</th>'
             f'<th class="n">Tx</th><th class="n">Reward XMR</th><th>Attribution</th></tr></thead><tbody>{trs}</tbody></table></div>'
             f'<p class="cta">Compare with every other pool on the <a href="/pools">pool distribution</a> page.</p>')
