@@ -71,8 +71,11 @@ a{color:var(--acc)}.dim{color:var(--dim)}
 header,footer{background:var(--chrome);border-bottom:1px solid var(--bd)}footer{border-top:1px solid var(--bd);border-bottom:0;margin-top:40px}
 .in{max-width:1000px;margin:0 auto;padding:14px 16px}
 header .in{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:center}
-header b{font-family:ui-monospace,Menlo,monospace;margin-right:auto}header b a{color:var(--tx);text-decoration:none}
-header a{font-size:14px}
+header .brand{display:flex;align-items:center;gap:8px;margin-right:auto;font:600 15px ui-monospace,Menlo,monospace;color:var(--tx);text-decoration:none}
+header nav{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center}header nav a{font-size:14px;color:var(--tx2);text-decoration:none;padding:6px 0}header nav a:hover{color:var(--acc)}
+.live{display:inline-flex;align-items:center;gap:7px;background:var(--acc);color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:8px 14px;border-radius:6px;white-space:nowrap}
+.live:hover{filter:brightness(1.08)}.live i{width:7px;height:7px;border-radius:50%;background:#fff;opacity:.85}
+.pages{display:flex;flex-wrap:wrap;gap:4px 14px}
 main{max-width:1000px;margin:0 auto;padding:24px 16px}
 h1{font-size:24px;margin:0 0 6px}h2{font-size:17px;margin:28px 0 10px}
 .lead{color:var(--tx2);margin:0 0 18px}
@@ -89,13 +92,21 @@ dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0}dt{c
 .cta{margin-top:24px}code{word-break:break-all}
 """
 
-NAV = [('/', 'Dashboard'), ('/pools', 'Pools'), ('/hashrate', 'Hashrate'), ('/fees', 'Fees'),
-       ('/reorgs', 'Reorgs'), ('/haveno', 'Haveno'), ('/learn', 'Learn'), ('/docs', 'API')]
+# L'en-tete renvoie vers les sections du dashboard ; les pages statiques restent liees en pied de page.
+NAV = [('/#consensus', 'Consensus'), ('/#mining', 'Mining'), ('/#network', 'Network'),
+       ('/#market', 'Market'), ('/docs', 'API')]
+PAGES = [('/pools', 'Pools'), ('/hashrate', 'Hashrate'), ('/fees', 'Fees'), ('/reorgs', 'Reorgs'),
+         ('/orphans', 'Orphans'), ('/haveno', 'Haveno'), ('/learn', 'Learn')]
+LOGO = ('<svg width="22" height="22" viewBox="0 0 32 32" fill="none" stroke="#ff6600" stroke-width="2.5" '
+        'stroke-linejoin="round" aria-hidden="true"><path d="M10.4 17C12 17 12 9 13.6 9M10.4 17C12 17 12 25 13.6 25"/>'
+        '<rect x="2" y="13" width="8" height="8" rx="1.8"/><rect x="14" y="5" width="8" height="8" rx="1.8"/>'
+        '<rect x="14" y="21" width="8" height="8" rx="1.8"/></svg>')
 
 
 def _layout(title: str, description: str, path: str, body: str, jsonld: str = '',
             og: str = f'{SITE}/og-image.png?v=4') -> str:
     nav = ''.join(f'<a href="{href}">{label}</a>' for href, label in NAV)
+    pages = ''.join(f'<a href="{href}">{label}</a>' for href, label in PAGES)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{e(title)}</title>
@@ -107,9 +118,10 @@ def _layout(title: str, description: str, path: str, body: str, jsonld: str = ''
 <meta property="og:url" content="{SITE}{e(path)}"><meta property="og:image" content="{e(og)}">
 <meta name="twitter:card" content="summary_large_image">
 <style>{CSS}</style>{jsonld}</head><body>
-<header><div class="in"><b><a href="/">monerometrics.net</a></b>{nav}</div></header>
+<header><div class="in"><a class="brand" href="/">{LOGO}monerometrics</a><nav>{nav}</nav>
+<a class="live" href="/"><i></i>Live dashboard</a></div></header>
 <main>{body}</main>
-<footer><div class="in dim">Reorg-aware observatory of the Monero network. Own node, every block indexed,
+<footer><div class="in dim"><p class="pages">{pages}</p>Reorg-aware observatory of the Monero network. Own node, every block indexed,
 free read-only <a href="/docs">API</a> and <a href="https://api.monerometrics.net/mcp">MCP server</a>. No tracking.</div></footer>
 </body></html>"""
 
@@ -179,7 +191,7 @@ async def block_page(height: int):
     body = (f'<h1>Monero block {height:,}</h1><p class="lead">{e(desc)}</p>'
             f'<div class="card"><dl>{dl}</dl></div>{orphan_html}'
             f'<div class="nav">{prv}{nxt}</div>'
-            f'<p class="cta">Explore the chain and its forks live in the <a href="/">chain visualizer</a>, '
+            f'<p class="cta">Explore the chain and its forks live in the <a href="/#consensus">chain visualizer</a>, '
             f'or fetch this block as JSON: <code class="mono">GET https://api.monerometrics.net/chain/block/{e(canon["hash"])}</code></p>')
     page = _layout(f'Monero block {height:,} · {who} | monerometrics', desc, f'/block/{height}', body,
                    _breadcrumb([('monerometrics', '/'), (f'Block {height}', f'/block/{height}')]),
@@ -334,7 +346,7 @@ async def reorgs_page():
             f'competing branch that becomes the canonical chain. Transactions in the replaced blocks return to the mempool and '
             f'are usually mined again; a deep reorg can undo payments that looked confirmed. On 14 September 2025 an alternate '
             f'chain replaced 18 Monero blocks, past the ten confirmations most services treat as final.</p>'
-            f'<p class="cta">Watch the chain and its forks in the <a href="/">live visualizer</a>, or see '
+            f'<p class="cta">Watch the chain and its forks in the <a href="/#consensus">live visualizer</a>, or see '
             f'<a href="/orphans">orphan blocks</a>.</p>')
     page = _layout('Monero reorg history: every chain reorganization detected | monerometrics', desc, '/reorgs', body,
                    _breadcrumb([('monerometrics', '/'), ('Reorgs', '/reorgs')]),

@@ -141,6 +141,16 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
+  // Les pages statiques pointent vers /#section : le navigateur tente l'ancre
+  // avant que les panneaux du dessus aient leur hauteur, on la reprend ensuite.
+  useEffect(() => {
+    const id = window.location.hash.slice(1)
+    if (!/^[a-z-]{1,30}$/.test(id)) return
+    const go = () => document.getElementById(id)?.scrollIntoView()
+    const timers = [300, 1200].map(ms => setTimeout(go, ms))
+    return () => timers.forEach(clearTimeout)
+  }, [])
+
   const navigate = (next) => {
     setView(next)
     const path = next === 'docs' ? '/docs' : '/'
