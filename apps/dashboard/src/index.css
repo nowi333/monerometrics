@@ -402,3 +402,8 @@ button:not(:disabled),
 /* Variante plus discrete du reflet, pour le mur des soutiens : la bordure
    reste vive, le fond ne fait qu'une lueur. */
 .mm-glow-soft::before { opacity: 0.45; }
+
+/* Zone de clic invisible autour des petites cibles, sans toucher a la mise en page. */
+.mm-hit { position: relative; }
+.mm-hit::after { content: ''; position: absolute; inset: -12px; }
+.mm-hit-y::after { inset: -12px 0; }

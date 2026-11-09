@@ -32,7 +32,7 @@ export default function InfoTooltip({ text, size = 16 }) {
         onMouseEnter={() => setShow(true)}
         onMouseLeave={() => { setShow(false); setMeasured(0) }}
         onClick={() => setShow(s => !s)}
-        className="inline-flex items-center justify-center rounded-full border text-xs leading-none cursor-help normal-case"
+        className="mm-hit inline-flex items-center justify-center rounded-full border text-xs leading-none cursor-help normal-case"
         style={{
           width: `${size}px`, height: `${size}px`,
           borderColor: 'var(--color-border-strong)',

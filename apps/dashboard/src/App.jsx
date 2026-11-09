@@ -310,7 +310,7 @@ export default function App() {
                 rel="noopener noreferrer"
                 aria-label={label}
                 title={label}
-                className="opacity-70 hover:opacity-100 transition-opacity"
+                className="mm-hit opacity-70 hover:opacity-100 transition-opacity"
                 style={{ color: 'var(--color-text)' }}
               >
                 <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">{typeof icon === 'string' ? <path d={icon} /> : icon}</svg>
@@ -333,7 +333,7 @@ export default function App() {
           {[['/pools', 'footer.pools'], ['/hashrate', 'footer.hashrate'], ['/fees', 'footer.fees'], ['/reorgs', 'footer.reorgs'], ['/orphans', 'footer.orphans'], ['/learn', 'footer.learn']].map(([href, key], i) => (
             <span key={href}>
               {i > 0 && ' · '}
-              <a className="hover:underline" style={{ color: 'var(--color-info)' }} href={href}>{t(key)}</a>
+              <a className="mm-hit mm-hit-y hover:underline" style={{ color: 'var(--color-info)' }} href={href}>{t(key)}</a>
             </span>
           ))}
         </div>

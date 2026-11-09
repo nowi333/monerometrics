@@ -159,7 +159,7 @@ export default function NewsBanner() {
       target="_blank"
       rel="noopener noreferrer"
       draggable="false"
-      className="inline-flex items-baseline gap-2 px-5 text-[13px] hover:underline"
+      className="inline-flex items-baseline gap-2 px-5 py-3 text-[13px] hover:underline"
       style={{ color: 'var(--color-text)' }}
     >
       <span

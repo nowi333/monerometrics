@@ -67,7 +67,7 @@ export default function RefreshBadge() {
         onClick={dismiss}
         title={t('refresh.dismiss')}
         aria-label={t('refresh.dismiss')}
-        className="w-4 h-4 inline-flex items-center justify-center rounded-full shrink-0 hover:opacity-70"
+        className="mm-hit w-4 h-4 inline-flex items-center justify-center rounded-full shrink-0 hover:opacity-70"
         style={{ color: 'var(--color-dim)' }}
       >
         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor"
