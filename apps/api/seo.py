@@ -177,7 +177,7 @@ async def block_page(height: int):
     orphan_html = ''
     if orphans:
         trs = ''.join(
-            f'<tr><td class="hash">{e(o["hash"])}</td><td>{_pool_link(o["miner_pool"])}</td>'
+            f'<tr><td class="hash"><a href="/#orphan={e(o["hash"])}">{e(o["hash"])}</a></td><td>{_pool_link(o["miner_pool"])}</td>'
             f'<td class="n">{o["tx_count"]}</td><td class="n">{_ts(o["timestamp_unix"])}</td></tr>' for o in orphans)
         orphan_html = (f'<h2>Competing orphan block{"s" if len(orphans) > 1 else ""} at this height</h2>'
                        f'<p class="lead">Another miner found a valid block at the same height, but the network kept the one above.</p>'
