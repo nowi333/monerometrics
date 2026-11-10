@@ -106,50 +106,45 @@ def _one_of(value: str, allowed: tuple, name: str) -> str:
 
 @mcp.tool(annotations=READ_ONLY)
 async def network_info() -> dict:
-    """Current Monero network state: latest indexed height, difficulty, network hashrate and mempool size."""
+    """Live snapshot of the Monero network right now: node sync status, latest indexed height, difficulty, estimated hashrate and current mempool size.
+
+    Use this for "what is the state of the network now". For how a metric evolved over time, use network_hashrate, network_blocktime, network_mempool or network_emission instead. Takes no arguments.
+    """
     return await _get("/network/info")
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def price() -> dict:
-    """Current Monero (XMR) price: centralized spot plus both sides of the Haveno peer-to-peer book.
+    """Current XMR price in one call: the centralized spot (CoinGecko, Kraken fallback) and the Haveno peer-to-peer quote on both sides.
 
-    Returns the best offer and the amount-weighted average on each side, resting depth,
-    offer counts, and round_trip_cost_pct: the cost of buying XMR and selling it straight
-    back, which is far larger than the headline premium.
+    Returns the best offer and the amount-weighted average on each side, resting depth, offer counts and round_trip_cost_pct, the cost of buying XMR and selling it straight back (an upper bound, usually far above the headline premium). Use this for "what does XMR cost now". For the premium history use haveno_premium; for individual price levels use haveno_book. Takes no arguments.
     """
     return await _get("/price")
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def haveno_book() -> dict:
-    """The live Haveno XMR/USD order book, both sides, priced against centralized spot.
+    """Live Haveno XMR/USD order book as price levels, both sides, each priced against centralized spot.
 
-    Each price level carries its cumulative depth, offer count, payment methods and a
-    reversible flag. `asks` are makers selling XMR, so taking one means buying; `bids`
-    are makers buying, so taking one means selling. Offers are advertisements with
-    differing payment methods rather than a matched book, so nothing executes on its own
-    and the best bid can sit at or above the best ask.
+    Each level carries cumulative depth, offer count, payment methods and a reversible flag. `asks` are makers selling XMR (taking one means buying); `bids` are makers buying (taking one means selling). Offers are advertisements with differing payment methods, not a matched book, so the best bid can sit at or above the best ask. Use this to see liquidity at each price; for a single headline price use price. Takes no arguments.
     """
     return await _get("/haveno/book")
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def haveno_premium(window: SpreadWindow = "7d") -> dict:
-    """Haveno peer-to-peer quotes against centralized spot over time, both sides.
+    """Time series of the Haveno peer-to-peer premium over centralized spot, both sides of the book, sampled every 10 minutes.
 
-    window in 24h,7d,30d,90d,1y. History starts on 24 August 2026, when recording began.
+    Use this to see how the P2P premium moved over time; for the current value only, use price. Series carry price, amount and offer count but not the payment method (see haveno_payment_methods for that). History starts on 24 August 2026, when recording began.
     """
     return await _get("/price/spread", {"window": _one_of(window, SPREAD_WINDOWS, "window")})
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def haveno_payment_methods(window: MethodWindow = "180d", currency: Currency = "USD") -> dict:
-    """Executed Haveno trades grouped by payment method, with the premium over spot.
+    """Executed Haveno trades grouped by payment method (PayPal, Zelle, cash by mail...), with trade count, volume and the average, median and standard deviation of the premium over spot.
 
-    window in 30d,90d,180d,1y,all. currency in USD,EUR. The premium tracks how reversible
-    and convenient the payment rail is, not privacy: every one of these trades is equally
-    non-KYC. The reversible flag is our own classification, not a Haveno field.
+    Use this to compare what each payment rail costs. The premium tracks how reversible the rail is (chargeback risk), not privacy. The reversible flag is our own classification, not a Haveno field; methods with few trades give a fragile premium.
     """
     return await _get("/haveno/methods", {
         "window": _one_of(window, METHOD_WINDOWS, "window"),
@@ -159,37 +154,55 @@ async def haveno_payment_methods(window: MethodWindow = "180d", currency: Curren
 
 @mcp.tool(annotations=READ_ONLY)
 async def network_hashrate(window: SeriesWindow = "30d") -> dict:
-    """Network hashrate time series. window in 1h,24h,7d,30d,90d,1y,5y."""
+    """Time series of the Monero network hashrate in H/s, derived from difficulty / 120 s target, bucketed to about 300 points per window.
+
+    Use this for hashrate trends; for the current value only, use network_info.
+    """
     return await _get("/network/hashrate", {"window": _one_of(window, SERIES_WINDOWS, "window")})
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def network_blocktime(window: SeriesWindow = "24h") -> dict:
-    """Block-time variance time series (seconds between blocks). window in 1h,24h,7d,30d,90d,1y,5y."""
+    """Time series of the actual time between consecutive canonical blocks, in seconds (target 120 s), one point per block, capped at 1500 points.
+
+    Use this to spot unusually slow or fast block production, e.g. around a hashrate shift or selfish-mining episode.
+    """
     return await _get("/network/blocktime", {"window": _one_of(window, SERIES_WINDOWS, "window")})
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def network_mempool(window: SeriesWindow = "24h") -> dict:
-    """Mempool size time series (number of pending transactions). window in 1h,24h,7d,30d,90d,1y,5y."""
+    """Time series of the mempool size: number of transactions waiting to be mined.
+
+    Use this for congestion trends; for the current count only, use network_info. This series is observed live and cannot be rebuilt, so it starts when monitoring began.
+    """
     return await _get("/network/mempool", {"window": _one_of(window, SERIES_WINDOWS, "window")})
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def network_emission(window: SeriesWindow = "30d") -> dict:
-    """Block reward / emission time series (XMR per block). window in 1h,24h,7d,30d,90d,1y,5y."""
+    """Time series of the average block reward in XMR per block (Monero tail emission is about 0.6 XMR plus fees).
+
+    Use this to follow emission and fee income over time.
+    """
     return await _get("/network/emission", {"window": _one_of(window, SERIES_WINDOWS, "window")})
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def reorgs() -> dict:
-    """Detected Monero chain reorganizations, most recent first, with fork point, depth and affected transactions."""
+    """List of individual chain reorganizations detected, most recent first: fork point height, depth in blocks, old and new chain tips, transactions displaced, detection time.
+
+    Use this to inspect specific reorg events. For counts and depth summaries per period use reorg_stats; for the losing blocks themselves use recent_orphans. Takes no arguments.
+    """
     return await _get("/reorgs")
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def reorg_stats() -> dict:
-    """Aggregate reorg statistics over windows: counts, average and maximum depth, affected transactions."""
+    """Summary statistics of reorganizations per period (24h, 7d, 30d, 90d and everything recorded): event count, average and maximum depth, transactions affected, plus the date monitoring began.
+
+    Use this for "how many reorgs and how deep"; for the individual events use reorgs. Takes no arguments.
+    """
     return await _get("/reorgs/stats")
 
 
@@ -198,32 +211,47 @@ async def recent_orphans(
     limit: Annotated[int, _desc("Number of orphans to return, 1 to 50. Example: 20")] = 20,
     window: OrphanWindow = "all",
 ) -> dict:
-    """Most recent orphan blocks with their canonical counterpart at the same height, newest first. limit 1..50; window in 24h,48h,7d,30d,90d,180d,1y,all (default all, so the last N orphans are returned however old they are)."""
+    """Orphan blocks (blocks that lost a fork race) paired with the canonical block that won at the same height, newest first.
+
+    Use this to list losing blocks and which pool mined them; for whole reorg events (depth, fork point) use reorgs. The default window "all" returns the last N orphans however old.
+    """
     limit = max(1, min(int(limit), 50))
     return await _get("/orphans/recent", {"limit": limit, "window": _one_of(window, ORPHAN_WINDOWS, "window")})
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def pool_distribution(window: AggWindow = "24h") -> dict:
-    """Mining-pool distribution over a window: block share per pool, largest-pool share and the Nakamoto coefficient (minimum pools controlling >50% of blocks). window in 1h,6h,24h,48h,7d."""
+    """Share of blocks mined by each pool over a window, plus the largest pool's share, the top-two combined share and the Nakamoto coefficient (fewest pools controlling over 50% of blocks).
+
+    Use this to assess mining centralization. Unattributed blocks stay in the denominator but are credited to no pool, so the coefficient is an upper bound. For how each attribution was established, use chain_provenance.
+    """
     return await _get("/pools/distribution", {"window": _one_of(window, AGG_WINDOWS, "window")})
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def pool_sources() -> dict:
-    """Reachability status of each mining-pool API used for block attribution."""
+    """Health of each mining-pool API used for block attribution: whether it is reachable and how many blocks it returned.
+
+    Use this to explain a high unattributed share in pool_distribution. Takes no arguments.
+    """
     return await _get("/pools/sources")
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def chain_provenance(window: AggWindow = "24h") -> dict:
-    """How mining-pool attribution was established over a window: share proven by view key, claimed by pool API, inferred from coinbase, or unattributed. window in 1h,6h,24h,48h,7d."""
+    """Evidence quality behind pool attribution over a window: share of blocks proven cryptographically by view key, claimed by a pool API, inferred from the coinbase, or unattributed, plus claims a pool could not prove with its own key and the merge-mined share.
+
+    Use this to judge how far to trust pool_distribution.
+    """
     return await _get("/chain/provenance", {"window": _one_of(window, AGG_WINDOWS, "window")})
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def get_block(hash: Hash64) -> dict:
-    """Full detail for one block by its 64-character block hash: height, previous hash, size, difficulty, reward, coinbase, transaction list and merge-mining tags."""
+    """Full detail of one block given its exact 64-character hash: height, previous hash, timestamp, size, difficulty, reward, coinbase, transaction hashes, merge-mining tag, mining pool and, when proven, the view-key proof inputs.
+
+    Use this when you already have a block hash (e.g. from recent_orphans or chain_fork_window). If you only have a height, use search_block.
+    """
     h = hash.strip().lower()
     if len(h) != 64 or any(c not in "0123456789abcdef" for c in h):
         raise ValueError("hash must be a 64-character hex block hash; use search_block to look up a height")
@@ -234,7 +262,10 @@ async def get_block(hash: Hash64) -> dict:
 async def search_block(
     query: Annotated[str, _desc("Block height as a number, or a 64-character hex block hash. Example: 3000000")],
 ) -> dict:
-    """Find a block by height (a number) or by 64-character hash, anywhere in the chain down to the genesis block (height 0). Returns the block detail plus whether it is canonical or an orphan."""
+    """Find one block from a height or a hash, anywhere from the genesis block (height 0) to the tip. Returns the same detail as get_block plus is_canonical and, for a height, any orphan blocks competing at that height.
+
+    Use this when the user gives a height, or when unsure whether a value is a height or a hash. For a range of consecutive blocks use chain_fork_window.
+    """
     q = query.strip()
     if q.isdigit():
         height = int(q)
@@ -256,7 +287,10 @@ async def search_block(
 
 @mcp.tool(annotations=READ_ONLY)
 async def lookup_transaction(tx_hash: Hash64) -> dict:
-    """Look up a transaction by its 64-character hash: whether it is in the mempool or mined, its block, confirmations, whether it is spendable yet, the pool that mined its block, and whether that height was ever contested by a reorg. No amounts, senders or recipients: the protocol encrypts them."""
+    """Look up one transaction by its 64-character hash: in the mempool or mined, block height, confirmations, whether it is spendable yet, the pool that mined its block, and whether that height was ever contested by a reorg.
+
+    Use this for any transaction-hash question. It never returns amounts, senders or recipients: the Monero protocol encrypts them.
+    """
     h = tx_hash.strip().lower()
     if len(h) != 64 or any(c not in "0123456789abcdef" for c in h):
         raise ValueError("tx_hash must be 64 hex characters")
@@ -268,7 +302,10 @@ async def chain_fork_window(
     to: Annotated[int | None, _desc("Highest block height of the window; omit for the current tip. Example: 3000000")] = None,
     limit: Annotated[int, _desc("Number of heights in the window, 10 to 500. Example: 100")] = 100,
 ) -> dict:
-    """Canonical chain plus any competing orphan blocks around a height. 'to' is the highest height in the window (defaults to the current tip); lower it to browse older history down to the genesis block. limit 10..500."""
+    """Range of consecutive heights ending at `to` (default the current tip), listing every canonical block and any competing orphan, with fork-point flags.
+
+    Use this to browse a stretch of the chain or see recent blocks; for a single block use search_block or get_block.
+    """
     limit = max(10, min(int(limit), 500))
     params: dict = {"limit": limit}
     if to is not None:
