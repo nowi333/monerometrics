@@ -13,6 +13,9 @@ const ONION_HOST = '6wbhchvavey26lbtscl6w6qg76balycixtsklcggrsslyk4xah6sbbad.oni
 // Badges SVG servis par l'API, a integrer dans un README ou une page.
 const BADGES = ['status', 'nakamoto', 'top-pool', 'hashrate', 'last-reorg']
 
+// Meme valeur que RATE_LIMIT_PER_MIN dans k8s/monerometrics/60-deployment-api.yaml.
+const API_RATE_LIMIT = 300
+
 const ENDPOINTS = [
   { m: 'GET', p: '/health', k: 'health' },
   { m: 'GET', p: '/info', k: 'info' },
@@ -223,6 +226,12 @@ export default function Documentation() {
         <h2 className="text-lg font-medium mb-1" style={{ color: 'var(--color-text)' }}>{t('doc.apiTitle')}</h2>
         <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
           {t('doc.apiP1')} <a href="https://api.monerometrics.net/openapi.json" className="hover:underline" style={{ color: 'var(--color-info)' }}>api.monerometrics.net</a>
+        </p>
+        <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--color-dim)' }}>
+          {t('doc.apiLimits', { count: API_RATE_LIMIT })}{' '}
+          <a href="https://api.monerometrics.net/docs" className="hover:underline whitespace-nowrap" style={{ color: 'var(--color-info)' }}>{t('doc.apiDocs')}</a>
+          {' · '}
+          <a href="https://api.monerometrics.net/changelog" className="hover:underline whitespace-nowrap" style={{ color: 'var(--color-info)' }}>{t('doc.apiChangelog')}</a>
         </p>
         {usage != null && (
           <div className="inline-flex items-center gap-2 text-xs mb-4 rounded-full border px-3 py-1" style={{ borderColor: 'var(--color-border)', color: 'var(--color-dim)' }}>

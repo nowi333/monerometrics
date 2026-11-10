@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
@@ -13,8 +14,8 @@ ANONPAY = (
     '&name=monerometrics&description=Support%20monerometrics&buttonbgcolor=ff6600'
     f'&address={XMR_DONATION}'
 )
-API_VERSION = '0.31.0'
-MCP_VERSION = '0.4.0'
+API_VERSION = '0.31.8'
+MCP_VERSION = '0.5.3'
 RATE_LIMIT = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 CONTACT_EMAIL = 'contact@monerometrics.net'
 SUMMARY = 'Reorg-aware Monero (XMR) network observatory: chain reorganizations, orphan blocks, mining-pool centralization with cryptographically verified attribution.'
@@ -226,12 +227,22 @@ async def agents_txt():
 @router.get('/sitemap-index.xml')
 @router.get('/sitemap_index.xml')
 async def sitemap():
-    urls = ['/', '/docs', '/openapi.json', '/mcp', '/llms.txt']
+    urls = ['/', '/docs', '/openapi.json', '/mcp', '/llms.txt', '/changelog']
     body = ['<?xml version="1.0" encoding="UTF-8"?>',
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     body += [f'  <url><loc>{BASE}{u}</loc></url>' for u in urls]
     body.append('</urlset>')
     return Response('\n'.join(body) + '\n', media_type='application/xml')
+
+_CHANGELOG = Path(__file__).with_name('CHANGELOG.md')
+
+@router.get('/changelog')
+@router.get('/CHANGELOG.md')
+async def changelog():
+    try:
+        return Response(_CHANGELOG.read_text(), media_type='text/markdown; charset=utf-8')
+    except OSError:
+        return Response(f'See {REPO}/blob/main/apps/api/CHANGELOG.md\n', media_type='text/plain')
 
 @router.get('/llms.txt', response_class=PlainTextResponse)
 async def llms():
@@ -245,6 +256,7 @@ async def llms():
         '## Interfaces',
         f'- OpenAPI: {BASE}/openapi.json',
         f'- Interactive docs: {BASE}/docs',
+        f'- Changelog: {BASE}/changelog',
         f'- Model Context Protocol (streamable HTTP): {BASE}/mcp',
         f'- Tor: {ONION}',
         '',

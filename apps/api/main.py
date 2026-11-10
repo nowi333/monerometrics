@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import logging
+import math
 import sys
 from contextlib import asynccontextmanager
 import time
@@ -11,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from db import init_pool, close_pool, get_pool, get_database_url
+import apidocs
 import discovery
 import seo
 import cards
@@ -98,7 +100,25 @@ async def lifespan(app: FastAPI):
     log.info('Shutting down...')
     await _flush_external()
     await close_pool()
-app = FastAPI(title='monerometrics API', description="API publique lecture seule sur l'indexation Monero", version=discovery.API_VERSION, lifespan=lifespan, docs_url=None)
+RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
+app = FastAPI(title='monerometrics API', description=apidocs.description(RATE_LIMIT_PER_MIN),
+              version=discovery.API_VERSION, lifespan=lifespan, docs_url=None,
+              openapi_tags=apidocs.TAGS, servers=[{'url': discovery.BASE}],
+              license_info={'name': 'MIT', 'url': f'{discovery.REPO}/blob/main/LICENSE'},
+              contact={'name': 'monerometrics', 'url': discovery.SITE, 'email': discovery.CONTACT_EMAIL})
+
+_generate_openapi = app.openapi
+
+
+def _documented_openapi():
+    # Le schema est genere une fois puis garde par FastAPI : on l'enrichit a ce
+    # moment-la, les routes n'ont pas a porter leur documentation une a une.
+    if app.openapi_schema is None:
+        apidocs.enrich(_generate_openapi())
+    return app.openapi_schema
+
+
+app.openapi = _documented_openapi
 
 # Swagger fige a une version precise : « @5 » chargeait la derniere 5.x publiee,
 # quelle qu'elle soit, sur notre domaine.
@@ -112,7 +132,6 @@ async def swagger_ui():
     return get_swagger_ui_html(openapi_url=app.openapi_url, title=f'{app.title} - Swagger UI',
                                swagger_js_url=f'{base}/swagger-ui-bundle.js',
                                swagger_css_url=f'{base}/swagger-ui.css')
-RATE_LIMIT_PER_MIN = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 # Cadence de reconstruction de l'index des pools cote worker : elle borne la
 # resolution du delai de declaration qu'on peut mesurer.
 POOL_INDEX_REFRESH_SECONDS = int(os.getenv('POOL_INDEX_REFRESH_INTERVAL', '300'))
@@ -167,6 +186,14 @@ def _client_ip(request: Request) -> str:
             return value
     return request.client.host if request.client else 'unknown'
 
+def _rate_reset(bucket: deque, now: float) -> int:
+    """Secondes avant que la plus ancienne requete sorte de la fenetre."""
+    return max(1, math.ceil(60 - (now - bucket[0]))) if bucket else 0
+
+def _rate_headers(limit: int, remaining: int, reset: int) -> dict[str, str]:
+    return {'RateLimit-Limit': str(limit), 'RateLimit-Remaining': str(max(0, remaining)),
+            'RateLimit-Reset': str(reset)}
+
 @app.middleware('http')
 async def rate_limit(request: Request, call_next):
     global _rate_last_sweep, _external_total, _external_dirty, _external_last_flush
@@ -177,8 +204,11 @@ async def rate_limit(request: Request, call_next):
     while bucket and now - bucket[0] > 60:
         bucket.popleft()
     if len(bucket) >= limit:
-        return JSONResponse(status_code=429, content={'detail': 'Too many requests'}, headers={'Retry-After': '60'})
+        wait = _rate_reset(bucket, now)
+        return JSONResponse(status_code=429, content={'detail': 'Too many requests'},
+                            headers={'Retry-After': str(wait), **_rate_headers(limit, 0, wait)})
     bucket.append(now)
+    quota = _rate_headers(limit, limit - len(bucket), _rate_reset(bucket, now))
     if now - _rate_last_sweep > 300:
         _rate_last_sweep = now
         for ip in list(_rate_buckets.keys()):
@@ -193,7 +223,9 @@ async def rate_limit(request: Request, call_next):
         if _external_dirty >= 25 or now - _external_last_flush > 60:
             _external_last_flush = now
             await _flush_external()
-    return await call_next(request)
+    response = await call_next(request)
+    response.headers.update(quota)
+    return response
 
 
 @app.middleware('http')
@@ -234,7 +266,8 @@ async def cache_headers(request: Request, call_next):
 app.include_router(discovery.router)
 app.include_router(seo.router)
 app.include_router(cards.router)
-app.add_middleware(CORSMiddleware, allow_origins=['https://monerometrics.net', 'https://www.monerometrics.net', 'http://localhost:5173', 'http://localhost:4173'], allow_credentials=False, allow_methods=['GET', 'POST'], allow_headers=['*'])
+app.add_middleware(CORSMiddleware, allow_origins=['https://monerometrics.net', 'https://www.monerometrics.net', 'http://localhost:5173', 'http://localhost:4173'], allow_credentials=False, allow_methods=['GET', 'POST'], allow_headers=['*'],
+                   expose_headers=['RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset', 'Retry-After'])
 
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
