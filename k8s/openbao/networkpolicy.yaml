@@ -1,0 +1,17 @@
+# OpenBao ne repond qu'a son propre namespace (injecteur, pairs raft).
+# Aucune charge applicative ne l'interroge directement.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openbao-server
+  namespace: openbao
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: openbao
+      component: server
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}

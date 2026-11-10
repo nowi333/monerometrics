@@ -27,6 +27,17 @@ spec:
       containers:
         - name: postgres
           image: postgres:17.10-alpine@sha256:dc17045ccfd343b49600570ea734b9c4991cf1c3f3302e67df51e3b402dd55c4
+          # Les donnees appartiennent deja a l'utilisateur postgres (70) : le
+          # conteneur n'a plus besoin de demarrer en root pour lui ceder la main.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
           ports:
             - containerPort: 5432
               name: postgres

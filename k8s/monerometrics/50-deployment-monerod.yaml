@@ -25,6 +25,17 @@ spec:
           image: ghcr.io/sethforprivacy/simple-monerod:v0.18.5.1
           args:
             - --config-file=/etc/monero/monerod.conf
+          # Lance directement sous l'utilisateur monero (1000) : le script
+          # d'entree ne passe plus par root pour abandonner ses droits.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
           ports:
             - containerPort: 18081
               name: rpc

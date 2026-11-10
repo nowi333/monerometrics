@@ -6,3 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: monerometrics
     environment: poc
+    # Signale tout pod hors du profil restreint. Pas d'`enforce` : le hostPort
+    # P2P de monerod est refuse des le profil baseline.
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

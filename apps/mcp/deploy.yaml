@@ -21,6 +21,9 @@ spec:
         - name: mcp
           image: ghcr.io/nowi333/monerometrics-mcp:0.5.3
           securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 101
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
