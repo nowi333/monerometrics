@@ -70,6 +70,35 @@
   loop: ["6443", "80", "443", "10250"]
   become: true
 
+- name: Ensure the k3s config directory exists
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: Write the k3s server config
+  ansible.builtin.copy:
+    dest: /etc/rancher/k3s/config.yaml
+    content: "{{ k3s_config | to_nice_yaml }}"
+    owner: root
+    group: root
+    mode: '0600'
+  become: true
+  notify: Restart k3s
+
+# Un argument de la ligne de commande l'emporte sur config.yaml : l'ancien
+# mode 644 doit sortir de l'unite deja installee.
+- name: Drop the world-readable kubeconfig flag from the installed unit
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/system/k3s.service
+    regexp: 'write-kubeconfig-mode'
+    state: absent
+  become: true
+  notify: Restart k3s
+
 - name: Check if k3s is already installed
   ansible.builtin.stat:
     path: /usr/local/bin/k3s

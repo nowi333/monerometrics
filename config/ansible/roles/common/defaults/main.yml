@@ -1,6 +1,10 @@
 ---
 
 common_ssh_port: 22
+# Plage CGNAT de Tailscale. Sur un serveur neuf, Tailscale doit etre joint
+# avant le premier passage, sinon cette regle coupe l'acces SSH.
+common_ssh_allowed_sources:
+  - 100.64.0.0/10
 common_ssh_permit_root_login: "no"
 common_ssh_password_authentication: "no"
 common_ssh_max_auth_tries: 4

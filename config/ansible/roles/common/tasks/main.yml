@@ -149,11 +149,25 @@
     - { policy: 'allow', direction: 'outgoing' }
   become: true
 
-- name: Allow SSH through ufw
+# SSH n'est ouvert qu'au reseau d'administration (Tailscale). Le firewall
+# Hetzner ferme deja le port vu d'Internet : ufw devient une vraie seconde
+# barriere au lieu de tout laisser passer derriere lui. La regle restreinte est
+# posee avant de retirer l'ancienne, pour ne jamais se couper l'acces.
+- name: Allow SSH from the admin network only
   community.general.ufw:
     rule: allow
     port: "{{ common_ssh_port }}"
     proto: tcp
+    from_ip: "{{ item }}"
+  loop: "{{ common_ssh_allowed_sources }}"
+  become: true
+
+- name: Remove the former allow-from-anywhere SSH rule
+  community.general.ufw:
+    rule: allow
+    port: "{{ common_ssh_port }}"
+    proto: tcp
+    delete: true
   become: true
 
 - name: Ensure chrony service is running

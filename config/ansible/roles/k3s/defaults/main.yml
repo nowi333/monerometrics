@@ -4,8 +4,16 @@ k3s_version: "v1.34.8+k3s1"
 
 k3s_role: "server"
 
+# Options tenues dans /etc/rancher/k3s/config.yaml. Le kubeconfig du noeud
+# donne les droits cluster-admin : il reste lisible par root seul. Les secrets
+# sont chiffres au repos dans la base du cluster.
+# Sur un cluster existant, activer le chiffrement demande d'abord
+# `k3s secrets-encrypt enable`, puis `rotate-keys` apres le redemarrage.
+k3s_config:
+  write-kubeconfig-mode: "0600"
+  secrets-encryption: true
+
 k3s_server_args:
-  - "--write-kubeconfig-mode=644"
   - "--tls-san={{ ansible_default_ipv4.address }}"
   - "--node-name={{ inventory_hostname }}"
 
