@@ -20,6 +20,7 @@ SITE = 'https://monerometrics.net'
 router = APIRouter(prefix='/seo', include_in_schema=False)
 
 _cache: dict[str, tuple[float, str]] = {}
+CACHE_MAX = 1000
 
 
 def _cached(key: str, ttl: int):
@@ -30,10 +31,11 @@ def _cached(key: str, ttl: int):
 
 
 def _store(key: str, body: str) -> str:
-    # Borne grossiere : les pages de blocs sont innombrables, le cache ne doit
-    # pas grossir avec chaque robot qui les parcourt.
-    if len(_cache) > 5000:
-        _cache.clear()
+    # Les pages de blocs sont innombrables : au-dela de la borne, la plus
+    # ancienne sort, pour que le cache ne grossisse pas avec chaque robot.
+    _cache.pop(key, None)
+    while len(_cache) >= CACHE_MAX:
+        del _cache[next(iter(_cache))]
     _cache[key] = (time.time(), body)
     return body
 

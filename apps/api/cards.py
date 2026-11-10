@@ -24,11 +24,22 @@ TEXT, DIM, ACCENT = (230, 232, 235), (139, 144, 153), (255, 102, 0)
 
 _cards: dict[str, tuple[str, list[tuple[str, str]], str]] = {}
 _png: dict[str, tuple[float, bytes]] = {}
+# Une carte par bloc visite : sans borne, ces deux tables grossissaient avec
+# chaque robot jusqu'a faire tuer le processus.
+CARDS_MAX, PNG_MAX = 2000, 100
+
+
+def _put(table: dict, key: str, value, limit: int):
+    table.pop(key, None)
+    while len(table) >= limit:
+        del table[next(iter(table))]
+    table[key] = value
+    return value
 
 
 def register(name: str, title: str, kpis: list[tuple[str, str]], summary: str = '') -> str:
     """Memorise le contenu de la carte et renvoie l'URL de son image."""
-    _cards[name] = (title, kpis[:3], summary)
+    _put(_cards, name, (title, kpis[:3], summary), CARDS_MAX)
     return f'{API}/seo/og/{name}.png?v={int(time.time() // 3600)}'
 
 
@@ -93,7 +104,7 @@ async def og_image(name: str):
             await seo.render_for_card(name)
         if name not in _cards:
             raise HTTPException(404)
-        hit = _png[name] = (time.time(), render(*_cards[name]))
+        hit = _put(_png, name, (time.time(), render(*_cards[name])), PNG_MAX)
     return Response(hit[1], media_type='image/png', headers={'Cache-Control': 'public, max-age=3600'})
 
 
