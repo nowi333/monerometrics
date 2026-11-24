@@ -3,6 +3,12 @@
 Changes visible to users of the public API, newest first. The running version
 is reported by `GET /info`.
 
+## 0.32.0 - 2026-11-24
+
+- `GET /thorchain/status`: whether native XMR is live on THORChain (pool,
+  inbound vault, halts), refreshed every 10 minutes. Swap flows will follow
+  once the chain is live.
+
 ## 0.31.8 - 2026-11-10
 
 - Every response carries `RateLimit-Limit`, `RateLimit-Remaining` and

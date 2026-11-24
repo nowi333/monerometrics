@@ -111,6 +111,7 @@ export const api = {
   status: () => fetchJSON('/status'),
   news: () => fetchJSON('/news'),
   networkFees: () => fetchJSON('/network/fees'),
+  thorchainStatus: () => fetchJSON('/thorchain/status'),
   networkFeesHistory: (window = '30d') => fetchJSON(`/network/fees/history?window=${window}`),
 }
 

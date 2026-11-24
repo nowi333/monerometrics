@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-const SECTIONS = ['consensus', 'mining', 'network', 'market']
+const SECTIONS = ['consensus', 'mining', 'network', 'market', 'thorchain']
 
 /**
  * Sur près de neuf écrans de contenu, une barre discrète évite de faire

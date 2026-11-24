@@ -1,9 +1,11 @@
 import { useTranslation } from 'react-i18next'
 import Panel from './Panel'
+import { api, timeAgo } from './api'
+import { usePolledData } from './usePolledData'
 
 /**
- * Annonce du suivi des flux XMR sur THORChain, avant l'activation de la chaine.
- * Statique : aucune requete, rien a charger.
+ * Section THORChain avant l'activation de XMR : ce qui va etre mesure, et une
+ * liste de verification en direct de l'integration (pool, vault, echanges).
  */
 const Node = ({ label, sub, accent }) => (
   <div
@@ -18,48 +20,93 @@ const Node = ({ label, sub, accent }) => (
   </div>
 )
 
-const Flow = () => (
+const Flow = ({ reverse }) => (
   <div className="relative flex-1 h-0.5 min-w-6 overflow-hidden" style={{ background: 'var(--color-border-strong)' }}>
-    <span className="tc-flow absolute inset-y-0 w-1/3" style={{ background: 'linear-gradient(90deg, transparent, var(--color-accent), transparent)' }} />
+    <span className={`tc-flow absolute inset-y-0 w-1/3 ${reverse ? 'tc-rev' : ''}`}
+      style={{ background: 'linear-gradient(90deg, transparent, var(--color-accent), transparent)' }} />
   </div>
 )
 
+const WATCH = ['volume', 'netflow', 'depth', 'cost', 'large', 'health']
+
+function Check({ done, label }) {
+  return (
+    <li className="flex items-center gap-2 text-sm">
+      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs shrink-0"
+        style={done
+          ? { background: 'var(--color-success-bg)', color: 'var(--color-success)', border: '1px solid var(--color-success-border)' }
+          : { color: 'var(--color-dim)', border: '1px dashed var(--color-border-strong)' }}
+        aria-hidden="true">{done ? '✓' : ''}</span>
+      <span style={{ color: done ? 'var(--color-text)' : 'var(--color-text-secondary)' }}>{label}</span>
+    </li>
+  )
+}
+
 export default function ThorchainSoon() {
   const { t } = useTranslation()
-  const items = ['volume', 'depth', 'slippage', 'halts']
+  const { data } = usePolledData(() => api.thorchainStatus(), d => d && d.source, [], 600000)
+  const pool = data?.pool
+  const ago = data?.checked_at ? timeAgo(Math.max(0, Date.now() / 1000 - data.checked_at)) : null
+
   return (
     <Panel
       title={t('thorchain.title')}
+      apiPath="/thorchain/status"
       control={
         <span className="text-xs font-semibold px-2 py-1 rounded-full uppercase tracking-wide"
           style={{ color: 'var(--color-accent)', border: '1px solid var(--color-accent)' }}>
-          {t('thorchain.soon')}
+          {data?.live ? t('thorchain.live') : t('thorchain.soon')}
         </span>
       }
     >
       <style>{`
         @keyframes tc-flow { from { transform: translateX(-100%) } to { transform: translateX(300%) } }
         .tc-flow { animation: tc-flow 2.4s linear infinite }
+        .tc-rev { animation-direction: reverse; animation-delay: -1.2s }
         @media (prefers-reduced-motion: reduce) { .tc-flow { animation: none; display: none } }
       `}</style>
+
       <div className="flex items-center gap-2 sm:gap-4 max-w-md mx-auto my-4" aria-hidden="true">
         <Node label="BTC" sub="native" />
         <Flow />
         <Node label="RUNE" sub="pool" />
-        <Flow />
+        <Flow reverse />
         <Node label="XMR" sub="native" accent />
       </div>
-      <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-        {t('thorchain.lead')}
-      </p>
-      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-sm">
-        {items.map(k => (
-          <li key={k} className="rounded-md px-3 py-2 border" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
-            {t(`thorchain.${k}`)}
-          </li>
-        ))}
-      </ul>
-      <p className="text-xs mt-4" style={{ color: 'var(--color-dim)' }}>{t('thorchain.footer')}</p>
+
+      <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{t('thorchain.lead')}</p>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-5">
+        <div className="rounded-md border p-4" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-elevated)' }}>
+          <h4 className="text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--color-dim)' }}>{t('thorchain.statusTitle')}</h4>
+          <ul className="space-y-2">
+            <Check done={!!pool} label={t('thorchain.checkPool')} />
+            <Check done={!!data?.inbound_address} label={t('thorchain.checkVault')} />
+            <Check done={!!data?.live} label={t('thorchain.checkTrading')} />
+          </ul>
+          {pool && (
+            <p className="text-xs mt-3" style={{ color: 'var(--color-text-secondary)' }}>
+              {t('thorchain.depth', { xmr: pool.xmr_depth.toLocaleString(undefined, { maximumFractionDigits: 1 }), status: pool.status })}
+            </p>
+          )}
+          <p className="text-xs mt-3" style={{ color: 'var(--color-dim)' }}>
+            {data?.source === 'thornode'
+              ? t('thorchain.checked', { ago, count: data.chains_live.length })
+              : t('thorchain.unavailable')}
+          </p>
+        </div>
+
+        <ul className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {WATCH.map(k => (
+            <li key={k} className="rounded-md px-3 py-2 border" style={{ borderColor: 'var(--color-border)' }}>
+              <div className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{t(`thorchain.w.${k}`)}</div>
+              <div className="text-xs mt-0.5" style={{ color: 'var(--color-dim)' }}>{t(`thorchain.w.${k}Desc`)}</div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <p className="text-xs mt-4 leading-relaxed" style={{ color: 'var(--color-dim)' }}>{t('thorchain.privacy')} {t('thorchain.footer')}</p>
     </Panel>
   )
 }

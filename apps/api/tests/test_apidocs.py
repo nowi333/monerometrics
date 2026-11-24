@@ -41,6 +41,7 @@ def test_unknown_route_is_left_alone():
 def test_documented_routes_match_the_app():
     source = (API / 'main.py').read_text()
     declared = {(m, p) for m, p in re.findall(r"@app\.(get|post)\('([^']+)', response_model", source)}
+    declared |= {(m, p) for m, p in re.findall(r"@router\.(get|post)\('([^']+)'", (API / 'thorchain.py').read_text())}
     assert declared == set(apidocs.ROUTES)
 
 

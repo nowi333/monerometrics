@@ -32,6 +32,7 @@ FIXED_TTL = {
     '/pools/distribution': 60,
     '/pools/sources': 60,
     '/pools/latency': 300,
+    '/thorchain/status': 600,
     '/chain/provenance': 60,
     '/chain/window': 30,
     '/chain/fork-window': 30,

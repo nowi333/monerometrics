@@ -14,6 +14,7 @@ TAGS = [
     {'name': 'Reorgs and orphans', 'description': 'Chain reorganizations and orphan blocks this node observed live.'},
     {'name': 'Mining pools', 'description': 'Pool shares, and the pool APIs the attribution relies on.'},
     {'name': 'Price and Haveno', 'description': 'Centralized spot price against the Haveno peer-to-peer market.'},
+    {'name': 'THORChain', 'description': 'Native XMR on THORChain: integration status, then swap flows once live.'},
 ]
 
 # (methode, chemin) -> (rubrique, titre, description de repli, exemple).
@@ -65,6 +66,7 @@ ROUTES = {
     ('get', '/pools/latency'): ('Mining pools', 'Pool declaration delay', '', '/pools/latency?window=7d'),
     ('get', '/pools/sources'): ('Mining pools', 'Pool API reachability',
         'Reachability of the pool APIs used for block attribution.', '/pools/sources'),
+    ('get', '/thorchain/status'): ('THORChain', 'XMR integration status', '', '/thorchain/status'),
     ('get', '/price'): ('Price and Haveno', 'XMR price', '', '/price'),
     ('get', '/price/spread'): ('Price and Haveno', 'Haveno spread history', '', '/price/spread?window=30d'),
     ('get', '/haveno/book'): ('Price and Haveno', 'Haveno order book', '', '/haveno/book'),

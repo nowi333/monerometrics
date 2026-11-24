@@ -300,8 +300,10 @@ export default function App() {
         <Deferred minHeight={730}><Guard><HavenoMethods /></Guard></Deferred>
       </div>
 
+      <Section id="thorchain" label={t('section.thorchain')} />
+
       <div className="mb-4">
-        <Deferred minHeight={380}><Guard><ThorchainSoon /></Guard></Deferred>
+        <Deferred minHeight={620}><Guard><ThorchainSoon /></Guard></Deferred>
       </div>
 
       <Deferred minHeight={310} id="donation" className="scroll-mt-4"><Guard>{WALL_ACTIVE ? <SupportersWall /> : <Donation />}</Guard></Deferred>
