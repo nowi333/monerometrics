@@ -9,6 +9,8 @@ import RefreshBadge from './RefreshBadge'
 import BlockDeepLink from './BlockDeepLink'
 import StatusBanner from './StatusBanner'
 import NewsBanner from './NewsBanner'
+// Bandeau d'actualites coupe temporairement : repasser a true pour le remettre.
+const NEWS_BANNER = false
 import SectionNav from './SectionNav'
 import Freshness from './Freshness'
 import ErrorBoundary from './ErrorBoundary'
@@ -219,7 +221,7 @@ export default function App() {
       </div>
 
       <SectionNav view={view} />
-      {view === 'dashboard' && <Guard><NewsBanner /></Guard>}
+      {NEWS_BANNER && view === 'dashboard' && <Guard><NewsBanner /></Guard>}
 
       <div className="p-3 sm:p-6 pt-5 max-w-6xl mx-auto">
       {view === 'docs' ? (
