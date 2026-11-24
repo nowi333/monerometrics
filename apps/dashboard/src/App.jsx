@@ -33,6 +33,7 @@ const panelLoaders = {
   HavenoMethods: () => import('./HavenoMethods'),
   Donation: () => import('./Donation'),
   SupportersWall: () => import('./SupportersWall'),
+  ThorchainSoon: () => import('./ThorchainSoon'),
 }
 const OrphansTable = lazy(panelLoaders.OrphansTable)
 const ReorgsStats = lazy(panelLoaders.ReorgsStats)
@@ -50,6 +51,7 @@ const OrderBookDepth = lazy(panelLoaders.OrderBookDepth)
 const HavenoMethods = lazy(panelLoaders.HavenoMethods)
 const Donation = lazy(panelLoaders.Donation)
 const SupportersWall = lazy(panelLoaders.SupportersWall)
+const ThorchainSoon = lazy(panelLoaders.ThorchainSoon)
 
 function preloadPanels() {
   for (const load of Object.values(panelLoaders)) load().catch(() => {})
@@ -296,6 +298,10 @@ export default function App() {
 
       <div className="mb-4">
         <Deferred minHeight={730}><Guard><HavenoMethods /></Guard></Deferred>
+      </div>
+
+      <div className="mb-4">
+        <Deferred minHeight={380}><Guard><ThorchainSoon /></Guard></Deferred>
       </div>
 
       <Deferred minHeight={310} id="donation" className="scroll-mt-4"><Guard>{WALL_ACTIVE ? <SupportersWall /> : <Donation />}</Guard></Deferred>
