@@ -51,8 +51,8 @@ export default function SupportersWall() {
       }}>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full"
-        style={{ background: 'color-mix(in srgb, var(--color-accent) 9%, transparent)', filter: 'blur(48px)' }}
+        className="pointer-events-none absolute -top-28 -right-28 w-72 h-72"
+        style={{ background: 'radial-gradient(closest-side, color-mix(in srgb, var(--color-accent) 9%, transparent), transparent)' }}
       />
       <div className="relative flex flex-col gap-5 sm:gap-6">
       {/* Titre centre verticalement sur les compteurs : seul a gauche, il

@@ -133,8 +133,8 @@ export default function Build() {
   return (
     <div className="space-y-5">
       <section className="rounded-lg border p-5 sm:p-8 relative overflow-hidden" style={card}>
-        <div aria-hidden="true" className="pointer-events-none absolute -top-16 -right-10 w-64 h-64 rounded-full"
-          style={{ background: 'color-mix(in srgb, var(--color-accent) 16%, transparent)', filter: 'blur(60px)' }} />
+        <div aria-hidden="true" className="pointer-events-none absolute -top-32 -right-28 w-[28rem] h-[28rem]"
+          style={{ background: 'radial-gradient(closest-side, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent)' }} />
         <div className="relative">
           <h1 className="text-2xl sm:text-3xl font-semibold" style={{ color: 'var(--color-text)' }}>{t('build.title')}</h1>
           <p className="text-sm sm:text-base mt-2 leading-relaxed" style={{ color: 'var(--color-text-secondary)', maxWidth: '62ch' }}>{t('build.lead')}</p>
