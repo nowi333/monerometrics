@@ -6,6 +6,7 @@
 [![IaC](https://img.shields.io/badge/IaC-Terraform%20%2B%20Ansible-7B42BC?logo=terraform)](https://www.terraform.io/)
 [![Monero](https://img.shields.io/badge/Monero-XMR-FF6600?logo=monero)](https://www.getmonero.org/)
 [![Kuno](https://img.shields.io/badge/Support-Kuno-FF6600?logo=monero)](https://kuno.anne.media/fundraiser/xyf8/)
+[![monerometrics MCP connector](https://glama.ai/mcp/connectors/io.github.nowi333/monerometrics/badges/score.svg)](https://glama.ai/mcp/connectors/io.github.nowi333/monerometrics)
 
 **monerometrics is community-funded.** A [Kuno campaign](https://kuno.anne.media/fundraiser/xyf8/) funds the next two years: hosting, FCMP++ readiness, free reorg alerts, open data export and a second node.
 
@@ -562,7 +563,8 @@ account, no API key.
 
 - **Endpoint** (Streamable HTTP): `https://api.monerometrics.net/mcp`
 - **Registry**: published as `io.github.nowi333/monerometrics` in the
-  [MCP Registry](https://registry.modelcontextprotocol.io/?search=monerometrics).
+  [MCP Registry](https://registry.modelcontextprotocol.io/?search=monerometrics), listed on
+  [Glama](https://glama.ai/mcp/connectors/io.github.nowi333/monerometrics).
 - **Tools**: `network_info`, `network_hashrate`, `network_blocktime`, `network_mempool`,
   `network_emission`, `reorgs`, `reorg_stats`, `recent_orphans`, `pool_distribution`,
   `pool_sources`, `chain_provenance`, `search_block`, `get_block`, `lookup_transaction`, `chain_fork_window`, `price`,
