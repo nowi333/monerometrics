@@ -137,6 +137,14 @@ server {
         try_files /index.html =404;
     }
 
+    location = /build {
+        try_files /index.html =404;
+    }
+
+    location = /build/ {
+        return 301 /build;
+    }
+
     # /docs/ renvoyait une 404 : on ramene l'URL avec barre finale sur la vue.
     location = /docs/ {
         return 301 /docs;

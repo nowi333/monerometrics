@@ -16,6 +16,13 @@ import Freshness from './Freshness'
 import ErrorBoundary from './ErrorBoundary'
 
 const Documentation = lazy(() => import('./Documentation'))
+const Build = lazy(() => import('./Build'))
+
+// La vue est portee par le chemin : /docs, /build, sinon le tableau de bord.
+function viewFromPath() {
+  const p = window.location.pathname.replace(/\/$/, '')
+  return p === '/docs' ? 'docs' : p === '/build' ? 'build' : 'dashboard'
+}
 // Chaque panneau garde son propre fichier, mais tous sont recuperes en tache de
 // fond une fois la page affichee : en defilant, le code est deja la.
 const panelLoaders = {
@@ -129,8 +136,7 @@ export default function App() {
   // La vue est portee par l'URL : sans cela le bouton retour ne fonctionne pas,
   // la documentation ne peut pas etre mise en favori ni partagee, et un lien
   // vers une section n'existe pas.
-  const [view, setView] = useState(() =>
-    typeof window !== 'undefined' && window.location.pathname.replace(/\/$/, '') === '/docs' ? 'docs' : 'dashboard')
+  const [view, setView] = useState(() => typeof window !== 'undefined' ? viewFromPath() : 'dashboard')
 
   useEffect(() => {
     if (view !== 'dashboard') return
@@ -141,7 +147,7 @@ export default function App() {
   }, [view])
 
   useEffect(() => {
-    const onPop =() => setView(window.location.pathname.replace(/\/$/, '') === '/docs' ? 'docs' : 'dashboard')
+    const onPop = () => setView(viewFromPath())
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
@@ -158,7 +164,7 @@ export default function App() {
 
   const navigate = (next) => {
     setView(next)
-    const path = next === 'docs' ? '/docs' : '/'
+    const path = next === 'dashboard' ? '/' : `/${next}`
     if (window.location.pathname.replace(/\/$/, '') !== path.replace(/\/$/, '')) {
       window.history.pushState({ view: next }, '', path + window.location.hash)
     }
@@ -180,6 +186,19 @@ export default function App() {
       >
         <Logo onClick={() => { window.location.href = '/' }} />
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <button
+            onClick={() => navigate(view === 'build' ? 'dashboard' : 'build')}
+            title={t('build.nav')}
+            aria-label={t('build.nav')}
+            aria-current={view === 'build' ? 'page' : undefined}
+            className="h-10 w-10 lg:w-auto lg:px-3 lg:gap-1.5 inline-flex items-center justify-center rounded-lg border hover:opacity-80 transition-opacity"
+            style={{ borderColor: view === 'build' ? 'var(--color-accent)' : 'var(--color-border)', color: view === 'build' ? 'var(--color-accent)' : 'var(--color-text)' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m16 18 6-6-6-6M8 6l-6 6 6 6" />
+            </svg>
+            <span className="hidden lg:inline text-sm font-medium whitespace-nowrap">API</span>
+          </button>
           <button
             onClick={() => navigate(view === 'dashboard' ? 'docs' : 'dashboard')}
             title={view === 'dashboard' ? t('doc.nav') : t('doc.backToDashboard')}
@@ -224,13 +243,13 @@ export default function App() {
       {NEWS_BANNER && view === 'dashboard' && <Guard><NewsBanner /></Guard>}
 
       <div className="p-3 sm:p-6 pt-5 max-w-6xl mx-auto">
-      {view === 'docs' ? (
+      {view !== 'dashboard' ? (
         <Suspense fallback={
           <div className="text-sm py-12 text-center" style={{ color: 'var(--color-dim)' }}>
             {t('state.loading')}
           </div>
         }>
-          <Documentation />
+          {view === 'build' ? <Build /> : <Documentation />}
         </Suspense>
       ) : <>
       <Guard><StatusBanner /></Guard>

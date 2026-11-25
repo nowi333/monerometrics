@@ -232,6 +232,8 @@ export default function Documentation() {
           <a href="https://api.monerometrics.net/docs" className="hover:underline whitespace-nowrap" style={{ color: 'var(--color-info)' }}>{t('doc.apiDocs')}</a>
           {' · '}
           <a href="https://api.monerometrics.net/changelog" className="hover:underline whitespace-nowrap" style={{ color: 'var(--color-info)' }}>{t('doc.apiChangelog')}</a>
+          {' · '}
+          <a href="/build" className="hover:underline whitespace-nowrap font-medium" style={{ color: 'var(--color-accent)' }}>{t('build.nav')} →</a>
         </p>
         {usage != null && (
           <div className="inline-flex items-center gap-2 text-xs mb-4 rounded-full border px-3 py-1" style={{ borderColor: 'var(--color-border)', color: 'var(--color-dim)' }}>

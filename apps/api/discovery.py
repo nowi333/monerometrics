@@ -14,7 +14,7 @@ ANONPAY = (
     '&name=monerometrics&description=Support%20monerometrics&buttonbgcolor=ff6600'
     f'&address={XMR_DONATION}'
 )
-API_VERSION = '0.32.0'
+API_VERSION = '0.32.1'
 MCP_VERSION = '0.5.3'
 RATE_LIMIT = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 CONTACT_EMAIL = 'contact@monerometrics.net'
@@ -77,6 +77,40 @@ def _agents_json() -> dict:
         'pricing': {'model': 'free', 'rateLimit': f'{RATE_LIMIT} requests/minute per IP'},
         'agents': [_agent_card()],
     }
+
+def _ai_catalog() -> dict:
+    # Catalogue unique des interfaces : demande sous plusieurs noms
+    # (ai-catalog.json, ard.json) par les robots qui cherchent l'API.
+    return {
+        'name': 'monerometrics',
+        'description': SUMMARY,
+        'url': BASE,
+        'authentication': {'type': 'none'},
+        'pricing': _pricing(),
+        'interfaces': [
+            {'type': 'openapi', 'url': f'{BASE}/openapi.json', 'docs': f'{BASE}/docs'},
+            {'type': 'mcp', 'transport': 'streamable-http', 'url': f'{BASE}/mcp', 'manifest': f'{BASE}/.well-known/mcp.json'},
+            {'type': 'a2a', 'agentCard': f'{BASE}/.well-known/agent-card.json'},
+            {'type': 'llms.txt', 'url': f'{BASE}/llms.txt'},
+        ],
+        'changelog': f'{BASE}/changelog',
+        'source': REPO,
+        'contact': CONTACT_EMAIL,
+    }
+
+
+def _pricing() -> dict:
+    return {
+        'model': 'free',
+        'price': 0,
+        'currency': None,
+        'authentication': 'none',
+        'rateLimit': {'requests': RATE_LIMIT, 'window': '1 minute', 'scope': 'per IP',
+                      'headers': ['RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset', 'Retry-After']},
+        'tracking': 'none',
+        'donations': {'xmr': XMR_DONATION, 'anonpay': ANONPAY},
+    }
+
 
 def _mcp_manifest() -> dict:
     return {
@@ -278,6 +312,11 @@ async def llms():
     return '\n'.join(lines) + '\n'
 
 _JSON_ROUTES = {
+    '/.well-known/ai-catalog.json': _ai_catalog,
+    '/.well-known/ard.json': _ai_catalog,
+    '/ai-catalog.json': _ai_catalog,
+    '/pricing': _pricing,
+    '/pricing.json': _pricing,
     '/.well-known/agent-card.json': _agent_card,
     '/.well-known/agent.json': _agent_card,
     '/.well-known/a2a.json': _agent_card,
@@ -335,3 +374,40 @@ def _register(path: str, builder):
 
 for _path, _builder in _JSON_ROUTES.items():
     _register(_path, _builder)
+
+
+SECURITY_TXT = (
+    f'Contact: mailto:{CONTACT_EMAIL}\n'
+    'Expires: 2027-11-25T00:00:00.000Z\n'
+    'Preferred-Languages: en, fr\n'
+    f'Canonical: {BASE}/.well-known/security.txt\n'
+    f'Policy: {REPO}/security/policy\n'
+)
+
+
+@router.get('/.well-known/security.txt', response_class=PlainTextResponse)
+async def security_txt():
+    return SECURITY_TXT
+
+
+def _pointer(protocol: str) -> dict:
+    return {
+        'error': f'{protocol} is not served here',
+        'use_instead': {
+            'rest': f'{BASE}/openapi.json',
+            'mcp': f'{BASE}/mcp',
+            'a2a_agent_card': f'{BASE}/.well-known/agent-card.json',
+        },
+        'catalog': f'{BASE}/.well-known/ai-catalog.json',
+    }
+
+
+@router.api_route('/v1/message:send', methods=['GET', 'POST'])
+async def a2a_send():
+    # Les clients A2A envoient ici par defaut : on les renvoie vers ce qui existe.
+    return JSONResponse(_pointer('A2A message:send'), status_code=501)
+
+
+@router.api_route('/graphql', methods=['GET', 'POST'])
+async def graphql():
+    return JSONResponse(_pointer('GraphQL'), status_code=501)

@@ -3,6 +3,14 @@
 Changes visible to users of the public API, newest first. The running version
 is reported by `GET /info`.
 
+## 0.32.1 - 2026-11-25
+
+- Discovery for agents: `/.well-known/ai-catalog.json` (also `ard.json`)
+  lists every interface, `/pricing` states the free tier and the rate limit,
+  and `/.well-known/security.txt` gives a security contact.
+- `/v1/message:send` and `/graphql` answer `501` with pointers to the REST,
+  MCP and A2A interfaces instead of a bare `404`.
+
 ## 0.32.0 - 2026-11-24
 
 - `GET /thorchain/status`: whether native XMR is live on THORChain (pool,
