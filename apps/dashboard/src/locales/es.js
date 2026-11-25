@@ -54,6 +54,8 @@ export default {
           'build.r.premium': "Alerta de prima en Haveno",
           'build.r.premiumDesc': "Vigila el índice de prima de Haveno y te avisa cuando comprar sin KYC cuesta poco sobre el spot.",
           'build.allDocs': "Documentación interactiva",
+          'build.seeMore': "Ver todos los endpoints",
+          'build.seeMoreDesc': "Referencia completa en la documentación interactiva",
           'build.changelog': "Changelog",
           'build.usedTitle': "Construido sobre monerometrics",
           'build.usedText': "¿Construyes algo con ella? Cuéntanoslo y lo listaremos aquí.",

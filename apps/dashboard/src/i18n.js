@@ -72,6 +72,8 @@ i18n
           'build.r.premium': "Haveno premium alert",
           'build.r.premiumDesc': "Watches the Haveno Premium Index and tells you when buying without KYC costs little over spot.",
           'build.allDocs': "Interactive docs",
+          'build.seeMore': "See all endpoints",
+          'build.seeMoreDesc': "Full reference in the interactive docs",
           'build.changelog': "Changelog",
           'build.usedTitle': "Built on monerometrics",
           'build.usedText': "Building something with it? Tell us, we'll list it here.",

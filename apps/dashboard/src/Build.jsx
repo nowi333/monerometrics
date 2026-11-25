@@ -189,6 +189,12 @@ export default function Build() {
               <div className="text-xs mt-0.5" style={{ color: 'var(--color-dim)' }}>{t(`build.ep.${k}`)}</div>
             </li>
           ))}
+          <li className="min-w-0">
+            <a href={`${API}/docs`} className="block h-full rounded border border-dashed px-3 py-2 hover:underline" style={{ borderColor: 'var(--color-info)' }}>
+              <span className="text-sm font-medium" style={{ color: 'var(--color-info)' }}>{t('build.seeMore')} →</span>
+              <span className="block text-xs mt-0.5" style={{ color: 'var(--color-dim)' }}>{t('build.seeMoreDesc')}</span>
+            </a>
+          </li>
         </ul>
         <p className="text-xs mt-4" style={{ color: 'var(--color-dim)' }}>
           <a href={`${API}/docs`} className="hover:underline" style={{ color: 'var(--color-info)' }}>{t('build.allDocs')}</a>
