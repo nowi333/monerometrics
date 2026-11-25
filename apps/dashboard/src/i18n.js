@@ -72,7 +72,7 @@ i18n
           'build.allDocs': "Interactive docs",
           'build.changelog': "Changelog",
           'build.usedTitle': "Built on monerometrics",
-          'build.usedText': "XMRHub's stats page and independent research tools already run on this API. Building something with it? Tell us, we'll list it here.",
+          'build.usedText': "Building something with it? Tell us, we'll list it here.",
           'thorchain.title': "Monero on THORChain",
           'thorchain.soon': "Coming soon",
           'thorchain.live': "Live",

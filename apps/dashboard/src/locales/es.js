@@ -54,7 +54,7 @@ export default {
           'build.allDocs': "Documentación interactiva",
           'build.changelog': "Changelog",
           'build.usedTitle': "Construido sobre monerometrics",
-          'build.usedText': "La página de estadísticas de XMRHub y herramientas de investigación independientes ya usan esta API. ¿Construyes algo con ella? Cuéntanoslo y lo listaremos aquí.",
+          'build.usedText': "¿Construyes algo con ella? Cuéntanoslo y lo listaremos aquí.",
           'thorchain.title': "Monero en THORChain",
           'thorchain.soon': "Próximamente",
           'thorchain.live': "En directo",
