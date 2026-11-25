@@ -745,9 +745,27 @@ def _mark_alive() -> None:
     M_LAST_LOOP.set(time.time())
 
 
+def wait_for_db(timeout: float = 300) -> None:
+    # Apres un redemarrage du noeud, Postgres peut arriver apres le worker :
+    # on l'attend plutot que de planter et de boucler en CrashLoopBackOff.
+    deadline = time.time() + timeout
+    delay = 2.0
+    while True:
+        try:
+            with psycopg.connect(DATABASE_URL, connect_timeout=5):
+                return
+        except psycopg.OperationalError as e:
+            if time.time() > deadline:
+                raise
+            log.warning(f'Postgres not ready, retrying in {delay:.0f}s: {e}')
+            time.sleep(delay)
+            delay = min(delay * 2, 30)
+
+
 def index_loop() -> None:
     log.info(f'Starting worker · monerod={MONEROD_URL} · poll={POLL_INTERVAL}s · batch={MAX_BLOCKS_PER_BATCH} · window={CONFIRMATION_WINDOW}')
     log.info(f'Postgres credentials source: {_source}')
+    wait_for_db()
     with httpx.Client() as http_client:
         maybe_refresh_pool_index(http_client)
         verify_proof_keys(http_client)

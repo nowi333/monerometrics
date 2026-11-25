@@ -139,6 +139,18 @@
     mode: '0644'
   become: true
 
+- name: Reboot automatically at night when an update requires it
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/52unattended-reboot
+    content: |
+      Unattended-Upgrade::Automatic-Reboot "{{ 'true' if common_auto_reboot else 'false' }}";
+      Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "{{ common_auto_reboot_time }}";
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
 - name: Set ufw default policies
   community.general.ufw:
     state: enabled

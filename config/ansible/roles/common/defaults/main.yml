@@ -20,6 +20,12 @@ common_fail2ban_ssh_bantime: 600
 
 common_sysctl_hardening: []
 
+# Redemarrage automatique apres une mise a jour de securite qui l'exige
+# (noyau, libc). Heure locale du serveur (UTC) ; decalee par hote pour que
+# l'edge et k3s ne tombent jamais en meme temps.
+common_auto_reboot: true
+common_auto_reboot_time: "03:30"
+
 # Mise a jour complete des paquets a chaque passage (dist-upgrade).
 common_apt_upgrade: true
 

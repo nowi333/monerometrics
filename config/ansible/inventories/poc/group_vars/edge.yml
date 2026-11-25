@@ -2,3 +2,6 @@
 
 # Partage par les roles letsencrypt et tor : les deux relaient vers Traefik.
 letsencrypt_api_upstream: "http://10.0.0.30:80"
+
+# Une heure apres k3s : les deux serveurs ne redemarrent jamais ensemble.
+common_auto_reboot_time: "04:30"
