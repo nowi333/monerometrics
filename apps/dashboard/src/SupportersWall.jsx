@@ -7,6 +7,9 @@ import data from './supporters.json'
 //
 // Format : early = noms ou {"name", "x"} ; node = {"name"} ou null ; charts = [{"name", "chart"}] ;
 // readme et wall = listes de noms. raisedXmr est recopie depuis Kuno.
+// projects = [{"name", "url", "logo"}] : un projet qui debloque n'importe quel palier peut
+// ajouter son logo, offert. Le fichier du logo va dans public/supporters/, servi par
+// notre propre domaine : rien ne se charge depuis un tiers, onion compris.
 const MONO = { fontFamily: 'var(--font-mono)' }
 
 export const WALL_ACTIVE = !!data.kunoUrl
@@ -29,7 +32,8 @@ export default function SupportersWall() {
 
   const early = data.early || []
   const anonymous = data.anonymous || []
-  const kunoNamed = (data.node ? 1 : 0) + data.charts.length + data.readme.length + data.wall.length
+  const projects = data.projects || []
+  const kunoNamed = (data.node ? 1 : 0) + data.charts.length + data.readme.length + data.wall.length + projects.length
   const shown = kunoNamed + early.length
   const pct = Math.max(0, Math.min(100, (data.raisedXmr / data.goalXmr) * 100))
   const empty = kunoNamed === 0
@@ -118,6 +122,22 @@ export default function SupportersWall() {
             </div>
             <span className="text-xs" style={{ color: 'var(--color-dim)' }}>{data.node ? t('wall.node.taken') : t('wall.node.open')}</span>
           </div>
+
+          {projects.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <span className="text-xs uppercase tracking-[0.12em]" style={{ color: 'var(--color-dim)' }}>{t('wall.projects.title')}</span>
+              <div className="flex flex-wrap items-center gap-3">
+                {projects.map((p) => (
+                  <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer sponsored" title={p.name}
+                    className="rounded-lg border px-4 py-3 flex items-center hover:opacity-90"
+                    style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border)' }}>
+                    <img src={p.logo} alt={p.name} className="h-8 w-auto max-w-[180px] object-contain" loading="lazy" />
+                  </a>
+                ))}
+              </div>
+              <span className="text-xs" style={{ color: 'var(--color-dim)' }}>{t('wall.projects.note')}</span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             <Tier title={t('wall.tier.chart')} price="1 XMR">

@@ -616,6 +616,8 @@ export default {
           'wall.early.body': 'A soutenu monerometrics avant même la campagne.',
           'wall.onX': '@{{handle}} sur X',
           'wall.cta': 'Soutenir sur Kuno',
+          'wall.projects.title': 'Projets qui soutiennent monerometrics',
+          'wall.projects.note': 'Un projet qui débloque n\'importe quel palier a son logo ici, offert. Aucun soutien n\'influence les données.',
 
 
           'lang.label': 'Langue',

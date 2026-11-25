@@ -634,6 +634,8 @@ i18n
           'wall.early.body': 'Supported monerometrics before the campaign existed.',
           'wall.onX': '@{{handle}} on X',
           'wall.cta': 'Support on Kuno',
+          'wall.projects.title': 'Projects supporting monerometrics',
+          'wall.projects.note': 'Projects that unlock any tier get their logo here, free. No supporter has any say over the data.',
 
 
           'lang.label': 'Language',
