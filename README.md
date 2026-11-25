@@ -37,7 +37,7 @@ are **free and open, permanently**: there is no paid tier, and there will not be
 
 ## What it does
 
-**Dashboard**, a React SPA in four sections, available in English, French and Spanish, light and
+**Dashboard**, a React SPA in five sections, available in English, French and Spanish, light and
 dark themes, readable on a phone:
 
 - *Consensus and reorganizations*: a chain-fork visualizer that draws competing branches as a
@@ -49,13 +49,29 @@ dark themes, readable on a phone:
   estimator** reading the node's four priority tiers live.
 - *Peer-to-peer market*: Haveno premium over spot on **both sides of the book**, live order-book
   depth, resting liquidity, and **premium by payment method**.
+- *THORChain*: whether native XMR is live on THORChain yet (pool, inbound vault, halts), checked
+  every 10 minutes, ahead of watching XMR swap flows once the chain opens.
 - **Transaction search**: paste a transaction hash and get what Monero actually makes public about
   it, plus which pool mined its block and whether that height was ever contested by a reorg. The
   hash travels in a POST body, so it never lands in a URL.
 - Every time series is navigable: a range strip under each chart, drag to move through time,
   zoom, and statistics that follow the visible window rather than the whole series.
 
-**Public API**: FastAPI, read-only JSON endpoints grouped by theme, documented via OpenAPI.
+**Public API**: FastAPI, read-only JSON endpoints grouped by theme, documented via OpenAPI, with
+copy-paste recipes on [monerometrics.net/build](https://monerometrics.net/build) (badge, reorg bot,
+checkout confirmations, THORChain wait script, MCP config).
+
+**Derived readings**, as plain pages and as JSON:
+
+- [How many confirmations?](https://monerometrics.net/confirmations): confirmations a merchant
+  should wait for a given amount, from the largest pool's 7-day share (Bitcoin whitepaper,
+  section 11) and never below the deepest reorg observed. It tightens by itself if mining
+  concentrates.
+- [State of Monero mining](https://monerometrics.net/reports): one report per completed month,
+  with pool shares, Nakamoto coefficient, how attribution was proven, reorgs, orphans, hashrate
+  and the Haveno premium, against the previous month.
+- **monerometrics Haveno Premium Index**: the volume-weighted median premium of executed Haveno
+  trades over spot, weekly, split between reversible and final payment methods.
 
 **Reorg detection**: a Python worker reads each block from a synced node, computes the indicators
 and **detects reorganizations** by re-checking a rolling window of recent blocks against the node,
@@ -435,6 +451,7 @@ is rate-limited (300 requests/minute; Tor traffic has its own shared bucket). CO
 | `GET /chain/block/{hash}` | Full detail for one block, read live from the node, plus the pool attribution and, for proven blocks, the public proof inputs so anyone can re-verify it. |
 | `GET /chain/fork-window?limit=` | Latest N blocks including orphans, with fork-point flags. `limit` = 10..1000. |
 | `GET /reorgs?limit=` | Most recent detected reorganizations. `limit` = 1..1000. |
+| `GET /confirmations/recommended?amount_usd=` | Confirmations to wait for a payment of that amount: smallest count that keeps a miner with the largest pool's 7-day share below the accepted risk (1% under $100 down to 0.001% over $10,000), never below the deepest reorg observed + 1. Also returns the count if the two largest pools collude, the inputs and the limits. |
 | `GET /reorgs/stats` | Reorg statistics over 24h / 7d / 30d / 90d / everything recorded (count, avg and max depth, affected tx), plus the date watching began. |
 | `GET /orphans/recent?window=` | Orphan blocks with their competing canonical block. `window` = `24h\|48h\|7d\|30d\|90d\|180d\|1y\|all`. |
 
@@ -456,6 +473,19 @@ is rate-limited (300 requests/minute; Tor traffic has its own shared bucket). CO
 | `GET /haveno/methods?window=&currency=` | Executed trades grouped by **payment method**, with average, median and standard deviation of the premium. `window` = `30d\|90d\|180d\|1y\|all`; `currency` = `USD\|EUR`. |
 | `GET /haveno/liquidity?window=&currency=` | XMR resting in open offers, hourly, back to November 2024. |
 | `GET /haveno/trades?limit=&currency=` | Recent executed trades with payment method, price and premium. |
+| `GET /haveno/index?weeks=` | **monerometrics Haveno Premium Index**: volume-weighted median premium of executed USD trades over spot for the last 7 days and per week (`weeks` = 1..52), with reversible and final sub-indices and the trade count. |
+
+**THORChain**
+
+| Endpoint | Description |
+|---|---|
+| `GET /thorchain/status` | Whether native XMR is live on THORChain: pool status and depth, inbound vault address, halts and the relevant mimir values, read from THORNode every 10 minutes. |
+
+**Reports**
+
+| Endpoint | Description |
+|---|---|
+| `GET /reports/{yyyy-mm}` | Monthly State of Monero mining report for a completed month (from 2026-08): pool shares, largest and two-largest share, Nakamoto coefficient, attribution mix, reorgs, orphans, average hashrate, Haveno index, highlights, and the previous month for comparison. |
 
 **Other**
 
@@ -535,7 +565,7 @@ account, no API key.
   [MCP Registry](https://registry.modelcontextprotocol.io/?search=monerometrics).
 - **Tools**: `network_info`, `network_hashrate`, `network_blocktime`, `network_mempool`,
   `network_emission`, `reorgs`, `reorg_stats`, `recent_orphans`, `pool_distribution`,
-  `pool_sources`, `chain_provenance`, `search_block`, `get_block`, `chain_fork_window`, `price`,
+  `pool_sources`, `chain_provenance`, `search_block`, `get_block`, `lookup_transaction`, `chain_fork_window`, `price`,
   `haveno_book`, `haveno_premium`, `haveno_payment_methods`, plus a `monerometrics://reference`
   resource.
 

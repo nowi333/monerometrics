@@ -35,6 +35,7 @@ const ENDPOINTS = [
   { m: 'GET', p: '/chain/fork-window', k: 'chainForkWindow', q: 'limit=10..1000' },
   { m: 'GET', p: '/reorgs', k: 'reorgs', q: 'limit=1..1000' },
   { m: 'GET', p: '/reorgs/stats', k: 'reorgsStats' },
+  { m: 'GET', p: '/confirmations/recommended', k: 'confirmations', q: 'amount_usd=NUMBER' },
   { m: 'GET', p: '/orphans/recent', k: 'orphansRecent', q: 'window=24h|48h|7d|30d|90d|180d|1y|all' },
   { m: 'GET', p: '/pools/distribution', k: 'poolsDistribution', q: 'window=1h|6h|24h|48h|7d' },
   { m: 'GET', p: '/pools/sources', k: 'poolsSources' },
@@ -44,7 +45,10 @@ const ENDPOINTS = [
   { m: 'GET', p: '/haveno/book', k: 'havenoBook' },
   { m: 'GET', p: '/haveno/methods', k: 'havenoMethods', q: 'window=30d|90d|180d|1y|all&currency=USD|EUR' },
   { m: 'GET', p: '/haveno/liquidity', k: 'havenoLiquidity', q: 'window=24h|7d|30d|90d|1y|all&currency=USD|EUR|AUD|GBP' },
+  { m: 'GET', p: '/haveno/index', k: 'havenoIndex', q: 'weeks=1..52' },
   { m: 'GET', p: '/haveno/trades', k: 'havenoTrades', q: 'limit=1..1000&currency=USD|EUR|AUD|GBP' },
+  { m: 'GET', p: '/thorchain/status', k: 'thorchainStatus' },
+  { m: 'GET', p: '/reports/{yyyy-mm}', k: 'reports' },
   { m: 'GET', p: '/news', k: 'news' },
 ]
 
