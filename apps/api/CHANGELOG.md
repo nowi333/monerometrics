@@ -3,6 +3,10 @@
 Changes visible to users of the public API, newest first. The running version
 is reported by `GET /info`.
 
+## 0.33.2 - 2026-11-25
+
+- Dependency updates (FastAPI 0.162.2, Pydantic 2.14.3). No API change.
+
 ## 0.33.1 - 2026-11-25
 
 - Text pages carry the same logo as the dashboard.
