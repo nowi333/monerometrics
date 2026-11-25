@@ -7,7 +7,7 @@ import data from './supporters.json'
 //
 // Format : early = noms ou {"name", "x"} ; node = {"name"} ou null ; charts = [{"name", "chart"}] ;
 // readme et wall = listes de noms. raisedXmr est recopie depuis Kuno.
-// projects = [{"name", "url", "logo"}] : un projet qui debloque n'importe quel palier peut
+// projects = [{"name", "url", "logo", "wordmark"?}] (wordmark : le logo contient deja le nom) : un projet qui debloque n'importe quel palier peut
 // ajouter son logo, offert. Le fichier du logo va dans public/supporters/, servi par
 // notre propre domaine : rien ne se charge depuis un tiers, onion compris.
 const MONO = { fontFamily: 'var(--font-mono)' }
@@ -33,7 +33,10 @@ export default function SupportersWall() {
   const early = data.early || []
   const anonymous = data.anonymous || []
   const projects = data.projects || []
-  const kunoNamed = (data.node ? 1 : 0) + data.charts.length + data.readme.length + data.wall.length + projects.length
+  // Un projet figure aussi dans le palier qu'il a debloque : on ne le compte qu'une fois.
+  const listed = new Set([...data.charts.map(c => c.name), ...data.readme, ...data.wall])
+  const kunoNamed = (data.node ? 1 : 0) + data.charts.length + data.readme.length + data.wall.length
+    + projects.filter(p => !listed.has(p.name)).length
   const shown = kunoNamed + early.length
   const pct = Math.max(0, Math.min(100, (data.raisedXmr / data.goalXmr) * 100))
   const empty = kunoNamed === 0
@@ -129,9 +132,10 @@ export default function SupportersWall() {
               <div className="flex flex-wrap items-center gap-3">
                 {projects.map((p) => (
                   <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer sponsored" title={p.name}
-                    className="rounded-lg border px-4 py-3 flex items-center hover:opacity-90"
+                    className="rounded-lg border px-4 py-3 flex items-center gap-2.5 hover:opacity-90"
                     style={{ background: 'var(--color-bg)', borderColor: 'var(--color-border)' }}>
-                    <img src={p.logo} alt={p.name} className="h-8 w-auto max-w-[180px] object-contain" loading="lazy" />
+                    <img src={p.logo} alt={p.wordmark ? p.name : ''} className="h-8 w-auto max-w-[180px] object-contain" loading="lazy" />
+                    {!p.wordmark && <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{p.name}</span>}
                   </a>
                 ))}
               </div>
