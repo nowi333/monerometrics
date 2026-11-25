@@ -17,6 +17,7 @@ import discovery
 import seo
 import cards
 import thorchain
+import insights
 import txinfo
 import newsfeed
 import httpcache
@@ -268,6 +269,8 @@ app.include_router(discovery.router)
 app.include_router(seo.router)
 app.include_router(cards.router)
 app.include_router(thorchain.router)
+app.include_router(insights.router)
+app.include_router(insights.pages)
 app.add_middleware(CORSMiddleware, allow_origins=['https://monerometrics.net', 'https://www.monerometrics.net', 'http://localhost:5173', 'http://localhost:4173'], allow_credentials=False, allow_methods=['GET', 'POST'], allow_headers=['*'],
                    expose_headers=['RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset', 'Retry-After'])
 

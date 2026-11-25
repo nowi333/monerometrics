@@ -33,6 +33,8 @@ FIXED_TTL = {
     '/pools/sources': 60,
     '/pools/latency': 300,
     '/thorchain/status': 600,
+    '/confirmations/recommended': 300,
+    '/haveno/index': 900,
     '/chain/provenance': 60,
     '/chain/window': 30,
     '/chain/fork-window': 30,
@@ -65,6 +67,8 @@ def ttl_for(path: str, window: str | None = None) -> int | None:
         return FIXED_TTL[path]
     if path.startswith(BLOCK_PREFIX):
         return BLOCK_TTL
+    if path.startswith('/reports/'):
+        return 3600
     return None
 
 

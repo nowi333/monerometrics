@@ -43,6 +43,14 @@ while True:
     time.sleep(120)`,
   },
   {
+    k: 'checkout',
+    lang: 'javascript',
+    code: `// Before shipping an order paid in XMR
+const r = await fetch('${API}/confirmations/recommended?amount_usd=' + order.usd)
+const { recommended } = await r.json()
+if (payment.confirmations >= recommended.confirmations) ship(order)`,
+  },
+  {
     k: 'thorchain',
     lang: 'bash',
     code: `# Wait for native XMR on THORChain, then run your own script
@@ -71,7 +79,10 @@ const ENDPOINTS = [
   ['/pools/distribution', 'pools'],
   ['/chain/provenance', 'provenance'],
   ['/network/fees', 'fees'],
+  ['/confirmations/recommended', 'confirmations'],
   ['/price/spread', 'haveno'],
+  ['/haveno/index', 'havenoIndex'],
+  ['/reports/2026-10', 'reports'],
   ['/thorchain/status', 'thorchain'],
 ]
 

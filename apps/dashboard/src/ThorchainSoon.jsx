@@ -44,9 +44,12 @@ function Check({ done, label }) {
 
 export default function ThorchainSoon() {
   const { t } = useTranslation()
-  const { data } = usePolledData(() => api.thorchainStatus(), d => d && d.source, [], 600000)
+  const { data } = usePolledData(
+    // L'age se calcule a la reception : Date.now() n'a pas sa place dans le rendu.
+    () => api.thorchainStatus().then(d => d && { ...d, age: d.checked_at ? Date.now() / 1000 - d.checked_at : null }),
+    d => d && d.source, [], 600000)
   const pool = data?.pool
-  const ago = data?.checked_at ? timeAgo(Math.max(0, Date.now() / 1000 - data.checked_at)) : null
+  const ago = data?.age != null ? timeAgo(Math.max(0, data.age)) : null
 
   return (
     <Panel

@@ -14,6 +14,7 @@ TAGS = [
     {'name': 'Reorgs and orphans', 'description': 'Chain reorganizations and orphan blocks this node observed live.'},
     {'name': 'Mining pools', 'description': 'Pool shares, and the pool APIs the attribution relies on.'},
     {'name': 'Price and Haveno', 'description': 'Centralized spot price against the Haveno peer-to-peer market.'},
+    {'name': 'Reports', 'description': 'Derived readings: confirmations to wait, and the monthly State of Monero mining report.'},
     {'name': 'THORChain', 'description': 'Native XMR on THORChain: integration status, then swap flows once live.'},
 ]
 
@@ -66,6 +67,10 @@ ROUTES = {
     ('get', '/pools/latency'): ('Mining pools', 'Pool declaration delay', '', '/pools/latency?window=7d'),
     ('get', '/pools/sources'): ('Mining pools', 'Pool API reachability',
         'Reachability of the pool APIs used for block attribution.', '/pools/sources'),
+    ('get', '/confirmations/recommended'): ('Reports', 'Recommended confirmations', '',
+        '/confirmations/recommended?amount_usd=250'),
+    ('get', '/reports/{ym}'): ('Reports', 'Monthly mining report', '', '/reports/2026-10'),
+    ('get', '/haveno/index'): ('Price and Haveno', 'Haveno Premium Index', '', '/haveno/index?weeks=12'),
     ('get', '/thorchain/status'): ('THORChain', 'XMR integration status', '', '/thorchain/status'),
     ('get', '/price'): ('Price and Haveno', 'XMR price', '', '/price'),
     ('get', '/price/spread'): ('Price and Haveno', 'Haveno spread history', '', '/price/spread?window=30d'),

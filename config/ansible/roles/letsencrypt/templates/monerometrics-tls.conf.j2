@@ -156,7 +156,7 @@ server {
 
     # Pages indexables rendues par l'API : le dashboard est une SPA que les
     # moteurs voient vide. Pas d'add_header ici, les en-tetes du serveur s'appliquent.
-    location ~ "^/(block/[0-9]{1,9}|pools|pool/[a-z0-9][a-z0-9-]{0,62}|reorgs|orphans|hashrate|fees|haveno|learn|learn/[a-z-]{1,40}|sitemap\.xml)$" {
+    location ~ "^/(block/[0-9]{1,9}|pools|pool/[a-z0-9][a-z0-9-]{0,62}|reorgs|orphans|hashrate|fees|haveno|confirmations|reports|reports/[0-9]{4}-[0-9]{2}|learn|learn/[a-z-]{1,40}|sitemap\.xml)$" {
         rewrite ^ /seo$uri break;
         proxy_pass {{ letsencrypt_api_upstream }};
         proxy_http_version 1.1;

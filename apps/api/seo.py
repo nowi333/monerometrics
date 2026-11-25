@@ -99,7 +99,8 @@ dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0}dt{c
 NAV = [('/#consensus', 'Consensus'), ('/#mining', 'Mining'), ('/#network', 'Network'),
        ('/#market', 'Market'), ('/docs', 'API')]
 PAGES = [('/pools', 'Pools'), ('/hashrate', 'Hashrate'), ('/fees', 'Fees'), ('/reorgs', 'Reorgs'),
-         ('/orphans', 'Orphans'), ('/haveno', 'Haveno'), ('/learn', 'Learn')]
+         ('/orphans', 'Orphans'), ('/haveno', 'Haveno'), ('/confirmations', 'Confirmations'),
+         ('/reports', 'Monthly reports'), ('/learn', 'Learn')]
 LOGO = ('<svg width="22" height="22" viewBox="0 0 32 32" fill="none" stroke="#ff6600" stroke-width="2.5" '
         'stroke-linejoin="round" aria-hidden="true"><path d="M10.4 17C12 17 12 9 13.6 9M10.4 17C12 17 12 25 13.6 25"/>'
         '<rect x="2" y="13" width="8" height="8" rx="1.8"/><rect x="14" y="5" width="8" height="8" rx="1.8"/>'
@@ -531,6 +532,9 @@ async def haveno_page():
             f'the time of the trade. The premium is what a buyer paid above spot to get XMR without KYC. It follows how '
             f'reversible the payment is, more than how private it is: methods a buyer can claw back after the trade carry '
             f'more risk for the seller, who prices it in. Methods with fewer than five trades are left out.</p>'
+            f'<p>One number for the whole market: the <b>monerometrics Haveno Premium Index</b>, the volume-weighted median premium '
+            f'of the last 7 days, with sub-indices for reversible and final payment methods and a weekly history: '
+            f'<code class="mono">GET https://api.monerometrics.net/haveno/index</code>.</p>'
             f'<p class="cta">Raw data: <code class="mono">GET https://api.monerometrics.net/haveno/methods?window=180d</code></p>')
     page = _layout('Haveno premium by payment method: buying XMR without KYC | monerometrics', desc, '/haveno', body,
                    _breadcrumb([('monerometrics', '/'), ('Haveno', '/haveno')]),
@@ -659,7 +663,10 @@ async def sitemap():
         day = datetime.now(timezone.utc).strftime('%Y-%m-%d')
         urls = [('/', 'hourly', '1.0'), ('/pools', 'hourly', '0.9'), ('/reorgs', 'daily', '0.9'),
                 ('/orphans', 'daily', '0.8'), ('/hashrate', 'hourly', '0.9'), ('/fees', 'hourly', '0.8'),
-                ('/haveno', 'daily', '0.8'), ('/learn', 'weekly', '0.6'), ('/docs', 'weekly', '0.7')]
+                ('/haveno', 'daily', '0.8'), ('/learn', 'weekly', '0.6'), ('/docs', 'weekly', '0.7'),
+                ('/confirmations', 'daily', '0.9'), ('/reports', 'monthly', '0.8')]
+        import insights
+        urls += [(f'/reports/{m}', 'yearly', '0.7') for m in insights.available_months()]
         urls += [(f'/learn/{slug}', 'monthly', '0.7') for slug in LEARN]
         urls += [(f'/pool/{_slug(r["miner_pool"])}', 'daily', '0.6') for r in pools if _POOL_RE.fullmatch(r['miner_pool'])]
         urls += [(f'/block/{r["height"]}', 'monthly', '0.4') for r in heights]

@@ -3,6 +3,18 @@
 Changes visible to users of the public API, newest first. The running version
 is reported by `GET /info`.
 
+## 0.33.0 - 2026-11-25
+
+- `GET /confirmations/recommended?amount_usd=`: how many confirmations to
+  wait for a payment, from the largest pool's share and the deepest reorg
+  observed. Updates on its own as mining concentrates or spreads.
+- `GET /haveno/index`: the monerometrics Haveno Premium Index, volume-weighted
+  median premium of executed Haveno trades over spot, current and weekly, with
+  reversible and final sub-indices.
+- `GET /reports/{yyyy-mm}`: monthly State of Monero mining report (pool
+  shares, Nakamoto coefficient, attribution, reorgs, orphans, hashrate, Haveno
+  premium), with the previous month for comparison.
+
 ## 0.32.1 - 2026-11-25
 
 - Discovery for agents: `/.well-known/ai-catalog.json` (also `ard.json`)
