@@ -26,7 +26,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:17.10-alpine@sha256:dc17045ccfd343b49600570ea734b9c4991cf1c3f3302e67df51e3b402dd55c4
+          image: postgres:17.12-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
           # Les donnees appartiennent deja a l'utilisateur postgres (70) : le
           # conteneur n'a plus besoin de demarrer en root pour lui ceder la main.
           securityContext:
