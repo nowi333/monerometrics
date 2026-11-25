@@ -59,6 +59,20 @@ do sleep 600; done
 ./my-swap.sh   # your wallet, your keys`,
   },
   {
+    k: 'premium',
+    lang: 'python',
+    code: `# Get told when buying XMR on Haveno gets cheap
+import time, httpx
+
+TARGET = 1.0   # % over spot, final payment methods
+while True:
+    idx = httpx.get('${API}/haveno/index?weeks=1').json()['current_7d']
+    if idx['final_pct'] is not None and idx['final_pct'] <= TARGET:
+        print(f"Haveno premium {idx['final_pct']:+.1f}% "
+              f"over {idx['trades']} trades: good time to buy")
+    time.sleep(6 * 3600)`,
+  },
+  {
     k: 'agent',
     lang: 'json',
     code: `{

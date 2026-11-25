@@ -69,6 +69,8 @@ i18n
           'build.ep.reports': "Monthly State of Monero mining report",
           'build.r.checkout': "Confirmations in your checkout",
           'build.r.checkoutDesc': "Ask how many confirmations an order needs before shipping. Tightens by itself if mining concentrates.",
+          'build.r.premium': "Haveno premium alert",
+          'build.r.premiumDesc': "Watches the Haveno Premium Index and tells you when buying without KYC costs little over spot.",
           'build.allDocs': "Interactive docs",
           'build.changelog': "Changelog",
           'build.usedTitle': "Built on monerometrics",

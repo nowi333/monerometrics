@@ -51,6 +51,8 @@ export default {
           'build.ep.reports': "Informe mensual sobre la minería de Monero",
           'build.r.checkout': "Confirmaciones en tu checkout",
           'build.r.checkoutDesc': "Pregunta cuántas confirmaciones necesita un pedido antes de enviarlo. Se ajusta solo si la minería se concentra.",
+          'build.r.premium': "Alerta de prima en Haveno",
+          'build.r.premiumDesc': "Vigila el índice de prima de Haveno y te avisa cuando comprar sin KYC cuesta poco sobre el spot.",
           'build.allDocs': "Documentación interactiva",
           'build.changelog': "Changelog",
           'build.usedTitle': "Construido sobre monerometrics",
