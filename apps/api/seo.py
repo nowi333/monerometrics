@@ -73,7 +73,7 @@ a{color:var(--acc)}.dim{color:var(--dim)}
 header,footer{background:var(--chrome);border-bottom:1px solid var(--bd)}footer{border-top:1px solid var(--bd);border-bottom:0;margin-top:40px}
 .in{max-width:1000px;margin:0 auto;padding:14px 16px}
 header .in{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:center}
-header .brand{display:flex;align-items:center;gap:8px;margin-right:auto;font:600 15px ui-monospace,Menlo,monospace;color:var(--tx);text-decoration:none}
+header .brand{display:flex;align-items:center;gap:10px;margin-right:auto;font:600 15px ui-monospace,Menlo,monospace;color:var(--tx);text-decoration:none}
 header nav{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center}header nav a{font-size:14px;color:var(--tx2);text-decoration:none;padding:6px 0}header nav a:hover{color:var(--acc)}
 .live{display:inline-flex;align-items:center;gap:7px;background:var(--acc);color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:8px 14px;border-radius:6px;white-space:nowrap}
 .live:hover{filter:brightness(1.08)}.live.open{font-size:15px;padding:11px 18px;margin:0 0 18px;white-space:normal}.live i{width:7px;height:7px;border-radius:50%;background:#fff;opacity:.85}
@@ -101,10 +101,15 @@ NAV = [('/#consensus', 'Consensus'), ('/#mining', 'Mining'), ('/#network', 'Netw
 PAGES = [('/pools', 'Pools'), ('/hashrate', 'Hashrate'), ('/fees', 'Fees'), ('/reorgs', 'Reorgs'),
          ('/orphans', 'Orphans'), ('/haveno', 'Haveno'), ('/confirmations', 'Confirmations'),
          ('/reports', 'Monthly reports'), ('/learn', 'Learn')]
-LOGO = ('<svg width="22" height="22" viewBox="0 0 32 32" fill="none" stroke="#ff6600" stroke-width="2.5" '
-        'stroke-linejoin="round" aria-hidden="true"><path d="M10.4 17C12 17 12 9 13.6 9M10.4 17C12 17 12 25 13.6 25"/>'
-        '<rect x="2" y="13" width="8" height="8" rx="1.8"/><rect x="14" y="5" width="8" height="8" rx="1.8"/>'
-        '<rect x="14" y="21" width="8" height="8" rx="1.8"/></svg>')
+# Meme marque que le dashboard (Logo.jsx) : bloc, chaine, puis fourche.
+LOGO = ('<svg width="36" height="18" viewBox="0 0 200 100" fill="none" aria-hidden="true">'
+        '<g stroke="#ff6600" stroke-width="5.5" stroke-linecap="butt" stroke-linejoin="round">'
+        '<path d="M27 50 H39"/><path d="M61 50 H73"/><path d="M145 24 H157"/><path d="M145 76 H157"/>'
+        '<path d="M95 50 C107 50 109 24 123 24"/><path d="M95 50 C107 50 109 76 123 76"/>'
+        '<rect x="6" y="40" width="20" height="20" rx="4"/><rect x="40" y="40" width="20" height="20" rx="4"/>'
+        '<rect x="74" y="40" width="20" height="20" rx="4"/><rect x="124" y="14" width="20" height="20" rx="4"/>'
+        '<rect x="158" y="14" width="20" height="20" rx="4"/><rect x="124" y="66" width="20" height="20" rx="4"/>'
+        '<rect x="158" y="66" width="20" height="20" rx="4"/></g></svg>')
 
 
 def _layout(title: str, description: str, path: str, body: str, jsonld: str = '',
@@ -122,7 +127,7 @@ def _layout(title: str, description: str, path: str, body: str, jsonld: str = ''
 <meta property="og:url" content="{SITE}{e(path)}"><meta property="og:image" content="{e(og)}">
 <meta name="twitter:card" content="summary_large_image">
 <style>{CSS}</style>{jsonld}</head><body>
-<header><div class="in"><a class="brand" href="/">{LOGO}monerometrics</a><nav>{nav}</nav>
+<header><div class="in"><a class="brand" href="/">{LOGO}monerometrics.net</a><nav>{nav}</nav>
 <a class="live" href="/"><i></i>Live dashboard</a></div></header>
 <main><p class="note"><b>Lightweight text version.</b> This page is a plain snapshot made for search engines and slow connections.
 The real monerometrics is the <a href="/"><b>live interactive dashboard</b></a>: live chain and fork visualizer, charts, block details, Haveno market. Strongly recommended.</p>{body}</main>

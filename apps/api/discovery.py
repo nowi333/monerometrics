@@ -14,7 +14,7 @@ ANONPAY = (
     '&name=monerometrics&description=Support%20monerometrics&buttonbgcolor=ff6600'
     f'&address={XMR_DONATION}'
 )
-API_VERSION = '0.33.0'
+API_VERSION = '0.33.1'
 MCP_VERSION = '0.5.3'
 RATE_LIMIT = int(os.getenv('RATE_LIMIT_PER_MIN', '120'))
 CONTACT_EMAIL = 'contact@monerometrics.net'
