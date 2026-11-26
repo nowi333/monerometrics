@@ -1,7 +1,7 @@
 {
   "kunoUrl": "https://kuno.anne.media/fundraiser/xyf8/",
   "goalXmr": 10,
-  "raisedXmr": 6,
+  "raisedXmr": 7,
   "anonymous": [
     5
   ],
@@ -16,19 +16,30 @@
     {
       "name": "WizardSwap",
       "chart": ""
+    },
+    {
+      "name": "Trocador",
+      "chart": ""
     }
   ],
   "readme": [
-    "WizardSwap"
+    "WizardSwap",
+    "Trocador"
   ],
   "wall": [
-    "WizardSwap"
+    "WizardSwap",
+    "Trocador"
   ],
   "projects": [
     {
       "name": "WizardSwap",
       "url": "https://wizardswap.io",
       "logo": "/supporters/wizardswap.png"
+    },
+    {
+      "name": "Trocador",
+      "url": "https://trocador.app",
+      "logo": "/supporters/trocador.png"
     }
   ]
 }

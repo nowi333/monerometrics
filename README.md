@@ -697,7 +697,7 @@ and searchable.
 
 ## Support the project
 
-**Supporters:** thank you to [WizardSwap](https://wizardswap.io) (1 XMR, sponsored chart) and to
+**Supporters:** thank you to [WizardSwap](https://wizardswap.io) and [Trocador](https://trocador.app) (1 XMR each, sponsored charts) and to
 the anonymous donor of 5 XMR. The full list is on the
 [supporters wall](https://monerometrics.net/#donation).
 
