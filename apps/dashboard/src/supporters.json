@@ -18,8 +18,12 @@
       "chart": ""
     }
   ],
-  "readme": [],
-  "wall": [],
+  "readme": [
+    "WizardSwap"
+  ],
+  "wall": [
+    "WizardSwap"
+  ],
   "projects": [
     {
       "name": "WizardSwap",

@@ -33,10 +33,9 @@ export default function SupportersWall() {
   const early = data.early || []
   const anonymous = data.anonymous || []
   const projects = data.projects || []
-  // Un projet figure aussi dans le palier qu'il a debloque : on ne le compte qu'une fois.
-  const listed = new Set([...data.charts.map(c => c.name), ...data.readme, ...data.wall])
-  const kunoNamed = (data.node ? 1 : 0) + data.charts.length + data.readme.length + data.wall.length
-    + projects.filter(p => !listed.has(p.name)).length
+  // Paliers cumulatifs : un nom peut figurer dans plusieurs paliers et dans les projets, on ne le compte qu'une fois.
+  const named = new Set([...data.charts.map(c => c.name), ...data.readme, ...data.wall, ...projects.map(p => p.name)])
+  const kunoNamed = (data.node ? 1 : 0) + named.size
   const shown = kunoNamed + early.length
   const pct = Math.max(0, Math.min(100, (data.raisedXmr / data.goalXmr) * 100))
   const empty = kunoNamed === 0
