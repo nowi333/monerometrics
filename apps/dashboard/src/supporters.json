@@ -1,7 +1,7 @@
 {
   "kunoUrl": "https://kuno.anne.media/fundraiser/xyf8/",
   "goalXmr": 10,
-  "raisedXmr": 5,
+  "raisedXmr": 6,
   "anonymous": [
     5
   ],
@@ -12,7 +12,19 @@
     }
   ],
   "node": null,
-  "charts": [],
+  "charts": [
+    {
+      "name": "WizardSwap",
+      "chart": ""
+    }
+  ],
   "readme": [],
-  "wall": []
+  "wall": [],
+  "projects": [
+    {
+      "name": "WizardSwap",
+      "url": "https://wizardswap.io",
+      "logo": "/supporters/wizardswap.png"
+    }
+  ]
 }

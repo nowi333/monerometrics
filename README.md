@@ -697,6 +697,10 @@ and searchable.
 
 ## Support the project
 
+**Supporters:** thank you to [WizardSwap](https://wizardswap.io) (1 XMR, sponsored chart) and to
+the anonymous donor of 5 XMR. The full list is on the
+[supporters wall](https://monerometrics.net/#donation).
+
 monerometrics runs on a modest self-funded infrastructure (no ads, no tracking, no data sold), about
 35 € a month including VAT. Donations in XMR go to:
 
