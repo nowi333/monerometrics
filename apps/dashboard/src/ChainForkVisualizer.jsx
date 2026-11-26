@@ -8,10 +8,7 @@ import PanelState from './PanelState'
 import { poolColor } from './poolColors'
 import BlockDetailModal from './BlockDetailModal'
 import TxResult from './TxResult'
-import supporters from './supporters.json'
-
-// Sponsor du graphique (palier 1 XMR), tenu dans supporters.json.
-const SPONSOR = (supporters.charts || []).find(c => c.panel === 'fork')
+import SponsorCredit from './SponsorCredit'
 
 const SOURCE_STROKE = {
   viewkey_proof: 'var(--color-success)',
@@ -565,12 +562,7 @@ export default function ChainForkVisualizer({ hero = false }) {
         <div>
           <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
             {t('fork.title')}<InfoTooltip text={t('info.fork')} />
-            {SPONSOR && (
-              <span className="text-xs font-normal" style={{ color: 'var(--color-dim)' }}>
-                — {t('fork.sponsoredBy')}{' '}
-                <a href={SPONSOR.url} target="_blank" rel="noopener noreferrer sponsored" className="hover:underline" style={{ color: 'var(--color-text-secondary)' }}>{SPONSOR.label}</a>
-              </span>
-            )}
+            <SponsorCredit panel="fork" />
           </h3>
           {(subtitle || loadingMore) && (
             <p className="text-xs mt-1" style={{ color: status === 'error' ? 'var(--color-warn)' : 'var(--color-dim)' }}>

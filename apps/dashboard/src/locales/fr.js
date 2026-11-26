@@ -196,7 +196,7 @@ export default {
 
 
           'fork.title': 'Visualiseur de chain',
-          'fork.sponsoredBy': 'sponsorisé par',
+          'sponsor.by': 'sponsorisé par',
 
 
           'fork.a11yBlock': 'Bloc n° {{height}}, {{pool}}. Entrée pour le détail.',

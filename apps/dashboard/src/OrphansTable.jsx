@@ -43,6 +43,7 @@ export default function OrphansTable() {
     <Panel
       title={t('orphans.title')}
       info={t('info.orphans')}
+      sponsor="orphans"
       subtitle={status === 'ok'
         ? t('orphans.count', { count: data.orphans.length }) + (period === 'all' ? ` · ${t('orphans.since')}` : '')
         : null}

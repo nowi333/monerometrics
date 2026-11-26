@@ -1,6 +1,7 @@
 import InfoTooltip from './InfoTooltip'
 import PanelState from './PanelState'
 import ApiCall from './ApiCall'
+import SponsorCredit from './SponsorCredit'
 
 /**
  * Coquille commune a tous les panneaux : carte, en-tete et etat de chargement.
@@ -10,7 +11,7 @@ import ApiCall from './ApiCall'
 export default function Panel({
   title, info = null, subtitle = null, control = null,
   status = null, emptyText = null, stateHeight = 240, stateVariant = 'block',
-  footer = null, apiPath = null, className = '', children,
+  footer = null, apiPath = null, sponsor = null, className = '', children,
 }) {
   const showState = status != null && status !== 'ok'
   return (
@@ -20,8 +21,9 @@ export default function Panel({
     >
       <div className="flex justify-between items-start gap-3 mb-4">
         <div className="min-w-0">
-          <h3 className="text-base font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
+          <h3 className="text-base font-medium flex flex-wrap items-center gap-x-2 gap-y-0.5" style={{ color: 'var(--color-text)' }}>
             {title}{info ? <InfoTooltip text={info} /> : null}
+            {sponsor && <SponsorCredit panel={sponsor} />}
           </h3>
           {subtitle && (
             <p className="text-xs mt-1" style={{ color: 'var(--color-dim)' }}>{subtitle}</p>

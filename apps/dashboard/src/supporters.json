@@ -15,7 +15,10 @@
   "charts": [
     {
       "name": "WizardSwap",
-      "chart": ""
+      "chart": "Orphan blocks",
+      "panel": "orphans",
+      "url": "https://wizardswap.io",
+      "label": "WizardSwap.io"
     },
     {
       "name": "Trocador",
