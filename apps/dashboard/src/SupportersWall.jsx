@@ -26,6 +26,18 @@ function Tier({ title, price, children }) {
   )
 }
 
+// Meme rendu pour les trois paliers : une pastille par nom.
+function Names({ items, render = (n) => n, none }) {
+  if (!items.length) return <span className="text-xs" style={{ color: 'var(--color-dim)' }}>{none}</span>
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map((n, i) => (
+        <span key={i} className="text-xs px-2.5 py-1 rounded-full border" style={{ color: 'var(--color-text-secondary)', borderColor: 'var(--color-border-strong)' }}>{render(n)}</span>
+      ))}
+    </div>
+  )
+}
+
 export default function SupportersWall() {
   const { t, i18n } = useTranslation()
   const fmt = (n) => Number(n).toLocaleString(i18n.language, { maximumFractionDigits: 2 })
@@ -144,25 +156,15 @@ export default function SupportersWall() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             <Tier title={t('wall.tier.chart')} price="1 XMR">
-              {data.charts.length ? data.charts.map((m, i) => (
-                <div key={i} className="flex justify-between gap-3 text-[13px]">
-                  <span style={{ color: 'var(--color-text)' }}>{m.name}</span>
-                  <span className="text-right" style={{ color: 'var(--color-dim)' }}>{m.chart}</span>
-                </div>
-              )) : <span className="text-xs" style={{ color: 'var(--color-dim)' }}>{t('wall.tier.none')}</span>}
+              <Names items={data.charts} render={(m) => (
+                <>{m.name}{m.chart && <span style={{ color: 'var(--color-dim)' }}> · {m.chart}</span>}</>
+              )} none={t('wall.tier.none')} />
             </Tier>
             <Tier title={t('wall.tier.readme')} price={`${fmt(0.25)} XMR`}>
-              <div className="flex flex-wrap gap-2">
-                {data.readme.length ? data.readme.map((n, i) => (
-                  <span key={i} className="text-xs px-2.5 py-1 rounded-full border" style={{ color: 'var(--color-text-secondary)', borderColor: 'var(--color-border-strong)' }}>{n}</span>
-                )) : <span className="text-xs" style={{ color: 'var(--color-dim)' }}>{t('wall.tier.none')}</span>}
-              </div>
+              <Names items={data.readme} none={t('wall.tier.none')} />
             </Tier>
             <Tier title={t('wall.tier.wall')} price={`${fmt(0.05)} XMR`}>
-              <div className="flex flex-wrap gap-x-3.5 gap-y-1.5 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                {data.wall.length ? data.wall.map((n, i) => <span key={i}>{n}</span>)
-                  : <span style={{ color: 'var(--color-dim)' }}>{t('wall.tier.none')}</span>}
-              </div>
+              <Names items={data.wall} none={t('wall.tier.none')} />
             </Tier>
           </div>
         </>
