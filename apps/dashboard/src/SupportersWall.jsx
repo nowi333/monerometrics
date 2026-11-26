@@ -5,7 +5,7 @@ import data from './supporters.json'
 // de supporters.json, tenu a la main a chaque preuve de paiement recue : rien
 // n'y entre sans la demande de la personne.
 //
-// Format : early = noms ou {"name", "x"} ; node = {"name"} ou null ; charts = [{"name", "chart"}] ;
+// Format : early = noms ou {"name", "x"} ; node = {"name"} ou null ; charts = [{"name", "chart", "panel"?, "url"?, "label"?}] (panel : cle du panneau qui affiche « sponsored by ») ;
 // readme et wall = listes de noms. raisedXmr est recopie depuis Kuno.
 // projects = [{"name", "url", "logo", "wordmark"?}] (wordmark : le logo contient deja le nom) : un projet qui debloque n'importe quel palier peut
 // ajouter son logo, offert. Le fichier du logo va dans public/supporters/, servi par

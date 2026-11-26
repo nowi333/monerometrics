@@ -19,7 +19,10 @@
     },
     {
       "name": "Trocador",
-      "chart": ""
+      "chart": "Chain visualizer",
+      "panel": "fork",
+      "url": "https://trocador.app",
+      "label": "Trocador.app"
     }
   ],
   "readme": [

@@ -214,6 +214,7 @@ i18n
 
 
           'fork.title': 'Chain visualizer',
+          'fork.sponsoredBy': 'sponsored by',
 
 
           'fork.a11yBlock': 'Block #{{height}}, {{pool}}. Press Enter for details.',
