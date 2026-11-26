@@ -604,7 +604,6 @@ export default {
           'wall.goal': 'sur {{goal}} XMR · Kuno',
           'wall.node.title': 'Nœud de contre-vérification · 10 XMR',
           'wall.node.named': 'Le second nœud porte le nom de',
-          'wall.node.open': 'Disponible',
           'wall.node.taken': 'Parrainé',
           'wall.tier.chart': 'Sponsors de graphique',
           'wall.tier.readme': 'Crédités dans le README',

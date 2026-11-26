@@ -604,7 +604,6 @@ export default {
           'wall.goal': 'de {{goal}} XMR · Kuno',
           'wall.node.title': 'Nodo de verificación cruzada · 10 XMR',
           'wall.node.named': 'El segundo nodo lleva el nombre de',
-          'wall.node.open': 'Disponible',
           'wall.node.taken': 'Patrocinado',
           'wall.tier.chart': 'Patrocinadores de gráfico',
           'wall.tier.readme': 'Acreditados en el README',

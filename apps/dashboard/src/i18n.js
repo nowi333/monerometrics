@@ -622,7 +622,6 @@ i18n
           'wall.goal': 'of {{goal}} XMR · Kuno',
           'wall.node.title': 'Cross-check node · 10 XMR',
           'wall.node.named': 'The second node is named',
-          'wall.node.open': 'Available',
           'wall.node.taken': 'Sponsored',
           'wall.tier.chart': 'Chart sponsors',
           'wall.tier.readme': 'Credited in the README',

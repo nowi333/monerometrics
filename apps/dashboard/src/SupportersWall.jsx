@@ -125,17 +125,19 @@ export default function SupportersWall() {
         </div>
       ) : (
         <>
-          <div className="rounded-lg border px-4 py-4 sm:px-5 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4"
-            style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 45%, transparent)', background: 'color-mix(in srgb, var(--color-accent) 6%, transparent)' }}>
-            <div className="flex flex-col gap-1 flex-1">
-              <span className="text-xs sm:text-xs uppercase tracking-[0.12em]" style={{ color: 'var(--color-accent)' }}>{t('wall.node.title')}</span>
-              <span className="text-sm sm:text-[15px]" style={{ color: 'var(--color-text)' }}>
-                {t('wall.node.named')}{' '}
-                <span style={{ ...MONO, color: 'var(--color-accent)' }}>node-{data.node ? data.node.name : '…'}</span>
-              </span>
+          {data.node && (
+            <div className="rounded-lg border px-4 py-4 sm:px-5 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4"
+              style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 45%, transparent)', background: 'color-mix(in srgb, var(--color-accent) 6%, transparent)' }}>
+              <div className="flex flex-col gap-1 flex-1">
+                <span className="text-xs sm:text-xs uppercase tracking-[0.12em]" style={{ color: 'var(--color-accent)' }}>{t('wall.node.title')}</span>
+                <span className="text-sm sm:text-[15px]" style={{ color: 'var(--color-text)' }}>
+                  {t('wall.node.named')}{' '}
+                  <span style={{ ...MONO, color: 'var(--color-accent)' }}>node-{data.node.name}</span>
+                </span>
+              </div>
+              <span className="text-xs" style={{ color: 'var(--color-dim)' }}>{t('wall.node.taken')}</span>
             </div>
-            <span className="text-xs" style={{ color: 'var(--color-dim)' }}>{data.node ? t('wall.node.taken') : t('wall.node.open')}</span>
-          </div>
+          )}
 
           {projects.length > 0 && (
             <div className="flex flex-col gap-3">
